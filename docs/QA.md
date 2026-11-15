@@ -11,16 +11,17 @@ performance claims; see PERFORMANCE.md for the profiling procedure to run on rea
 | Typecheck, build | local | Pass. JS 710 kB (194 kB gzip) + 11 kB worker + lazily loaded profiler (4 kB) |
 | Unit + headless simulation (12 files) | local | **69/69 pass** |
 | Browser suites (smoke, reliability, gameplay; 18 tests) | local | Last full run 16/18: both failures were input-timing races (below), fixed; affected scenarios then passed 6/6 with `--repeat-each 2` |
-| GitHub Actions | CI | Runs 44 (`21c3aba`) and 46 (`dcd446c`) failed on flaky tests, each diagnosed and fixed below. Result for the latest commit: see "CI record" |
+| GitHub Actions | CI | **Run 51 on `c93468d`: success** (typecheck, 69 unit/headless, build, all 18 browser tests; ~10 min). Earlier failures diagnosed and fixed below |
 
 ## CI record
 | Run | Commit | Result | Cause | Fix |
 |---|---|---|---|---|
 | 44 | `21c3aba` | Fail | Wildlife: deer was resting when the jackal appeared; resting halves detection per check by design, so an 8 s window missed 6–25% of the time | Deer stands up first (`1695c09`) |
 | 46 | `dcd446c` | Fail | Click-select: the followed deer walked off the screen centre before the click | Pause, click the deer's projected position (`6c1a3e4`) |
-| 48 | `d7423cd` | Fail | (a) walk-speed check diluted by ticks before the key was first sampled (1.12 m/s measured for a 2.08 m/s walk); (b) chunk traversal timed out: the scripted path advanced at most 0.1 s per frame, so slow CI frames stretched it past 4 min | Measure only while moving; path advances by real time (`dc0d2f4`-series commit after `6b8261e`) |
+| 48 | `d7423cd` | Fail | (a) walk-speed check diluted by ticks before the key was first sampled (1.12 m/s measured for a 2.08 m/s walk); (b) chunk traversal timed out: the scripted path advanced at most 0.1 s per frame, so slow CI frames stretched it past 4 min | Measure only while moving; path advances by real time (`c93468d`) |
 | local | `6c1a3e4` | 2 fails | Short key holds fell between frames 250–1000 ms apart, so they did nothing | Input latches taps between frames (product fix, unit-tested); tests poll for effects (`6b8261e`) |
-| 45, 47 | — | Cancelled | Superseded by a newer push | — |
+| 45, 47, 49, 50 | — | Cancelled | Superseded by a newer push | — |
+| **51** | **`c93468d`** | **Success** | — | [run](https://github.com/purushpsm147/Untamed-Earth/actions/runs/43732212471) |
 
 ## What the tests cover
 
