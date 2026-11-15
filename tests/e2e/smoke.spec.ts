@@ -64,7 +64,15 @@ test('explicit Auto at startup overrides a previously saved manual graphics sett
   await expect(page.locator('#startQuality')).toHaveValue('low');
   await page.selectOption('#startQuality', 'auto');
   await page.click('#btnNew');
-  await expect(page.locator('#hud')).toBeVisible({ timeout: 90_000 });
+  // This test verifies that the Auto choice overrides a saved manual mode.
+  // Full terrain readiness is already tested in the Low-preset smoke path.
+  // Requiring desktop Auto/High to fully stream under CI's software renderer
+  // conflates a settings regression test with unrepresentative GPU performance.
+  await page.waitForFunction(() =>
+    (window as unknown as { __untamed?: { engine: { auto: boolean } } }).__untamed?.engine?.auto === true,
+    null, { timeout: 45_000 }
+  );
+  await expect(page.locator('#fatal')).toBeHidden();
   const autoEnabled = await page.evaluate(() =>
     (window as unknown as { __untamed: { engine: { auto: boolean } } }).__untamed.engine.auto
   );
