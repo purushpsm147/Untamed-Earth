@@ -2,11 +2,12 @@ import './style.css';
 import { SAVE_VERSION } from '@untamed/ecology';
 import { SaveStore, openEnvelope } from '@untamed/persistence';
 import { AudioEngine } from './audio/AudioEngine';
-import { Game, SAVE_FORMAT, SAVE_SLOT, SaveData, parseSeed, toast } from './game/Game';
+import { Game, GraphicsChoice, SAVE_FORMAT, SAVE_SLOT, SaveData, parseSeed, toast } from './game/Game';
 import { CLASSIFICATION_LABEL, WORLDS, getWorld } from './game/worldRegistry';
 import { Input } from './input/Input';
-import { GraphicsError } from './render/Engine';
-import { QualityName, guessQuality } from './render/quality';
+import { GraphicsError, probeGraphics } from './render/Engine';
+import { QUALITY_ORDER, QualityName, assessQuality, readHardwareHints } from './render/quality';
+import { FpsTarget } from './render/qualityGovernor';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 const canvas = $<HTMLCanvasElement>('view');
@@ -21,6 +22,7 @@ interface Settings {
   muted?: boolean;
   music?: number;
   reducedMotion?: boolean;
+  fps?: FpsTarget | 0;
 }
 function readSettings(): Settings {
   try {
@@ -58,8 +60,6 @@ function start(seed: number, save?: SaveData): void {
     return;
   }
   const choice = $<HTMLSelectElement>('startQuality').value;
-  const quality: QualityName = choice !== 'auto' ? (choice as QualityName) : (st.quality ?? guessQuality());
-  const auto = choice === 'auto' ? (st.auto ?? true) : false;
   game?.dispose();
   game = null;
   input.enabled = false;
@@ -72,8 +72,22 @@ function start(seed: number, save?: SaveData): void {
   // let the loading card paint before the synchronous world build
   setTimeout(async () => {
     try {
+      // Initial hardware assessment: capability hints plus what the GL context says about the GPU. Hints are
+      // approximate by nature; the runtime governor corrects the choice from measured frame times.
+      const gpu = probeGraphics(canvas);
+      const assessed = assessQuality(readHardwareHints(gpu.renderer));
+      let gfx: GraphicsChoice;
+      if (choice !== 'auto') {
+        // an explicit preset is a manual override: fixed quality, no adaptation
+        gfx = { initial: choice as QualityName, ceiling: choice as QualityName, auto: false, fps: st.fps ?? assessed.fps, basis: 'chosen manually', gpu: gpu.renderer };
+      } else {
+        // Auto: a ceiling the player set earlier while in Auto is respected; otherwise the assessment's.
+        const ceiling = st.auto !== false && st.quality ? st.quality : assessed.ceiling;
+        const initial = QUALITY_ORDER[Math.min(QUALITY_ORDER.indexOf(ceiling), QUALITY_ORDER.indexOf(assessed.initial))]!;
+        gfx = { initial, ceiling, auto: true, fps: st.fps ?? assessed.fps, basis: assessed.reasons.join('; '), gpu: gpu.renderer };
+      }
       const sim = await world.load(seed, save?.sim);
-      game = new Game(canvas, sim, world.id, quality, auto, input, audio, { fatal, restart: start }, save);
+      game = new Game(canvas, sim, world.id, gfx, input, audio, { fatal, restart: start }, save);
       game.curiosity.reducedMotion = st.reducedMotion ?? window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       $<HTMLInputElement>('mMotion').checked = game.curiosity.reducedMotion;
     } catch (e) {
@@ -98,6 +112,7 @@ function start(seed: number, save?: SaveData): void {
         $('loading').classList.add('hidden');
         $('hud').classList.remove('hidden');
         g.ready = true;
+        g.engine.beginAdaptation();
         // ?qa=1 starts paused at tick 0 so automated screenshots and benchmarks begin from an identical state
         if (new URLSearchParams(location.search).has('qa')) g.setSpeed(0);
         input.enabled = true;
@@ -114,6 +129,8 @@ function start(seed: number, save?: SaveData): void {
 }
 
 const st = readSettings();
+// Restore an explicit manual preset on the start screen; otherwise Auto is selected.
+$<HTMLSelectElement>('startQuality').value = st.auto === false && st.quality ? st.quality : 'auto';
 audio.setVolume(st.volume ?? 0.7);
 audio.muted = st.muted ?? false;
 $<HTMLInputElement>('mVolume').value = String(st.volume ?? 0.7);

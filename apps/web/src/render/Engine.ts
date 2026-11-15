@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { clamp01 } from '@untamed/core';
 import { Simulation } from '@untamed/ecology';
-import { AdaptiveQuality } from './adaptive';
 import { AnimalView } from './AnimalView';
 import { GrassView } from './GrassView';
 import { buildLandmarks } from './landmarks';
-import { QUALITY, QUALITY_ORDER, QualityName, QualityPreset } from './quality';
+import { QUALITY, QualityName, QualityPreset } from './quality';
+import { FpsTarget, QualityChange, QualityGovernor } from './qualityGovernor';
 import { ScatterView } from './ScatterView';
 import { shared } from './shared';
 import { Sky } from './Sky';
@@ -39,6 +39,14 @@ function acquireRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
   return r;
 }
 
+/** What the GL context reports about the graphics device. Strings may be masked by the browser. */
+export function probeGraphics(canvas: HTMLCanvasElement): { renderer: string; vendor: string; maxTextureSize: number } {
+  const gl = acquireRenderer(canvas).getContext();
+  const ext = gl.getExtension('WEBGL_debug_renderer_info');
+  const str = (unmasked: number | undefined, masked: number): string => String((unmasked ? gl.getParameter(unmasked) : null) ?? gl.getParameter(masked) ?? '');
+  return { renderer: str(ext?.UNMASKED_RENDERER_WEBGL, gl.RENDERER), vendor: str(ext?.UNMASKED_VENDOR_WEBGL, gl.VENDOR), maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number };
+}
+
 /**
  * Owns the WebGL renderer and every view. Views read simulation state; nothing here writes to it.
  * The only renderer-specific types that escape this module are the camera and picking results,
@@ -56,7 +64,27 @@ export class Engine {
   readonly animals: AnimalView;
   readonly weather: WeatherFx;
   quality: QualityPreset;
-  readonly adapt: AdaptiveQuality;
+  readonly governor: QualityGovernor;
+  /** The governor only samples once the world is ready: loading frames are not representative. */
+  private adapting = false;
+  get auto(): boolean {
+    return this.governor.auto;
+  }
+  /** Turning Auto off returns to exactly the preset the player chose (the ceiling) at full resolution. */
+  set auto(value: boolean) {
+    if (value === this.governor.auto) return;
+    if (value) this.governor.setAuto(true);
+    else this.setQuality(this.governor.ceiling, false);
+  }
+  get resScale(): number {
+    return this.governor.scale;
+  }
+  get qualityCeiling(): QualityName {
+    return this.governor.ceiling;
+  }
+  get frameMs(): number {
+    return this.governor.frameMs;
+  }
   onQualityChange: (() => void) | null = null;
   private readonly fog = new THREE.FogExp2(0x9ab0c0, 0.002);
   private thunderCb: (() => void) | null = null;
@@ -64,15 +92,16 @@ export class Engine {
   private disposed = false;
   private nextFlash = 5;
 
-  constructor(readonly canvas: HTMLCanvasElement, private readonly sim: Simulation, quality: QualityName) {
+  /** @param ceiling highest preset Auto may climb to (defaults to the starting preset). */
+  constructor(readonly canvas: HTMLCanvasElement, private readonly sim: Simulation, quality: QualityName, ceiling: QualityName = quality) {
     this.renderer = acquireRenderer(canvas);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 0.95;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.scene.fog = this.fog;
+    this.governor = new QualityGovernor(quality, ceiling);
     this.quality = QUALITY[quality];
-    this.adapt = new AdaptiveQuality(QUALITY_ORDER.indexOf(quality));
 
     const valley = sim.valley;
     this.terrain = new TerrainView(valley);
@@ -91,23 +120,18 @@ export class Engine {
     this.resize();
   }
 
-  get auto(): boolean {
-    return this.adapt.auto;
+  /** Start adapting to measured frame times, beginning with a short bounded calibration. Call when the world is ready. */
+  beginAdaptation(): void {
+    this.adapting = true;
+    this.governor.beginCalibration();
   }
-  set auto(v: boolean) {
-    this.adapt.auto = v;
-  }
-  get resScale(): number {
-    return this.adapt.resScale;
-  }
-  get frameMs(): number {
-    return this.adapt.frameMs;
+  setFpsTarget(fps: FpsTarget): void {
+    this.governor.setTarget(fps);
   }
 
   setQuality(name: QualityName, auto = this.auto): void {
+    this.governor.setQuality(name, auto);
     this.quality = QUALITY[name];
-    this.adapt.auto = auto;
-    this.adapt.reset(QUALITY_ORDER.indexOf(name));
     this.applyQuality();
     this.onQualityChange?.();
   }
@@ -160,20 +184,48 @@ export class Engine {
     this.thunderCb = cb;
   }
 
-  private adaptStep(dt: number): void {
-    const act = this.adapt.step(dt, document.hidden);
-    if (act === 'none') return;
-    if (act === 'preset-down') {
-      this.quality = QUALITY[QUALITY_ORDER[this.adapt.level]!];
+  /**
+   * Renderer-independent quality decisions can be tested without a WebGL context.
+   * The governor retains the initial/user quality ceiling across automatic downgrades.
+   */
+  private adapt(dt: number): void {
+    if (!this.adapting) return;
+    this.applyChange(this.governor.sample(dt, document.hidden));
+  }
+
+  private applyChange(changed: QualityChange): void {
+    if (changed === 'none') return;
+    if (changed === 'preset') {
+      this.quality = QUALITY[this.governor.quality];
       this.applyQuality();
-    } else this.applyResolution();
+    } else {
+      this.applyResolution();
+    }
     this.onQualityChange?.();
+  }
+
+  /**
+   * QA: drive the governor with a synthetic frame-time trace through the same path real frames take, so a
+   * test can check that its decisions really change renderer settings. Real sampling stops for good once
+   * this is used, so the trace is the only evidence the governor sees.
+   */
+  debugFeed(frameMs: number, seconds: number): { changes: string[]; quality: QualityName; scale: number; pixelRatio: number; viewDist: number; vegDist: number; shadows: boolean } {
+    this.adapting = false;
+    const changes: string[] = [];
+    for (let t = 0; t < seconds * 1000; t += frameMs) {
+      const c = this.governor.sample(frameMs / 1000, false);
+      if (c !== 'none') {
+        this.applyChange(c);
+        changes.push(`${c}:${this.governor.quality}@${this.governor.scale}`);
+      }
+    }
+    return { changes, quality: this.quality.name, scale: this.governor.scale, pixelRatio: this.renderer.getPixelRatio(), viewDist: this.terrain.viewDist, vegDist: this.scatter.vegDist, shadows: this.sky.sun.castShadow };
   }
 
   frame(dtReal: number, alpha: number, time: number, selected: number, simRate: number, highlightGroup = 0): void {
     const env = this.sim.env;
     const cam = this.camera.position;
-    this.adaptStep(dtReal);
+    this.adapt(dtReal);
     shared.uTime.value = time;
     shared.uWind.value = env.wind;
     shared.uDry.value = clamp01((0.5 - env.meanMoisture) / 0.4) * 0.85 + clamp01(0.5 - env.totalVeg / env.totalCap) * 0.3;

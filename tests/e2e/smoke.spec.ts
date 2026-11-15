@@ -21,12 +21,18 @@ test('boots, renders, simulates, switches modes, saves', async ({ page }) => {
 
   // the world advances on its own, faster under time acceleration
   await page.click('#speeds button[data-speed="100"]');
+  const a = await state(page);
   await page.waitForTimeout(4000);
   const s1 = await state(page);
-  expect(s1.tick).toBeGreaterThan(s0.tick + 20);
-  // CI runs in software-rendered Chromium; achieved acceleration varies with CPU load.
-  // Advance correctness is verified here, not a guaranteed wall-clock acceleration target.
+  expect(s1.tick).toBeGreaterThan(a.tick + 20);
+  // The wall-clock rate achieved depends on the machine (software-rendered CI is slow), so this floor is loose;
+  // the HUD reports requested vs achieved rate.
   expect(s1.day).toBeGreaterThan(s0.day + 0.01);
+  // HOW time accelerates is hardware-independent and is asserted exactly: at 100x every tick is a coarse 1 s
+  // step (one game-minute), ten times the 1x step. Acceleration is more simulation per step, not faster animation.
+  const minutesPerTick = ((s1.day - a.day) * 1440) / (s1.tick - a.tick);
+  expect(minutesPerTick).toBeGreaterThan(0.95);
+  expect(minutesPerTick).toBeLessThan(1.05);
 
   // wildlife mode possesses a real deer; releasing returns to observer
   await page.click('#modes button[data-mode="wildlife"]');
@@ -96,4 +102,28 @@ test('restarting a world disposes the old renderer-owned materials and geometry'
   const counts = await page.evaluate(() => (window as unknown as { __restartProbe: { hits: number[] } }).__restartProbe.hits);
   expect(counts).toHaveLength(10);
   expect(counts.every((n) => n === 1), 'every old GPU resource must be disposed once').toBe(true);
+});
+
+
+test('explicit Auto at startup overrides a previously saved manual graphics setting', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('untamed.settings', JSON.stringify({ quality: 'low', auto: false, volume: 0, muted: true }));
+  });
+  await page.goto('/');
+  await expect(page.locator('#startQuality')).toHaveValue('low');
+  await page.selectOption('#startQuality', 'auto');
+  await page.click('#btnNew');
+  // This test verifies that the Auto choice overrides a saved manual mode.
+  // Full terrain readiness is already tested in the Low-preset smoke path.
+  // Requiring desktop Auto/High to fully stream under CI's software renderer
+  // conflates a settings regression test with unrepresentative GPU performance.
+  await page.waitForFunction(() =>
+    (window as unknown as { __untamed?: { engine: { auto: boolean } } }).__untamed?.engine?.auto === true,
+    null, { timeout: 45_000 }
+  );
+  await expect(page.locator('#fatal')).toBeHidden();
+  const autoEnabled = await page.evaluate(() =>
+    (window as unknown as { __untamed: { engine: { auto: boolean } } }).__untamed.engine.auto
+  );
+  expect(autoEnabled).toBe(true);
 });

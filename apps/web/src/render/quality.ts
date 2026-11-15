@@ -22,12 +22,75 @@ export const QUALITY: Record<QualityName, QualityPreset> = {
 };
 export const QUALITY_ORDER: QualityName[] = ['low', 'medium', 'high', 'ultra'];
 
-/** First-visit guess from coarse device signals; the adaptive controller refines it at runtime. */
-export function guessQuality(): QualityName {
+/** What the browser lets us learn about the device. None of it is exact; all of it may be missing or masked. */
+export interface HardwareHints {
+  mobile: boolean;
+  /** navigator.deviceMemory (GB, capped at 8 by browsers) or null where unsupported. */
+  memoryGB: number | null;
+  cores: number | null;
+  /** Physical pixels the canvas would cover at full device pixel ratio. */
+  pixels: number;
+  /** GPU renderer string, possibly masked or empty. */
+  renderer: string;
+  /** True when the renderer string names a CPU rasteriser (SwiftShader, llvmpipe, ...). */
+  software: boolean;
+}
+
+export interface QualityAssessment {
+  /** Preset to start on. */
+  initial: QualityName;
+  /** Highest preset Auto may climb to on this class of device. */
+  ceiling: QualityName;
+  fps: 30 | 60;
+  /** Human-readable basis for the choice (shown in diagnostics; never presented as a measurement). */
+  reasons: string[];
+}
+
+export const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|software rasterizer|microsoft basic render/i;
+
+export function readHardwareHints(renderer: string): HardwareHints {
   const nav = navigator as Navigator & { deviceMemory?: number };
-  const mobile = /Android|iPhone|iPad|Mobile/i.test(nav.userAgent) || (nav.maxTouchPoints > 1 && window.innerWidth < 1000);
-  const mem = nav.deviceMemory ?? 8;
-  if (mobile) return mem >= 6 ? 'medium' : 'low';
-  if (mem <= 4 || (nav.hardwareConcurrency ?? 8) <= 4) return 'medium';
-  return 'high';
+  const mobile = /Android|iPhone|iPad|Mobile/i.test(nav.userAgent) || (nav.maxTouchPoints > 1 && Math.min(window.innerWidth, window.innerHeight) < 820);
+  const dpr = window.devicePixelRatio || 1;
+  return {
+    mobile, memoryGB: nav.deviceMemory ?? null, cores: nav.hardwareConcurrency ?? null,
+    pixels: Math.round(window.innerWidth * window.innerHeight * dpr * dpr), renderer, software: SOFTWARE_RENDERER.test(renderer),
+  };
+}
+
+/**
+ * Starting point for Auto quality from coarse capability hints. Deliberately conservative: the runtime
+ * governor (qualityGovernor.ts) refines it from real frame times within seconds, and Ultra is never
+ * chosen automatically. Pure function so the policy is unit-tested.
+ */
+export function assessQuality(h: HardwareHints): QualityAssessment {
+  const reasons: string[] = [];
+  if (h.software) {
+    reasons.push(`software renderer (${h.renderer || 'unnamed'}): no GPU acceleration`);
+    return { initial: 'low', ceiling: 'low', fps: 30, reasons };
+  }
+  if (h.mobile) {
+    const roomy = (h.memoryGB ?? 4) >= 6;
+    reasons.push(`mobile-class device${h.memoryGB ? `, ~${h.memoryGB} GB memory hint` : ''}`);
+    return { initial: roomy ? 'medium' : 'low', ceiling: 'medium', fps: 30, reasons };
+  }
+  let initial: QualityName = 'high';
+  if ((h.memoryGB ?? 8) <= 4) {
+    initial = 'medium';
+    reasons.push(`~${h.memoryGB} GB memory hint`);
+  }
+  if ((h.cores ?? 8) <= 4) {
+    initial = 'medium';
+    reasons.push(`${h.cores} logical cores`);
+  }
+  if (/Intel.*(HD|UHD|Iris)/i.test(h.renderer)) {
+    initial = 'medium';
+    reasons.push('integrated graphics');
+  }
+  if (h.pixels > 6_000_000) {
+    initial = 'medium';
+    reasons.push(`${(h.pixels / 1e6).toFixed(1)} MP viewport`);
+  }
+  if (!reasons.length) reasons.push('desktop-class hints');
+  return { initial, ceiling: 'high', fps: 60, reasons };
 }

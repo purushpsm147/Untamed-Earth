@@ -8,6 +8,7 @@ import { AudioEngine } from '../audio/AudioEngine';
 import { Input } from '../input/Input';
 import { Engine } from '../render/Engine';
 import { QUALITY_ORDER, QualityName } from '../render/quality';
+import { FpsTarget, FramePacer } from '../render/qualityGovernor';
 import { drawChart } from '../ui/chart';
 import { Curiosity } from './Curiosity';
 
@@ -16,6 +17,18 @@ export interface SaveData {
   worldId: string;
   sim: SimSnapshot;
   cam: { x: number; y: number; z: number; yaw: number; pitch: number };
+}
+/** Graphics start-up decision: an explicit player choice, or Auto from the hardware assessment. */
+export interface GraphicsChoice {
+  initial: QualityName;
+  /** Highest preset Auto may use. Equal to `initial` for a manual choice. */
+  ceiling: QualityName;
+  auto: boolean;
+  /** Frame-rate target; 0 renders at the display's own rate. */
+  fps: FpsTarget | 0;
+  /** Why Auto started where it did, and what the GPU calls itself (shown in diagnostics only). */
+  basis: string;
+  gpu: string;
 }
 export const SAVE_FORMAT = 'untamed-earth';
 export const SAVE_SLOT = 'slot1';
@@ -94,12 +107,15 @@ export class Game {
   private readonly unsub: (() => void)[] = [];
   private readonly store = new SaveStore();
   private readonly abort = new AbortController();
+  readonly pacer = new FramePacer();
+  private lastRaf = 0;
 
-  constructor(canvas: HTMLCanvasElement, readonly sim: Simulation, readonly worldId: string, quality: QualityName, auto: boolean, private readonly input: Input, private readonly audio: AudioEngine,
+  constructor(canvas: HTMLCanvasElement, readonly sim: Simulation, readonly worldId: string, private readonly gfx: GraphicsChoice, private readonly input: Input, private readonly audio: AudioEngine,
     private readonly hooks: { fatal: (msg: string) => void; restart: (seed: number, save?: SaveData) => void }, save?: SaveData) {
-    this.engine = new Engine(canvas, this.sim, quality);
+    this.engine = new Engine(canvas, this.sim, gfx.initial, gfx.ceiling);
     this.curiosity = new Curiosity(this.sim);
-    this.engine.auto = auto;
+    this.engine.auto = gfx.auto;
+    this.setFps(gfx.fps);
     if (save) Object.assign(this.cam, save.cam);
     else {
       this.cam.y = this.sim.valley.height(this.cam.x, this.cam.z) + 9;
@@ -127,6 +143,20 @@ export class Game {
     }, { signal: this.abort.signal });
     window.addEventListener('resize', () => this.engine.resize(), { signal: this.abort.signal });
     window.addEventListener('pagehide', () => void this.save(true), { signal: this.abort.signal });
+    // Hidden-tab policy: browsers stop animation frames for hidden tabs, so rendering AND the simulation pause.
+    // Nothing is fast-forwarded on return. Progress is saved on the way out, audio is suspended, and the
+    // quality governor discards evidence from before the pause.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (this.ready) void this.save(true);
+        this.audio.setSuspended(true);
+      } else {
+        this.last = performance.now();
+        this.lastRaf = this.last;
+        this.engine.governor.resume();
+        this.audio.setSuspended(false);
+      }
+    }, { signal: this.abort.signal });
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
   }
@@ -164,8 +194,13 @@ export class Game {
       const s = prompt('Seed for the new world (number or word):', String(this.sim.seed + 1));
       if (s !== null) this.hooks.restart(parseSeed(s));
     });
+    // With Auto on, the preset chosen here is the ceiling the governor may climb back to; with Auto off it is fixed.
     this.on('mQuality', 'change', (e) => {
-      this.engine.setQuality((e.target as HTMLSelectElement).value as QualityName, false);
+      this.engine.setQuality((e.target as HTMLSelectElement).value as QualityName, this.engine.auto);
+      this.storeSettings();
+    });
+    this.on('mFps', 'change', (e) => {
+      this.setFps(Number((e.target as HTMLSelectElement).value) as FpsTarget | 0);
       this.storeSettings();
     });
     this.on('mAuto', 'change', (e) => {
@@ -269,8 +304,8 @@ export class Game {
   private storeSettings(): void {
     try {
       localStorage.setItem('untamed.settings', JSON.stringify({
-        quality: this.engine.quality.name, auto: this.engine.auto, volume: Number($<HTMLInputElement>('mVolume').value), muted: this.audio.muted,
-        music: Number($<HTMLInputElement>('mMusic').value), reducedMotion: this.curiosity.reducedMotion,
+        quality: this.engine.qualityCeiling, auto: this.engine.auto, volume: Number($<HTMLInputElement>('mVolume').value), muted: this.audio.muted,
+        music: Number($<HTMLInputElement>('mMusic').value), reducedMotion: this.curiosity.reducedMotion, fps: this.pacer.target,
       }));
     } catch {
       /* settings simply won't persist */
@@ -278,10 +313,18 @@ export class Game {
   }
 
   private refreshMenu(): void {
-    $<HTMLSelectElement>('mQuality').value = this.engine.quality.name;
+    $<HTMLSelectElement>('mQuality').value = this.engine.auto ? this.engine.qualityCeiling : this.engine.quality.name;
     $<HTMLInputElement>('mAuto').checked = this.engine.auto;
     $<HTMLInputElement>('mMute').checked = this.audio.muted;
-    $('mGfxInfo').textContent = `Render scale ${Math.round(this.engine.resScale * 100)}% · view ${this.engine.quality.viewDist} m`;
+    $<HTMLSelectElement>('mFps').value = String(this.pacer.target);
+    const now = this.engine.quality.name;
+    $('mGfxInfo').textContent = `Now: ${now[0]!.toUpperCase()}${now.slice(1)} at ${Math.round(this.engine.resScale * 100)}% resolution · view ${this.engine.quality.viewDist} m`;
+  }
+
+  /** Frame-rate target: paces rendering and tells the governor what "holding the frame rate" means. */
+  setFps(fps: FpsTarget | 0): void {
+    this.pacer.target = fps;
+    this.engine.setFpsTarget(fps === 0 ? 60 : fps);
   }
 
   private refreshButtons(): void {
@@ -587,6 +630,10 @@ export class Game {
   private frame = (now: number): void => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.frame);
+    // frame pacing: on displays faster than the chosen target, only every n-th callback renders
+    const rafDelta = now - this.lastRaf;
+    this.lastRaf = now;
+    if (!this.pacer.tick(rafDelta)) return;
     try {
       // long frames are clamped (tab switches, hitches) but slow devices still advance in real time down to 4 fps
       const dt = Math.min(0.25, (now - this.last) / 1000);
@@ -754,7 +801,10 @@ export class Game {
       const mem = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
       $('diag').textContent = [
         `fps ${this.fps.toFixed(0)}  frame ${this.engine.frameMs.toFixed(1)} ms`,
-        `quality ${this.engine.quality.name}${this.engine.auto ? ' (auto)' : ''}  scale ${Math.round(this.engine.resScale * 100)}%`,
+        `quality ${this.engine.quality.name}${this.engine.auto ? ` (auto, max ${this.engine.qualityCeiling}${this.engine.governor.calibrating ? ', calibrating' : ''})` : ''}  scale ${Math.round(this.engine.resScale * 100)}%`,
+        `target ${this.pacer.target || 'display'} fps  display ~${Math.round(1000 / this.pacer.refreshMs)} Hz  render 1/${this.pacer.divisor}`,
+        `gpu ${this.gfx.gpu || 'not reported'}`,
+        `basis ${this.gfx.basis}`,
         `draws ${inf.calls}  tris ${(inf.triangles / 1000).toFixed(0)}k  geoms ${inf.geometries}`,
         `sim ${this.tickMs.toFixed(2)} ms/tick  rate ${this.achievedRate.toFixed(0)}×  tick ${this.sim.tick}`,
         `animals ${this.sim.animals.length}  carcasses ${this.sim.carcasses.length}`,
@@ -903,12 +953,19 @@ export class Game {
   debugCamera(): { x: number; y: number; z: number; yaw: number; pitch: number; ground: number } {
     return { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch, ground: this.sim.valley.height(this.cam.x, this.cam.z) };
   }
+  /** Step the paused simulation to an exact tick with the standard 1x step and return its state hash. */
+  debugStepTo(tick: number): number {
+    this.sim.focus = this.cam;
+    while (this.sim.tick < tick) this.sim.step(0.1);
+    return this.sim.stateHash();
+  }
   debugTerrain(): ReturnType<Engine['terrain']['debugState']> {
     return this.engine.terrain.debugState();
   }
-  debugGfx(): { quality: string; auto: boolean; resScale: number; calls: number; triangles: number; geometries: number; textures: number; chunks: number; heapMB: number | null } {
+  debugGfx(): { quality: string; ceiling: string; auto: boolean; resScale: number; frameMs: number; fpsTarget: number; divisor: number; refreshMs: number; calibrating: boolean; gpu: string; basis: string; calls: number; triangles: number; geometries: number; textures: number; chunks: number; heapMB: number | null } {
     const mem = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
-    return { quality: this.engine.quality.name, auto: this.engine.auto, resScale: this.engine.resScale, ...this.engine.info(), chunks: this.engine.terrain.loaded, heapMB: mem ? mem.usedJSHeapSize / 1048576 : null };
+    return { quality: this.engine.quality.name, ceiling: this.engine.qualityCeiling, auto: this.engine.auto, resScale: this.engine.resScale, frameMs: this.engine.frameMs, fpsTarget: this.pacer.target, divisor: this.pacer.divisor,
+      refreshMs: this.pacer.refreshMs, calibrating: this.engine.governor.calibrating, gpu: this.gfx.gpu, basis: this.gfx.basis, ...this.engine.info(), chunks: this.engine.terrain.loaded, heapMB: mem ? mem.usedJSHeapSize / 1048576 : null };
   }
   debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean } {
     return { key: this.curiosity.subject?.key ?? null, tag: this.curiosity.tag, switches: this.curiosity.director.switches, paused: this.curiosity.paused };

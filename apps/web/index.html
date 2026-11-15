@@ -120,7 +120,10 @@
           <label>Quality
             <select id="mQuality"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="ultra">Ultra</option></select>
           </label>
-          <label class="check"><input id="mAuto" type="checkbox" /> Adapt automatically to hold frame rate</label>
+          <label class="check"><input id="mAuto" type="checkbox" /> Auto: adapt up to this quality to hold the frame rate</label>
+          <label>Frame rate target
+            <select id="mFps"><option value="30">30 fps (cooler, saves battery)</option><option value="60">60 fps</option><option value="0">Display rate (uncapped)</option></select>
+          </label>
           <div class="fine" id="mGfxInfo"></div>
           <label class="check"><input id="mDiag" type="checkbox" /> Performance diagnostics (F3)</label>
           <h4>Audio</h4>

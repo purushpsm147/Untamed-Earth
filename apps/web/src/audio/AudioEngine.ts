@@ -91,6 +91,13 @@ export class AudioEngine {
     }
   }
 
+  /** Stop the audio clock while the tab is hidden; resume only if the player had started audio. */
+  setSuspended(suspended: boolean): void {
+    if (!this.ctx) return;
+    if (suspended) void this.ctx.suspend();
+    else void this.ctx.resume();
+  }
+
   setVolume(v: number): void {
     this.volume = v;
     this.applyGain();

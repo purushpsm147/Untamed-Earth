@@ -91,4 +91,80 @@ test.describe('reliability: lifecycle and streaming (software-rendered Chromium)
     await expect(page.locator('#fatal')).toBeHidden();
     expect(p.errors).toEqual([]);
   });
+
+  test('Auto quality: assessment, real downgrade under overload, and the player keeps control', async ({ page }) => {
+    const p = watch(page);
+    // a previous session left a manual Low preference; choosing Auto on the start screen must override it
+    await enter(page, { quality: 'auto', settings: { quality: 'low', auto: false, volume: 0, muted: true } });
+    const s0 = await g(page, (G) => G.debugGfx());
+    expect(s0.auto).toBe(true);
+    // This machine has no GPU: the assessment must recognise the software rasteriser and start conservatively.
+    expect(s0.gpu).toMatch(/SwiftShader|llvmpipe/i);
+    expect(s0.basis).toMatch(/software renderer/);
+    expect(s0).toMatchObject({ quality: 'low', ceiling: 'low', fpsTarget: 30 });
+    // 30 fps target on a 60 Hz (emulated) display: render every second animation frame
+    await expect.poll(async () => (await g(page, (G) => G.debugGfx())).divisor, { timeout: 15_000 }).toBe(2);
+    // Genuine overload (software rendering cannot hold 30 fps): resolution comes down, and the renderer really uses it
+    await expect.poll(async () => (await g(page, (G) => G.debugGfx())).resScale, { timeout: 60_000 }).toBeLessThan(1);
+    const live = await g(page, (G) => ({ gfx: G.debugGfx(), ratio: G.engine.renderer.getPixelRatio() as number }));
+    expect(live.ratio).toBeCloseTo(live.gfx.resScale, 5); // device pixel ratio is 1 here
+    expect(live.gfx.quality).toBe('low'); // already on the lowest preset: only resolution can give
+    // the player raises the frame-rate target and fixes the quality by hand: both are respected and persisted
+    await page.keyboard.press('Escape');
+    await page.selectOption('#mFps', '60');
+    await page.uncheck('#mAuto');
+    await page.selectOption('#mQuality', 'medium');
+    await page.click('#mResume');
+    const manual = await g(page, (G) => G.debugGfx());
+    expect(manual).toMatchObject({ quality: 'medium', ceiling: 'medium', auto: false, resScale: 1, fpsTarget: 60 });
+    await page.waitForTimeout(8000); // still overloaded, but manual means manual
+    expect(await g(page, (G) => G.debugGfx())).toMatchObject({ quality: 'medium', auto: false, resScale: 1 });
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('untamed.settings') ?? '{}') as Record<string, unknown>);
+    expect(saved).toMatchObject({ quality: 'medium', auto: false, fps: 60 });
+    expect(p.errors).toEqual([]);
+  });
+
+  test('governor decisions drive real renderer settings, respect the ceiling, and never touch the ecosystem', async ({ page }) => {
+    const p = watch(page);
+    const POSE = [760, 640, 12, 0.5, -0.2] as const;
+    // control: fixed Low, simulation stepped to tick 300
+    await enter(page, { quality: 'low', qa: true, seed: 21 });
+    const control = await g(page, (G) => { G.debugCam(760, 640, 12, 0.5, -0.2); return G.debugStepTo(300); });
+    void POSE;
+    // experiment: Auto with a Medium ceiling saved by the player; same seed and pose
+    await page.evaluate(() => localStorage.setItem('untamed.settings', JSON.stringify({ quality: 'medium', auto: true, volume: 0, muted: true, fps: 60 })));
+    await enter(page, { quality: 'auto', qa: true, seed: 21 });
+    const start = await g(page, (G) => G.debugGfx());
+    expect(start).toMatchObject({ auto: true, ceiling: 'medium', quality: 'low' }); // starts where the device hints say, may climb to the player's ceiling
+    const half = await g(page, (G) => { G.debugCam(760, 640, 12, 0.5, -0.2); return G.debugStepTo(150); });
+    // sustained headroom (synthetic 16 ms frames through the real engine): quality is restored step by step, up to the ceiling only
+    const up = await g(page, (G) => G.engine.debugFeed(16, 150));
+    expect(up.quality).toBe('medium');
+    expect(up.scale).toBe(1);
+    expect(up.changes.filter((c: string) => c.startsWith('preset'))).toEqual(['preset:medium@0.8']);
+    expect(up.viewDist).toBe(700); // Medium's draw distance really applied
+    expect(up.shadows).toBe(true);
+    expect(up.pixelRatio).toBeCloseTo(1, 5);
+    // sustained overload: resolution first, then the preset; shadows and draw distance go with the preset
+    const down = await g(page, (G) => G.engine.debugFeed(80, 40));
+    expect(down.quality).toBe('low');
+    expect(down.changes[0]).toMatch(/^resolution:medium@0\.9/);
+    expect(down.changes.findIndex((c: string) => c.startsWith('preset'))).toBeGreaterThanOrEqual(5);
+    expect(down.viewDist).toBe(420);
+    expect(down.shadows).toBe(false);
+    expect(down.pixelRatio).toBeCloseTo(down.scale, 5);
+    // the menu shows the player's ceiling, the live preset is reported separately, and only the ceiling is persisted
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#mQuality')).toHaveValue('medium');
+    await expect(page.locator('#mGfxInfo')).toContainText('Now: Low');
+    await page.selectOption('#mFps', '30');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('untamed.settings') ?? '{}') as Record<string, unknown>);
+    expect(saved).toMatchObject({ quality: 'medium', auto: true, fps: 30 });
+    await page.click('#mResume');
+    // ecology: half the run on one preset, half on others, with the governor changing settings in between
+    expect(half).not.toBe(control);
+    const end = await g(page, (G) => G.debugStepTo(300));
+    expect(end).toBe(control);
+    expect(p.errors).toEqual([]);
+  });
 });

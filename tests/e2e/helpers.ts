@@ -11,7 +11,9 @@ export interface G {
   debugFollow(id: string, dist?: number): boolean;
   debugAnimal(id?: number): any; // eslint-disable-line @typescript-eslint/no-explicit-any
   debugCamera(): { x: number; y: number; z: number; yaw: number; pitch: number; ground: number };
-  debugGfx(): { quality: string; auto: boolean; resScale: number; calls: number; triangles: number; geometries: number; textures: number; chunks: number; heapMB: number | null };
+  debugGfx(): { quality: string; ceiling: string; auto: boolean; resScale: number; frameMs: number; fpsTarget: number; divisor: number; refreshMs: number; calibrating: boolean; gpu: string; basis: string; calls: number; triangles: number; geometries: number; textures: number; chunks: number; heapMB: number | null };
+  debugStepTo(tick: number): number;
+  engine: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean };
   debugTerrain(): { chunks: number; meshes: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; applied: number; stale: number; superseded: number; workerFailures: number };
   debugFreeze(t: number | null): void; debugLuma(): { mean: number; std: number }; debugGrounding(): { max: number; n: number };
@@ -34,7 +36,9 @@ export function watch(page: Page): Problems {
   return p;
 }
 
-export async function enter(page: Page, opts: { quality?: string; seed?: number | string; qa?: boolean } = {}): Promise<void> {
+export async function enter(page: Page, opts: { quality?: string; seed?: number | string; qa?: boolean; settings?: Record<string, unknown> } = {}): Promise<void> {
+  // saved preferences are injected before the app reads them
+  if (opts.settings) await page.addInitScript((st) => localStorage.setItem('untamed.settings', JSON.stringify(st)), opts.settings);
   await page.goto(opts.qa ? '/?qa=1' : '/');
   await page.selectOption('#startQuality', opts.quality ?? 'low');
   await page.fill('#seed', String(opts.seed ?? 1));
