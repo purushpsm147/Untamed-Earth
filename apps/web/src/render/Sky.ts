@@ -56,10 +56,16 @@ export class Sky {
   readonly fogColor = new THREE.Color();
   readonly horizon = new THREE.Color();
   readonly zenith = new THREE.Color();
+  /**
+   * Tone-mapping exposure for this frame: a gentle stand-in for eye/camera adaptation. Low-light scenes are
+   * lifted a little and the midday scene is pulled down, instead of brightening everything.
+   */
+  exposure = 0.95;
   /** Brief additive flash from lightning. */
   flash = 0;
   private readonly mat: THREE.ShaderMaterial;
   private readonly tmp = { x: 0, y: 1, z: 0 };
+  private readonly tmpC = new THREE.Color();
 
   constructor() {
     this.mat = new THREE.ShaderMaterial({
@@ -105,9 +111,22 @@ export class Sky {
     const direct = day > 0.05 ? smoothstep(-0.02, 0.25, el) * 3.2 * (1 - cloud * 0.8) : 0.42 * (1 - cloud * 0.6);
     this.sun.color.copy(day > 0.05 ? sunCol : new THREE.Color(0.6, 0.7, 1));
     this.sun.intensity = direct;
-    this.hemi.color.copy(this.zenith).lerp(this.horizon, 0.5);
-    this.hemi.groundColor.setRGB(0.2, 0.19, 0.14).multiplyScalar(0.25 + day * 0.75);
-    this.hemi.intensity = lerp(1.1, 1.5, day) + cloud * 0.3 * day + this.flash * 5;
+    // Ambient (sky) light. Its hue comes from the sky, but its strength follows a twilight curve: the sky keeps
+    // lighting the ground well through civil twilight (sun up to ~6 deg below the horizon) even though the sky
+    // palette itself is dark there. Previously the dark palette was used directly, so dawn and dusk went murky.
+    const twilight = smoothstep(-0.21, 0.03, el);
+    const high = smoothstep(0.05, 0.6, el);
+    // low sun warms the whole sky's light, not just the horizon band
+    const hue = this.tmpC.copy(this.zenith).lerp(this.horizon, 0.5).lerp(sunCol, golden * 0.3 * (1 - cloud * 0.7));
+    // normalise by luminance (not by the brightest channel), so `level` is the perceived brightness whatever the hue
+    const lum = Math.max(0.2126 * hue.r + 0.7152 * hue.g + 0.0722 * hue.b, 1e-4);
+    const level = lerp(0.03, 0.44, twilight) + 0.05 * high;
+    this.hemi.color.setRGB(hue.r / lum, hue.g / lum, hue.b / lum).multiplyScalar(level);
+    // light bounced off the ground: warm, and warmer when the sun is low
+    this.hemi.groundColor.setRGB(0.3, 0.25, 0.17).lerp(new THREE.Color(0.42, 0.27, 0.15), golden * 0.6).multiplyScalar(0.18 + 0.62 * twilight);
+    this.hemi.intensity = 1.25 + cloud * 0.3 * day + this.flash * 5;
+    // adaptation: +12% around sunrise and sunset, -18% at midday (it was washing out), unchanged at night
+    this.exposure = 0.95 * (1 + 0.12 * twilight * (1 - high) - 0.18 * high);
     this.flash *= 0.82;
     // fog: thicker in rain and at humid dawns
     this.fogColor.copy(this.horizon).lerp(this.zenith, 0.15);

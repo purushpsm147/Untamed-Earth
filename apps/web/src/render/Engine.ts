@@ -240,6 +240,7 @@ export class Engine {
       }
     }
     this.sky.update(env, this.camera, time, this.quality.shadowDist);
+    this.renderer.toneMappingExposure = this.sky.exposure;
     this.fog.color.copy(this.sky.fogColor);
     this.fog.density = this.sky.fogDensity(env, this.quality.viewDist);
     this.renderer.setClearColor(this.sky.fogColor);

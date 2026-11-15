@@ -133,6 +133,10 @@ test.describe('gameplay scenarios', () => {
     expect(b.beh).toBe(5);
     expect(b.energy).toBeGreaterThan(0.3);
     await g(page, (G) => G.setSpeed(1));
+    // stand up first: a resting animal detects threats only half the time per check (lower vigilance, by design),
+    // which made this step flaky. An alert deer detects a jackal 6 m away on its next check (every 2-4 s).
+    await hold(page, ['KeyW'], 300);
+    await expect.poll(async () => (await deer()).beh).not.toBe(5);
     // a predator close by is perceived (not scripted): fear rises, the HUD warns, and running opens the gap
     await g(page, (G) => {
       const d = G.sim.byId.get(G.controlled);
