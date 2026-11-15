@@ -222,4 +222,66 @@ describe('CuriosityDirector', () => {
     expect(d.isActive()).toBe(false);
     expect(d.update(snap, 0.25)).toBeNull();
   });
+
+  it('Skip excludes the current animal even when it remains the highest-scoring target', () => {
+    const d = new CuriosityDirector();
+    const snap = makeSnapshot([makeAnimal({ id: 101, x: 700, z: 500, beh: 9, speed: 12 })]);
+    d.start({ x: 700, y: 30, z: 500, lookX: 700, lookY: 12, lookZ: 500 });
+    const first = d.update(snap, 0.25);
+    expect(first?.key).toBe('animal:101');
+    const second = d.skip(snap);
+    expect(second).not.toBeNull();
+    expect(second?.key).not.toBe(first?.key);
+    expect(second?.kind).toBe('scenic');
+  });
+
+  it('Skip moves between scenic targets in an empty world and does nothing when inactive', () => {
+    const d = new CuriosityDirector();
+    const snap = makeSnapshot([]);
+    expect(d.skip(snap)).toBeNull();
+    d.start();
+    const first = d.update(snap, 0.1);
+    const next = d.skip(snap);
+    expect(next?.key).not.toBe(first?.key);
+  });
+
+  it('escapes vertically when initial camera position is inside a building below its roof', () => {
+    const b = { x: 1010, z: 440, w: 30, d: 30, h: 12, rot: 0.4 };
+    const snap = makeSnapshot([makeAnimal({ id: 5, x: b.x, z: b.z, beh: 2 })], {
+      heightFn: () => 25,
+      buildings: [b],
+    });
+    const d = new CuriosityDirector({ minClearanceM: 2.5, reducedMotion: true });
+    d.start({ x: b.x, y: 20, z: b.z, lookX: b.x, lookY: 25, lookZ: b.z });
+    d.update(snap, 0.25);
+    expect(d.getPose().y).toBeGreaterThanOrEqual(39.5);
+  });
+
+  it('keeps the camera clear while crossing a rotated building footprint from outside', () => {
+    const b = { x: 1000, z: 500, w: 35, d: 24, h: 18, rot: Math.PI / 4 };
+    const snap = makeSnapshot([makeAnimal({ id: 7, x: 1010, z: 500, beh: 9, speed: 5 })], {
+      heightFn: () => 10,
+      buildings: [b],
+    });
+    const d = new CuriosityDirector({ minClearanceM: 2.5 });
+    d.start({ x: 970, y: 15, z: 500, lookX: 1010, lookY: 12, lookZ: 500 });
+    const roof = 30.5;
+    let old = d.getPose();
+    for (let i = 0; i < 100; i++) {
+      d.update(snap, 0.2);
+      const pose = d.getPose();
+      const dx = pose.x - b.x, dz = pose.z - b.z;
+      const lx = dx * Math.cos(b.rot) + dz * Math.sin(b.rot);
+      const lz = -dx * Math.sin(b.rot) + dz * Math.cos(b.rot);
+      const within = Math.abs(lx) < b.w / 2 + 2 && Math.abs(lz) < b.d / 2 + 2;
+      if (within) expect(pose.y).toBeGreaterThanOrEqual(roof - 1e-6);
+      // Any horizontal progress across a building requires the *previous* camera
+      // to be above the roof as well, preventing tunnelling through its walls.
+      if (within && (pose.x !== old.x || pose.z !== old.z)) {
+        expect(old.y).toBeGreaterThanOrEqual(roof - 1e-6);
+      }
+      old = pose;
+    }
+    expect(d.getPose().x).toBeGreaterThan(970);
+  });
 });

@@ -51,6 +51,9 @@ export interface WorldQueryView {
     readonly w: number;
     readonly d: number;
     readonly h: number;
+    /** Optional rotation and collapse data from Valley buildings. */
+    readonly rot?: number;
+    readonly collapse?: number;
   }>;
 }
 
@@ -184,6 +187,39 @@ const SCENIC_ANCHORS: ReadonlyArray<{ key: string; x: number; z: number; reason:
   { key: 'scenic:dump_overlook', x: 1090, z: 1010, reason: 'Post-industrial scrapyard' },
 ];
 
+/** Conservative, rotated 2D footprint test for the segment traversed by the camera. */
+type BuildingQuery = NonNullable<WorldQueryView['buildings']>[number];
+
+function segmentIntersectsBuilding(
+  ax: number, az: number, bx: number, bz: number, b: BuildingQuery, margin = 2,
+): boolean {
+  const angle = b.rot ?? 0;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const toLocal = (x: number, z: number): [number, number] => {
+    const dx = x - b.x, dz = z - b.z;
+    return [dx * cos + dz * sin, -dx * sin + dz * cos];
+  };
+  const [x0, z0] = toLocal(ax, az);
+  const [x1, z1] = toLocal(bx, bz);
+  const halfW = b.w * 0.5 + margin;
+  const halfD = b.d * 0.5 + margin;
+  let enter = 0, exit = 1;
+  for (const [start, end, half] of [[x0, x1, halfW], [z0, z1, halfD]]) {
+    const delta = end - start;
+    if (Math.abs(delta) < 1e-9) {
+      if (Math.abs(start) > half) return false;
+    } else {
+      const t0 = (-half - start) / delta;
+      const t1 = (half - start) / delta;
+      enter = Math.max(enter, Math.min(t0, t1));
+      exit = Math.min(exit, Math.max(t0, t1));
+      if (enter > exit) return false;
+    }
+  }
+  return true;
+}
+
 export class CuriosityDirector {
   private readonly cfg: DirectorConfig;
   private active = false;
@@ -262,15 +298,22 @@ export class CuriosityDirector {
 
   /** Force skip to the next best subject on the next update. */
   skip(snapshot: WorldSnapshotView): ObservationTarget | null {
+    if (!this.active) return null;
+    const excludedKey = this.currentTarget?.key;
     if (this.currentTarget) {
       this.recordCooldown(this.currentTarget.key, this.cfg.subjectCooldownSec);
       if (this.currentTarget.eventType) {
         this.recordCooldown(`eventType:${this.currentTarget.eventType}`, this.cfg.eventTypeCooldownSec);
       }
     }
+    // A cooldown only *discourages* reuse. A user-requested Skip must explicitly
+    // exclude the prior target, even when it has the highest biological score.
     this.currentTarget = null;
     this.holdSec = 0;
-    return this.update(snapshot, 0);
+    const next = this.selectBestCandidate(snapshot, excludedKey);
+    this.adoptTarget(next);
+    this.stepCamera(snapshot, next, 0);
+    return this.currentTarget;
   }
 
   /**
@@ -399,12 +442,13 @@ export class CuriosityDirector {
     return null;
   }
 
-  private selectBestCandidate(snapshot: WorldSnapshotView): ScoredCandidate {
+  private selectBestCandidate(snapshot: WorldSnapshotView, excludedKey?: string): ScoredCandidate {
     let best: ScoredCandidate | null = null;
 
     // 1. Score buffered events
     for (let i = 0; i < this.eventBuffer.length; i++) {
       const b = this.eventBuffer[i];
+      if (b.key === excludedKey) continue;
       const age = Math.max(0, this.elapsedSec - b.receivedAtSec);
       const decay = Math.exp(-age / 14);
       const proximity = this.proximityFactor(b.event.x, b.event.z);
@@ -445,6 +489,7 @@ export class CuriosityDirector {
         evaluated++;
 
         const key = `animal:${a.id}`;
+        if (key === excludedKey) continue;
         const sig = this.behaviorSignificance(a);
         const proximity = this.proximityFactor(a.x, a.z);
         const novelty = this.noveltyFactor(key);
@@ -474,7 +519,7 @@ export class CuriosityDirector {
 
     // 3. Scenic fallback if no salient animals/events or all are on deep cooldown
     if (!best || best.score < 0.08) {
-      const scenic = this.pickScenicFallback(snapshot);
+      const scenic = this.pickScenicFallback(snapshot, excludedKey);
       if (!best || scenic.score > best.score) {
         best = scenic;
       }
@@ -483,12 +528,13 @@ export class CuriosityDirector {
     return best;
   }
 
-  private pickScenicFallback(snapshot: WorldSnapshotView): ScoredCandidate {
+  private pickScenicFallback(snapshot: WorldSnapshotView, excludedKey?: string): ScoredCandidate {
     let chosen = SCENIC_ANCHORS[this.scenicIndex % SCENIC_ANCHORS.length];
     let bestScore = -1;
 
     for (let i = 0; i < SCENIC_ANCHORS.length; i++) {
       const anchor = SCENIC_ANCHORS[i];
+      if (anchor.key === excludedKey) continue;
       const weatherBonus = snapshot.env.weather === 'storm' || snapshot.env.weather === 'rain' ? 0.14 : 0.1;
       const s = weatherBonus * this.noveltyFactor(anchor.key) * this.cooldownFactor(anchor.key);
       if (s > bestScore) {
@@ -540,25 +586,6 @@ export class CuriosityDirector {
     desiredX = clamp(desiredX, 8, boundMax);
     desiredZ = clamp(desiredZ, 8, boundMax);
 
-    // Building footprint collision avoidance (push outward if inside a building)
-    const buildings = snapshot.world.buildings;
-    if (buildings) {
-      for (let i = 0; i < buildings.length; i++) {
-        const b = buildings[i];
-        const halfW = b.w * 0.5 + 2.0;
-        const halfD = b.d * 0.5 + 2.0;
-        if (Math.abs(desiredX - b.x) < halfW && Math.abs(desiredZ - b.z) < halfD) {
-          const dx = desiredX - b.x;
-          const dz = desiredZ - b.z;
-          if (Math.abs(dx) > Math.abs(dz)) {
-            desiredX = b.x + (dx >= 0 ? halfW : -halfW);
-          } else {
-            desiredZ = b.z + (dz >= 0 ? halfD : -halfD);
-          }
-        }
-      }
-    }
-
     const groundAtCam = Math.max(
       snapshot.world.height(desiredX, desiredZ),
       snapshot.world.waterSurface(desiredZ) + snapshot.env.stage,
@@ -568,15 +595,46 @@ export class CuriosityDirector {
     const posLambda = this.cfg.reducedMotion ? 1.8 : 3.2;
     const lookLambda = this.cfg.reducedMotion ? 2.4 : 4.5;
 
-    const nextX = damp(this.pose.x, desiredX, posLambda, dt);
-    const nextZ = damp(this.pose.z, desiredZ, posLambda, dt);
+    let nextX = damp(this.pose.x, desiredX, posLambda, dt);
+    let nextZ = damp(this.pose.z, desiredZ, posLambda, dt);
     const floorAtNext =
       Math.max(
         snapshot.world.height(nextX, nextZ),
         snapshot.world.waterSurface(nextZ) + snapshot.env.stage,
       ) + this.cfg.minClearanceM;
 
-    const nextY = Math.max(floorAtNext, damp(this.pose.y, desiredY, posLambda, dt));
+    let nextY = Math.max(floorAtNext, damp(this.pose.y, desiredY, posLambda, dt));
+
+    // A safe endpoint alone is insufficient: the *path* between successive
+    // camera poses may cross a building, including rotated footprints.
+    // Hold horizontal movement below the roof; rise outside before crossing.
+    // If a manual camera starts inside a building, immediately escape vertically.
+    const buildings = snapshot.world.buildings;
+    if (buildings) {
+      for (const b of buildings) {
+        if (!segmentIntersectsBuilding(this.pose.x, this.pose.z, nextX, nextZ, b)) continue;
+        const roofY =
+          snapshot.world.height(b.x, b.z) +
+          b.h * (1 - (b.collapse ?? 0) * 0.4) +
+          this.cfg.minClearanceM;
+        if (Math.min(this.pose.y, nextY) >= roofY) continue;
+        if (this.pose.y < roofY) {
+          const startsInside = segmentIntersectsBuilding(
+            this.pose.x, this.pose.z, this.pose.x, this.pose.z, b,
+          );
+          nextX = this.pose.x;
+          nextZ = this.pose.z;
+          // Do not teleport upwards outside the obstruction; climb while waiting.
+          // A camera already inside needs immediate correction to be collision-free.
+          const climb = startsInside ? roofY : Math.min(roofY, this.pose.y + 12 * dt);
+          nextY = Math.max(nextY, climb);
+          if (startsInside) nextY = Math.max(nextY, roofY);
+        } else {
+          // Camera is already above the roof; maintain clearance throughout the crossing.
+          nextY = Math.max(nextY, roofY);
+        }
+      }
+    }
 
     // Gentle fade pulse during transitions when reducedMotion is enabled
     const targetFade = this.cfg.reducedMotion && this.holdSec < 0.6 ? 0.65 + (this.holdSec / 0.6) * 0.35 : 1;
