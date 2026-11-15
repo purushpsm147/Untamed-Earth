@@ -48,6 +48,15 @@ export async function enter(page: Page, opts: { quality?: string; seed?: number 
 
 export const g = <T>(page: Page, fn: (game: G) => T): Promise<T> => page.evaluate(`(${fn.toString()})(window.__untamed)`) as Promise<T>;
 
+/** Resolve after n animation frames have been rendered (input held or tapped before this is guaranteed applied). */
+export async function frames(page: Page, n = 2): Promise<void> {
+  await page.evaluate((n) => new Promise<void>((res) => {
+    let left = n;
+    const tick = (): void => (--left <= 0 ? res() : void requestAnimationFrame(tick));
+    requestAnimationFrame(tick);
+  }), n);
+}
+
 export async function hold(page: Page, keys: string[], ms: number): Promise<void> {
   for (const k of keys) await page.keyboard.down(k);
   await page.waitForTimeout(ms);

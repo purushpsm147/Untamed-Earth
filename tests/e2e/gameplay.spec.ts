@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PLACES, enter, g, hold, watch } from './helpers';
+import { PLACES, enter, frames, g, hold, watch } from './helpers';
 
 test.describe('gameplay scenarios', () => {
   test('observer camera: every direction, every area, terrain clearance and bounds', async ({ page }) => {
@@ -8,8 +8,12 @@ test.describe('gameplay scenarios', () => {
     await g(page, (G) => G.debugCam(760, 640, 12, 0, 0));
     const pos = (): Promise<{ x: number; y: number; z: number; yaw: number; pitch: number; ground: number }> => g(page, (G) => G.debugCamera());
     const moved = async (keys: string[]): Promise<{ dx: number; dy: number; dz: number }> => {
+      await frames(page); // start from a settled frame
       const a = await pos();
       await hold(page, keys, 700);
+      // the game reads input on its next rendered frame (taps are latched), which on a software renderer can come
+      // well after the key is released: read only once two more frames have rendered
+      await frames(page);
       const b = await pos();
       return { dx: b.x - a.x, dy: b.y - a.y, dz: b.z - a.z };
     };
