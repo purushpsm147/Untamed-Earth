@@ -1,46 +1,50 @@
 # Roadmap
 
-Status key: **Done** = implemented and verified (see QA.md) · **Partial** = works but with stated gaps · **Not started**.
+Status key: **Done** = implemented and verified in software-rendered Chromium (see QA.md) · **Partial** = works with stated gaps · **Not started**.
+"Verified" here never means verified on a real GPU or phone: no physical-hardware testing has happened yet.
 
 ## Milestone 1 — The Reclaimed Valley (MVP)
 
 | Area | Status | Notes |
 |---|---|---|
-| Workspace, strict TypeScript, Vite build | Done | |
+| Workspace, strict TypeScript, Vite build, CI workflow | Done | CI runs typecheck, unit/headless, build and all browser suites |
 | Deterministic valley: forest/river, settlement, dump, meadow/wetland (2.07 km²) | Done | |
-| Terrain streaming with distance LOD, off-thread meshing | Done | |
+| Terrain streaming with distance LOD, off-thread meshing | Done | Stale Worker results rejected; main-thread fallback if the Worker dies (browser-tested) |
 | Environment: day/night, seasons, weather, soil water, river stage, vegetation, nutrients | Done | |
-| Six species with utility AI, limited perception, food web, births, deaths | Done | |
-| Fixed-timestep simulation, 1×/10×/100×/1000× | Done | 1000× is CPU-bound on slow machines; achieved rate is shown |
-| Headless 100-day tests, reproducibility, save round trip | Done | |
-| Observer mode (free camera, select, inspect, follow) | Done | Camera collides with terrain and water only, not walls or trees |
-| Wildlife mode (spotted deer) | Done | |
-| Experiment mode (rain, weather pattern, growth, fertility, add/remove, reset, charts) | Done | |
-| Start screen, HUD, pause menu, graphics/audio settings, diagnostics, help | Done | |
-| Save/load (IndexedDB), autosave, versioned format | Done | One slot |
-| Procedural audio | Partial | Implemented; not audibly verified in the headless test environment |
-| Quality presets and adaptive resolution | Partial | Logic implemented; not yet tuned against real GPUs |
-| Touch controls, gamepad | Partial | Implemented through the input abstraction; untested on devices |
-| Simulation detail tiers | Partial | Decision-rate LOD + abstract pools + grid tier; no individual↔population conversion |
-| Performance budgets on reference hardware | Not started | Only software-rendered measurements exist so far |
+| Six species with utility AI, limited perception, food web, births, deaths | Done | Animals kept out of building footprints; small mammals escape floods |
+| Fixed-timestep simulation, 1×/10×/100×/1000× | Done | 1000× is CPU-bound on slow machines; achieved rate shown |
+| Headless 1/3/10/100-day tests, reproducibility, save round trip | Done | |
+| Observer mode (free camera, select, inspect, follow) | Done | Camera slides along ruins; trees are not solid |
+| Wildlife mode (spotted deer) | Done | Walk/run/graze/drink/rest/escape verified in browser |
+| Experiment mode | Done | |
+| Start screen, HUD, pause menu, settings, diagnostics, help | Done | |
+| Save/load (IndexedDB), autosave, versioned format | Done | One slot; also saves when the tab is hidden |
+| Renderer resource lifecycle across restarts | Done | Live WebGL object counts identical after 4 restarts |
+| Adaptive quality (Addendum IV) | Partial | Governor with recovery, ceiling, FPS target, pacing, start-up calibration and hardware assessment; downgrade verified in browser; **upgrade under real headroom unverified (needs a GPU)** |
+| Procedural audio, optional music | Partial | Not listened to |
+| Touch controls, gamepad | Partial | Implemented; untested on devices |
+| Simulation detail tiers | Partial | Decision-rate LOD + abstract pools + grid; no individual↔population conversion |
+| Performance budgets on reference hardware | Not started | Only software-rendered measurements exist |
 
-## Milestone 2 — Depth and polish (next)
+## Milestone 2 — Living-world features (Addendum III), early
 
-- Measure and tune on real desktop and mobile GPUs; set download and memory budgets from data.
-- Animal path-finding around walls and along river banks; camera collision with ruins.
-- Better animal models and gaits; juveniles with distinct proportions; nests and dens.
-- Ecological tuning: jackal food limitation, hare refugia, seasonal breeding peaks for deer.
-- More playable species (jackal, crow).
-- Multiple save slots, export/import to file.
-- Richer weather visuals (wet surfaces, puddles), dawn mist volumes.
+| Area | Status | Notes |
+|---|---|---|
+| Curiosity Mode (documentary autopilot) | Partial | Gemini's director (PR #6) + GPT-6 fixes (PR #8) + integration fixes; browser-verified for selection, hold, skip, interruption, ruin clearance, speed cap. Small birds framed too far away; one general profile only |
+| Social Lens (group, mother, offspring, pressures) | Partial | Shows only simulation state; no persistent social history beyond the session |
+| World Library registry | Partial | Data-driven registry with one world; no other worlds exist |
+| Visual quality improvements | Not started | Visual Lab (PR #7) reviewed, not merged: see VISUAL_LAB_REVIEW.md |
 
-## Milestone 3 — Scale
+## Next
 
-- Multiple regions with streaming between them and floating-origin coordinates.
-- Population-level simulation for unloaded regions, with individuals promoted and demoted without losing identity.
-- Simulation in a Web Worker once entity counts justify it.
-- WebGPU renderer behind the existing rendering boundary.
+1. Measure on a real desktop GPU and a midrange phone: frame times, governor upgrade path, memory, download.
+2. Dawn/dusk exposure: low-sun scenes are too dark (visible in the lab captures and the game).
+3. Curiosity framing by species size; Social Lens history that survives save/load.
+4. Animal path-finding around walls and along river banks; tree collision for the camera.
+5. Ecological tuning: jackal food limitation, hare refugia, seasonal deer breeding.
 
-## Expansion modules (not part of the first releases)
+## Expansion modules (not started, documentation only)
 
-Ocean, desert, larger reclaimed cities and industrial zones; orbital space (with physically plausible century-old orbital remnants and clearly separated cinematic travel); optional mythical regions with their own non-humanoid creatures and ecology. Each is planned as a separate package and region type so it cannot alter the natural simulation's parameters. None of this exists yet.
+Ocean, desert, larger cities and industrial zones, nuclear sites, deep-time worlds, orbital space, mythical regions and
+the Simulation Inspectors encounter (Addendum V, gated on a working Space Expansion). Each is planned as a separate,
+lazily loaded package that cannot alter the natural simulation. None of this exists.

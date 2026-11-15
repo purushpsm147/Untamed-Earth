@@ -4,7 +4,7 @@ A browser-based 3D ecosystem simulation set a century after people vanished. A t
 
 Everything is generated in the browser from a seed: no art assets, no audio files, no backend, no account.
 
-**Status: playable MVP (milestone 1).** See [docs/ROADMAP.md](docs/ROADMAP.md) for what is and is not built, and [docs/QA.md](docs/QA.md) for what has actually been verified.
+**Status: playable MVP (milestone 1), with early Curiosity Mode and adaptive graphics.** Tested only in software-rendered Chromium so far; no real-GPU or phone measurements yet. See [docs/ROADMAP.md](docs/ROADMAP.md) for what is and is not built, and [docs/QA.md](docs/QA.md) for what has actually been verified.
 
 ## Run it
 
@@ -19,20 +19,24 @@ npm run dev        # http://localhost:5173
 npm run build      # typecheck + production build into apps/web/dist
 npm run preview    # serve the build on http://localhost:4173
 npm test           # unit + 100-day headless simulation tests (about 100 s)
-npm run test:e2e   # Playwright browser smoke test (needs a prior build)
+npm run test:e2e   # Playwright smoke, reliability and gameplay suites (needs a prior build; ~12 min)
+npm run test:smoke # just the smoke tests
 npm run sim -- 150 7   # headless population report: 150 days, seed 7
 npm run bench      # simulation throughput
 ```
 
 A modern desktop browser with WebGL2 is required. If graphics or storage cannot be initialised, the game says why instead of failing silently.
 
-## Three ways to play
+## Ways to play
 
 | Mode | What you do |
 |---|---|
 | **Observer** | Fly an invisible camera anywhere. Click an animal to inspect its needs and behaviour; follow it. |
 | **Wildlife** | Live as a spotted deer. The animal you take over keeps its age, hunger and identity, and goes back to its own decisions when you release it. |
 | **Experiment** | Change rainfall, weather pattern, plant growth, a species' fertility or numbers, and watch the population and forage charts respond. Reset from any seed. |
+| **Curiosity** (`V`) | A documentary autopilot finds what the ecosystem is doing (hunts, births, herds at water, scenery) and frames it, with optional captions drawn from simulation state. Any input hands the camera back; `N` skips. |
+
+**Graphics:** Auto (default) starts from what the browser reports about the device and then adapts to measured frame times, lowering resolution first and restoring quality, up to the preset you choose, when there is headroom. Pick a 30 fps, 60 fps or uncapped target in the menu. Rendering settings never change the ecosystem.
 
 ### Controls
 

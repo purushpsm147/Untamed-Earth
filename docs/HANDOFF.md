@@ -1,53 +1,51 @@
-# Continuation handoff — 2026-11-15
+# Continuation handoff — 2026-11-15 (integration session, Claude)
 
-## Branch and observed snapshot
-Independent review target: `ccr-4783fee0-8wvc41` at `14e57324832b7b74c79f3b6a64feb44b5ddc13a4`. This was the only listed development branch at inspection. A separate documentation branch was created to avoid overwriting in-progress Claude Code changes. **Recheck the live branch HEAD** before applying any suggested fix or merging other work.
+## Branch and state
+Integration branch `ccr-4783fee0-8wvc41`. Start of session: local HEAD `14e5732` plus uncommitted QA/Curiosity work;
+remote at `cdc5343` (docs + CI from PR #1). That local work was committed (`cf2b750`) and rebased onto `cdc5343`,
+then the agent PRs were merged one at a time. Check `git log` for the current HEAD; the latest commits are listed in the
+PR table below.
 
-## Existing implementation observed in repository (not independently executed)
-- Workspace: TypeScript/Vite/Three.js WebGL2, code in `apps/web`, `packages/core`, `packages/worlds`, `packages/environment`, `packages/ecology`, `packages/persistence`.
-- Procedural ~2.07 km² Reclaimed Valley with forest/river, settlement, dump, meadow/wetland; chunked terrain meshed in a Worker, instancing for vegetation and wildlife.
-- Species: chital, boar, jackal, hare, crow, myna. Headless environment and animal simulation, three modes (Observer, Wildlife as deer, Experiment), rain/time variation, IndexedDB snapshots.
-- Tests present: core/world/ecology unit suites, 100-day headless test, one Playwright end-to-end smoke test. Existing `docs/QA.md` reports typecheck/build/test passing in Claude's environment with software-rendered Chromium.
-- Existing honest limitations: no real-GPU FPS, memory or mobile validation; audio not listened to; no full animal↔abstract population promotion; no true multi-region simulation; wall/path navigation gaps.
+## What was integrated
+| PR | Author | Outcome | Integration changes |
+|---|---|---|---|
+| #2 renderer lifecycle | GPT-6 | Merged (`a16b98f`) | Every InstancedMesh disposed; one WebGLRenderer per canvas (three.js leaked 3 framebuffers + 4 textures per renderer instance) |
+| #4 terrain streaming | GPT-6 | Merged (`c50d1b7`) | Main-thread fallback budgeted per frame (it used to trip the 30 s loading guard); loading watchdog now stall-based |
+| #3 adaptive quality | GPT-6 | Merged (`21c3aba`) | Replaced the local controller. Fixed: devices under 4 fps never adapted. Added FPS target, frame pacing, start-up calibration, hardware assessment, hidden-tab policy |
+| #8 → #6 Curiosity director | Gemini + GPT-6 | Merged (`e6310ce`) | Single director in the game via a read-only adapter. Fixed: rotated footprints used the inverse rotation (PR test shared the bug); no camera speed limit; runtime reduced motion; events follow their animal |
+| #7 Visual Lab | Gemini + GPT-6 | **Not merged** | Reviewed and run locally: `forest_herd` camera is 12 m underground; enhancements barely visible; frame timings invalid. See `docs/VISUAL_LAB_REVIEW.md` |
 
-## Independent review status
-Static source and documentation review completed through connected GitHub access; **no local install, browser playthrough, hardware profiling, or independent execution** was possible from the reviewing environment. Findings and evidence in `docs/INDEPENDENT_REVIEW.md` should be treated as actionable hypotheses requiring reproduction, not pre-certified runtime failures.
+PRs #2, #3, #4, #6 and #8 are contained in the integration branch; GitHub should show #2–#4 as merged automatically.
+#6/#8 target `feat/gemini-curiosity-director`, so they may need closing by hand. #7 should stay open as an experiment.
 
-## Suggested next sequence, in priority order
-1. Protect current state (commit or stash user/Claude modifications; never reset without approval).
-2. Run fresh typecheck, unit, headless, production build, Playwright in clean environment. Save command output and environment.
-3. Resource lifetime: audit all render geometry/material allocations; implement complete disposal/restart coverage and repeated-restart tests.
-4. Auto Quality: verify downgrade-and-recover to higher preset after sustained headroom, with user ceiling/cooldown and deterministic quality-controller tests.
-5. Terrain streaming: test fast camera movement and out-of-order Worker results, stale LOD updates and disposal.
-6. Long browser soak; GPU or mobile hardware where available. Report real measured FPS, p95 frame time, memory and bundle sizes; distinguish software rasterizer.
-7. Additional survival/AI behavior and navigation tests; refine ecology parameters and high-speed numerical stability.
-8. Minimal Curiosity Mode only when the underlying camera and ecological event systems are stable; Social Lens after persistent relationships exist.
-9. World registry and expansions remain unimplemented future work until their prerequisites pass.
+## Evidence (all software-rendered Chromium / SwiftShader, Linux container; no GPU)
+See `docs/QA.md` for commands and results. Key browser measurements:
+- WebGL objects after 4 world restarts: identical to the first load (buffers 291, VAOs 65, programs 11, framebuffers 3, textures 5).
+- Simulation state hash at tick 300 identical whether quality stayed on Low or was changed by the governor mid-run.
+- Curiosity, 90 s from the settlement: 0 samples inside a ruin below its roof, 0 below terrain, max 53 m/s over 2 s windows.
 
-## Commands (verify against package.json)
+## Known defects and unsupported claims
+- No real-GPU, phone, Firefox or WebKit testing. No FPS, memory or download-budget claims are made.
+- Governor *upgrade* has only been exercised with synthetic frame traces (software rendering never has headroom).
+- Curiosity frames small birds from too far away (fixed 10 m standoff).
+- Low-sun scenes (dawn, golden hour) are very dark.
+- Grass and rain buffers are preallocated at Ultra capacity on every preset (P2 from the independent review).
+- Audio never listened to; touch and gamepad never used on a device.
+- Social Lens history is session-only.
+
+## Next engineering task
+Run the game on a real desktop GPU (and a midrange phone if available) with F3 diagnostics open:
+record p50/p95 frame time per preset, watch the governor climb back after load is removed, and record JS heap after
+repeated restarts. Then fix dawn/dusk exposure in `apps/web/src/render/Sky.ts` (`update()`: hemisphere intensity and
+fog colour at low sun elevation) with before/after screenshots at a fixed seed, pose and frozen time.
+
+## Commands
 ```bash
 npm ci
 npm run typecheck
-npm test
+npm test               # ~2 min (includes 100-day runs)
 npm run build
-npx playwright install chromium
-npm run test:e2e
+npm run test:e2e       # ~12 min: smoke, reliability, gameplay (needs build; Playwright Chromium)
 npm run sim -- 150 7
 npm run bench
-npm run dev
 ```
-Do not claim commands were run if they were not. The reported 100-day tests are intentionally long; provision CI timeouts accordingly.
-
-## Developer handoff template
-- Branch/HEAD and working-tree status:
-- Milestone, scope, accepted changes:
-- Commands actually run, environment, results, artifacts:
-- FPS/p95 frame time/heap/GPU indicators with measurement provenance:
-- Known defects (severity + reproducer):
-- Requirements deliberately deferred:
-- Exact next file/function/test:
-- User-visible demo/screenshots:
-- New commits pushed / PR link:
-
-## Where to look
-The product vision is in `docs/spec/MASTER_PROMPT.md`; beta-test addendum, living worlds, adaptive quality, Simulation Inspectors in `docs/spec/`. The executable policies are `docs/ENGINEERING_RULEBOOK.md`, `docs/QUALITY_GATES.md`, `docs/TEST_STRATEGY.md`, `docs/DEV_PLAYBOOK.md`.
