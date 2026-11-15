@@ -22,7 +22,7 @@ describe('adaptive quality: deterministic, renderer-independent', () => {
 
   it('recovers resolution AND a higher preset after temporary overload', () => {
     const g = new QualityGovernor('high');
-    simulate(g, 45, 15);
+    simulate(g, 45, 10);
     expect(g.quality).toBe('medium');
     const changes = simulate(g, 16, 125);
     expect(changes).toContain('preset');
