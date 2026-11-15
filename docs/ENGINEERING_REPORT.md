@@ -56,6 +56,8 @@ Running `npx playwright test tests/e2e/visual-lab.spec.ts` (or `npm run test:e2e
 
 ## 5. Honest Environment & Hardware Limitations Disclosure
 
+**CI workload note:** The full ten-comparison benchmark needs longer than the 120-second default Playwright timeout under software WebGL2. The test has a ten-minute cap and runs without other parallel browser tests; these limits do not constitute performance validation. The baseline/enhanced render passes reset their procedural animation phase to make screenshots more comparable.
+
 **Publication note:** The uploader has not executed this benchmark locally. CI results and screenshot artifacts must be inspected separately before claiming shader or browser verification.
 
 - **Software Rasterizer in CI (`SwiftShader`):** `playwright.config.ts` launches headless Chromium with `--use-gl=swiftshader`. Frame times (`p50Ms` / `p95Ms`) recorded by CI or headless Playwright reflect **CPU software rasterization (`Google SwiftShader`)**, **not** physical desktop or mobile GPU hardware performance, and `device.isSoftwareRenderer` explicitly flags this in `visual-lab-report.json`.

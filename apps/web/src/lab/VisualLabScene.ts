@@ -1397,6 +1397,8 @@ export class VisualLabRunner {
     warmupFrames = 15,
     sampleFrames = 60,
   ): LabBenchmarkResult {
+    // Same animation phase for baseline and enhanced A/B captures.
+    this.simTimeSec = 0;
     this.setMode(mode);
     this.applyPreset(presetId);
 
@@ -1507,6 +1509,8 @@ export class VisualLabRunner {
 
     this.sky.mesh.geometry.dispose();
     (this.sky.mesh.material as THREE.Material).dispose();
+    this.sky.sun.shadow.map?.dispose();
+    this.sky.sun.shadow.map = null;
 
     this.weather.rain.geometry.dispose();
     (this.weather.rain.material as THREE.Material).dispose();

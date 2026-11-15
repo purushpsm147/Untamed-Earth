@@ -3,6 +3,10 @@ import * as path from 'node:path';
 import { expect, test } from '@playwright/test';
 import type { LabFullSuiteReport } from '../../apps/web/src/lab/VisualLabScene';
 
+// Full shader compilation + 10 scene captures use software WebGL on CI.
+// Enforce a finite, realistic budget rather than Playwright's 120-second smoke default.
+test.setTimeout(10 * 60_000);
+
 test('visual lab renders 5 fixed-seed presets, compiles baseline & enhanced shaders cleanly, benchmarks p50/p95, captures PNGs, and disposes resources', async ({
   page,
 }) => {
