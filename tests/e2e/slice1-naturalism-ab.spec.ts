@@ -9,6 +9,7 @@ import {
 const EVIDENCE_DIR = path.resolve(process.cwd(), 'docs/evidence/slice1-v3');
 
 test.describe('PR #12 Naturalism v3 — /?slice=1 Integration, Grounding & Evidence Capture', () => {
+  test.setTimeout(15 * 60_000); // CI SwiftShader can run far below physical GPU throughput
   test.beforeAll(() => {
     fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
   });
@@ -31,6 +32,11 @@ test.describe('PR #12 Naturalism v3 — /?slice=1 Integration, Grounding & Evide
   test('Captures genuine 720p/1080p baseline-vs-refined screenshots and frame-pacing metrics on /?slice=1', async ({
     page,
   }) => {
+    // Load WebGL2 and seed 150 once: repeated 'networkidle' reloads caused the first
+    // CI attempt to time out before any diagnostic or screenshot was produced.
+    await page.goto('/?slice=1', { waitUntil: 'load' });
+    await expect(page.locator('#natural-slice-panel')).toBeVisible({ timeout: 90_000 });
+
     const resolutions = [
       { label: '720p', width: 1280, height: 720 },
       { label: '1080p', width: 1920, height: 1080 },
@@ -49,8 +55,14 @@ test.describe('PR #12 Naturalism v3 — /?slice=1 Integration, Grounding & Evide
 
       for (const preset of presets) {
         for (const mode of modes) {
-          const url = `/?slice=1&preset=${preset}&mode=${mode}`;
-          await page.goto(url, { waitUntil: 'networkidle' });
+          const caseLabel = `${preset} / ${mode} / ${res.label}`;
+          await page.evaluate(({ preset, mode, w, h }) => {
+            const app = window.__naturalSlice;
+            if (!app) throw new Error('Natural riverbank app was not mounted');
+            app.resize(w, h);
+            app.selectShot(preset);
+            app.setMode(mode);
+          }, { preset, mode, w: res.width, h: res.height });
 
           // Warm up 30 frames, then reset pacing buffer and sample 180 frames (~3s at 60Hz)
           await page.evaluate(async () => {
@@ -69,7 +81,7 @@ test.describe('PR #12 Naturalism v3 — /?slice=1 Integration, Grounding & Evide
           });
 
           const diag = await page.evaluate(() => (window as any).__SLICE1_DIAGNOSTICS__);
-          expect(diag, `Missing __SLICE1_DIAGNOSTICS__ on ${url}`).toBeTruthy();
+          expect(diag, `Missing __SLICE1_DIAGNOSTICS__ in ${caseLabel}`).toBeTruthy();
 
           if (mode === 'naturalistic') {
             // Verify v3 per-hoof IK grounding (no floating/clipping > 5mm) and 2-axis slope alignment
