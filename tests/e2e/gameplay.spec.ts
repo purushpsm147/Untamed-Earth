@@ -447,11 +447,11 @@ test.describe('gameplay scenarios', () => {
     void cam0;
     // Observe -> Follow -> Become from the autopilot's current subject
     await page.keyboard.press('KeyV');
-    await expect.poll(() => g(page, (G) => G.debugCuriosity().key), { timeout: 8000 }).toMatch(/^[ap]:/);
-    await g(page, (G) => { // steer the director to a deer so "Become" is available (a fixture, not a product path)
+    await expect.poll(() => g(page, (G) => G.mode), { timeout: 8000 }).toBe('curiosity');
+    await expect.poll(() => g(page, (G) => G.debugCuriosity().key), { timeout: 8000 }).toMatch(/^(animal|event|scenic):/);
+    await g(page, (G) => { // point the director at an adult deer so "Become" is offered (QA fixture via the public focus API)
       const d = G.sim.animals.find((a: any) => a.sp === 0 && a.age > 70); // eslint-disable-line @typescript-eslint/no-explicit-any
-      (G as any).curiosity.director.current = { key: `a:${d.id}`, kind: 'animal', id: d.id, x: d.x, z: d.z, base: 5, tag: 'fixture' }; // eslint-disable-line @typescript-eslint/no-explicit-any
-      (G as any).curiosity.director.since = 1e9; // eslint-disable-line @typescript-eslint/no-explicit-any
+      (G as any).curiosity.focus(d.id); // eslint-disable-line @typescript-eslint/no-explicit-any
     });
     await expect(page.locator('#cuBecome')).toBeVisible({ timeout: 4000 });
     await page.click('#cuBecome');

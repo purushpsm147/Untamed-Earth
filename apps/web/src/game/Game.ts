@@ -441,13 +441,14 @@ export class Game {
       const dz = this.look.z - this.cam.z;
       this.cam.yaw = Math.atan2(dx, dz);
       this.cam.pitch = clamp(Math.atan2(dy, Math.hypot(dx, dz)), -1.4, 1.4);
+      this.curiosity.stop();
     }
     if (m === 'curiosity' && this.mode !== 'curiosity') {
       const cp = Math.cos(this.cam.pitch);
       this.look.x = this.cam.x + Math.sin(this.cam.yaw) * cp * 30;
       this.look.y = this.cam.y + Math.sin(this.cam.pitch) * 30;
       this.look.z = this.cam.z + Math.cos(this.cam.yaw) * cp * 30;
-      this.curiosity.paused = false;
+      this.curiosity.start({ x: this.cam.x, y: this.cam.y, z: this.cam.z, tx: this.look.x, ty: this.look.y, tz: this.look.z });
       this.following = false;
       if (this.input.captured) this.input.toggleCapture();
       if (this.speed > 10 || this.speed === 0) this.setSpeed(1);
@@ -545,13 +546,10 @@ export class Game {
       if (Math.hypot(i.moveX, i.moveZ) > 0.2 || Math.abs(i.moveY) > 0.2 || Math.abs(i.lookX) + Math.abs(i.lookY) > 0.004 || i.click) {
         this.setMode('observer');
       } else {
-        const pose = this.curiosity.update(dt, { x: c.x, y: c.y, z: c.z, tx: this.look.x, ty: this.look.y, tz: this.look.z },
-          (x, z) => Math.max(v.heightFast(x, z), v.waterSurface(z) + this.sim.env.stage), (id) => this.engine.animals.pos.get(id));
-        // never fly through a ruin: hold position horizontally if the next step would enter a footprint at wall height
-        if (!(v.blocked(pose.x, pose.z, 1.2) && pose.y < v.heightFast(pose.x, pose.z) + 8)) {
-          c.x = clamp(pose.x, 4, REGION_SIZE - 4);
-          c.z = clamp(pose.z, 4, REGION_SIZE - 4);
-        }
+        // the director plans a path clear of ruins (rotated footprints, roof clearance) and caps speed
+        const pose = this.curiosity.update(dt, { x: c.x, y: c.y, z: c.z, tx: this.look.x, ty: this.look.y, tz: this.look.z });
+        c.x = clamp(pose.x, 4, REGION_SIZE - 4);
+        c.z = clamp(pose.z, 4, REGION_SIZE - 4);
         c.y = Math.max(pose.y, Math.max(v.height(c.x, c.z), v.waterSurface(c.z) + this.sim.env.stage) + 1.4);
         this.look.x = pose.tx;
         this.look.y = pose.ty;
