@@ -25,7 +25,17 @@ test.describe('gameplay scenarios', () => {
     expect(Math.abs(d.dz)).toBeLessThan(-d.dx * 0.2);
     expect((await moved(['KeyA'])).dx).toBeGreaterThan(1);
     expect((await moved(['Space'])).dy).toBeGreaterThan(1);
-    expect((await moved(['KeyQ'])).dy).toBeLessThan(-0.5);
+    // A saturated SwiftShader runner may process no animation frame during a 700 ms
+    // wall-clock hold. Keep Q held until the camera actually consumes input, so
+    // this still detects a broken descend action instead of depending on GPU speed.
+    const beforeDescend = await pos();
+    await page.keyboard.down('KeyQ');
+    try {
+      await expect.poll(async () => (await pos()).y, { timeout: 20_000 })
+        .toBeLessThan(beforeDescend.y - 0.5);
+    } finally {
+      await page.keyboard.up('KeyQ');
+    }
     const slow = (await moved(['KeyW'])).dz;
     const fast = (await moved(['ShiftLeft', 'KeyW'])).dz;
     expect(fast).toBeGreaterThan(slow * 2);
@@ -155,9 +165,21 @@ test.describe('gameplay scenarios', () => {
     });
     await expect.poll(async () => (await deer()).fear, { timeout: 8000 }).toBeGreaterThan(0.3);
     await expect(page.locator('#wildPrompt')).toContainText('Predator');
-    await hold(page, ['ShiftLeft', 'KeyW'], 2500);
-    const gap = await g(page, (G) => { const d = G.sim.byId.get(G.controlled); const j = G.sim.byId.get((window as any).__jackal); return Math.hypot(d.x - j.x, d.z - j.z) as number; }); // eslint-disable-line @typescript-eslint/no-explicit-any
-    expect(gap).toBeGreaterThan(18);
+    // Escape distance must reflect actual movement, not how many software-rendered
+    // animation frames happen to fit inside 2.5 wall-clock seconds. Keep running
+    // until a real 18 m separation is observed; a broken input/escape path times out.
+    await page.keyboard.down('ShiftLeft');
+    await page.keyboard.down('KeyW');
+    try {
+      await expect.poll(async () => g(page, (G) => {
+        const d = G.sim.byId.get(G.controlled);
+        const j = G.sim.byId.get((window as any).__jackal); // eslint-disable-line @typescript-eslint/no-explicit-any
+        return Math.hypot(d.x - j.x, d.z - j.z) as number;
+      }), { timeout: 25_000 }).toBeGreaterThan(18);
+    } finally {
+      await page.keyboard.up('KeyW');
+      await page.keyboard.up('ShiftLeft');
+    }
     // release: same individual, state carried over, autonomy resumes
     const pre = await deer();
     await page.keyboard.press('KeyX');
