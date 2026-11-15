@@ -218,3 +218,10 @@ if (profiling) {
     })().catch((e: unknown) => log(`Profiling failed: ${e instanceof Error ? e.message : String(e)}`));
   };
 }
+ 
+// Isolated documentary visual experiment; production gameplay remains untouched.
+if (params.has('slice')) {
+  void import('./lab/NaturalRiverbankScene').then(({ mountNaturalRiverbankSlice }) => {
+    mountNaturalRiverbankSlice(canvas, 150, 'high');
+  }).catch((error: unknown) => console.error('Natural riverbank slice failed', error));
+}
