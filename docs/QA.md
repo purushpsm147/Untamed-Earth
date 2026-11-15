@@ -1,19 +1,26 @@
 # QA report
 
-Last updated: 2026-11-15, integration session (PRs #2, #3, #4, #6, #8 merged; #7 reviewed, not merged).
-Environment: Linux container, Node 22, headless Chromium 153 with **SwiftShader (software rasteriser), no GPU**.
-Every result below comes from that environment. Frame times are not representative of real hardware and support no
-performance claims.
+Last updated: 2026-11-15, follow-up session (quality and verification). Environment for every result below: Linux
+container, Node 22, headless Chromium 153 with **SwiftShader (software rasteriser), no GPU**, plus GitHub Actions
+(ubuntu-latest, same software renderer). **No physical GPU or phone has been tested.** Frame times support no
+performance claims; see PERFORMANCE.md for the profiling procedure to run on real hardware.
 
-## Gate run
-
-| Check | Command | Result |
+## Gate status
+| Check | Where | Result |
 |---|---|---|
-| Clean install | `npm ci` | Pass |
-| Strict typecheck | `npm run typecheck` | Pass |
-| Unit + headless simulation (8 files) | `npm test` | **60/60 pass** (≈108 s) |
-| Production build | `npm run build` | Pass — JS 705 kB (192 kB gzip) + 11 kB terrain worker + 7 kB CSS |
-| Browser suites (smoke, reliability, gameplay) | `npm run test:e2e` | **17/18** on the full run. The failure was a timing-dependent precondition in the terrain flight test (the Worker kept up, so nothing went stale). Test made deterministic, then passed 2/2 with `--repeat-each 2`. Full suite not re-run after that change. |
+| Typecheck, build | local | Pass. JS 710 kB (194 kB gzip) + 11 kB worker + lazily loaded profiler (4 kB) |
+| Unit + headless simulation (12 files) | local | **69/69 pass** |
+| Browser suites (smoke, reliability, gameplay; 18 tests) | local | Last full run 16/18: both failures were input-timing races (below), fixed; affected scenarios then passed 6/6 with `--repeat-each 2` |
+| GitHub Actions | CI | Runs 44 (`21c3aba`) and 46 (`dcd446c`) failed on flaky tests, each diagnosed and fixed below. Result for the latest commit: see "CI record" |
+
+## CI record
+| Run | Commit | Result | Cause | Fix |
+|---|---|---|---|---|
+| 44 | `21c3aba` | Fail | Wildlife: deer was resting when the jackal appeared; resting halves detection per check by design, so an 8 s window missed 6–25% of the time | Deer stands up first (`1695c09`) |
+| 46 | `dcd446c` | Fail | Click-select: the followed deer walked off the screen centre before the click | Pause, click the deer's projected position (`6c1a3e4`) |
+| 48 | `d7423cd` | Fail | (a) walk-speed check diluted by ticks before the key was first sampled (1.12 m/s measured for a 2.08 m/s walk); (b) chunk traversal timed out: the scripted path advanced at most 0.1 s per frame, so slow CI frames stretched it past 4 min | Measure only while moving; path advances by real time (`dc0d2f4`-series commit after `6b8261e`) |
+| local | `6c1a3e4` | 2 fails | Short key holds fell between frames 250–1000 ms apart, so they did nothing | Input latches taps between frames (product fix, unit-tested); tests poll for effects (`6b8261e`) |
+| 45, 47 | — | Cancelled | Superseded by a newer push | — |
 
 ## What the tests cover
 
@@ -24,7 +31,10 @@ performance claims.
 - Ecology: 1/3/10/100-day runs; exact population accounting; identity stable across detail-focus changes; daily intake within 35–170% of species requirement; thirsty animals find water and drink at the edge; tired animals rest; prey flee perceived predators (fearless adults don't); jackals hunt and kills feed them; nobody inside buildings; vegetation recovers after drought; save/load continues bit-identically.
 - Render lifecycle (PR #2) and terrain stale-response handling (PR #4).
 - Quality governor (PR #3 + integration): downgrade order, recovery to ceiling, hysteresis at a performance cliff, exponential backoff and relaxation, sub-4 fps devices, start-up calibration, 30/60 fps targets, frame pacing on 60–240 Hz displays, hardware assessment.
-- Curiosity director (PR #6/#8 + integration): determinism, bounded buffers, hold/hysteresis, death handling, skip exclusion, building clearance with the game's real rotated footprints, speed cap, event-animal tracking.
+- Curiosity director (PR #6/#8 + integration): determinism, bounded buffers, hold/hysteresis, death handling, skip exclusion, building clearance with the game's real rotated footprints, speed cap, event-animal tracking, size-based framing with a 3.5 m minimum, aim height.
+- Sky lighting: night stays dark, twilight lights the ground, golden-hour warmth, midday exposure, ambient monotonic through the morning.
+- Scatter instance buffers: no truncation, growth, shrink with hysteresis, no reallocation on small changes.
+- Input: a key tapped between two frames counts once.
 
 **Browser** (`tests/e2e/`)
 - Smoke: boot, render, time acceleration (exactly 1 game-minute per tick at 100×), mode switches, save and reload; resource disposal on restart; Auto overrides a saved manual setting.
@@ -34,15 +44,26 @@ performance claims.
 ## Measurements (software renderer)
 | What | Value |
 |---|---|
-| Frame time, Low, 480×270, idle | ≈150–180 ms (governor drops to 50% resolution on Low) |
-| WebGL objects after each of 4 restarts | buffers 291, VAOs 65, programs 11, framebuffers 3, textures 5 (identical every time) |
-| Before the lifecycle fixes | +3 framebuffers and +4 textures per restart (three.js renderer); instanced buffers also leaked |
-| Simulation tick, ~250 animals | 0.3–0.5 ms (Node, one core) |
-| Curiosity, 90 s from settlement | 0 samples inside ruins below roof, 0 below terrain, max 53 m/s over 2 s windows |
+| Frame time p50 / p95, fixed route, 1280×720 | Low 250 / 983 ms; Medium 517 / 1517 ms; High 850 / 1767 ms (`?profile=1`) |
+| Draw calls / triangles on the route | Low 62 / 284 k; Medium 115 / 736 k; High 158 / 1.17 M |
+| Simulation per tick | 0.3–0.5 ms |
+| WebGL objects across restarts 1–5 | identical (299 buffers, 5 textures, 17 programs, 67 VAOs, 3 framebuffers) |
+| JS heap across restarts 1–5 | 50.5, 71.6, 71.3, 67.2, 66.9 MB (plateau) |
+| Instance buffers on Low | 10.82 MB before, 0.72 MB after (same drawn counts); High 1.57 MB |
+| Dawn/dusk mean luma (seed 1, fixed pose, clear, frozen time, Medium) | 05:24 0.203 → 0.258; 18:36 0.192 → 0.248; 06:24 0.379 → 0.360; noon 0.599 → 0.562; night 0.063 → 0.066 |
+| Curiosity framing | crow 10 m → 3.5 m, perched myna 3.8 m, chital 9 m |
+| Auto recovery after removing load | **Not verifiable here** (no headroom on a software rasteriser) |
 
-## Defects found and fixed this session
+Evidence images: `docs/evidence/dawn-dusk-before-after.jpg`, `docs/evidence/curiosity-framing-before-after.jpg`;
+profile report: `docs/evidence/profile-swiftshader-2026-11-15.json`.
+
+## Defects found and fixed (integration and follow-up sessions)
 | Defect | Severity | Fix |
 |---|---|---|
+| Short key taps lost on slow devices (frames further apart than the tap) | P2 | Taps latched until the next frame |
+| Instance buffers preallocated at maximum on every preset (~10 MB waste on Low) | P2 | Grow on demand, shrink with hysteresis; grass sized per preset |
+| Dawn/dusk murky, noon washed out | P2 | Twilight ambient curve, warm bounce, exposure adaptation |
+| Birds framed from 10 m by Curiosity | P3 | Size-based standoff with 3.5 m minimum |
 | Instanced-mesh buffers leaked per world restart | P1 | `InstancedMesh.dispose()` everywhere |
 | New WebGLRenderer per world leaked three.js framebuffers and textures | P1 | One renderer per canvas |
 | Terrain Worker death → main-thread fallback too slow → fatal loading error | P1 | Per-frame time budget; stall-based watchdog |
@@ -58,8 +79,7 @@ Real GPUs, phones, Firefox and WebKit; the governor's upgrade path under real he
 gamepad on devices; long (30 min+) browser soak; memory budgets; visual quality judged against photorealism goals.
 
 ## Known issues
-- Dawn and golden-hour scenes are very dark.
-- Curiosity frames small birds from too far away.
-- Grass and rain buffers sized for Ultra on every preset.
+- At the 3.5 m safety minimum a myna is still only ~6% of frame height.
+- Midday meadow grass still reads pale.
 - Animals steer locally (no path-finding); the camera passes through trees.
 - Jackal/hare dynamics are seed-sensitive (see SIMULATION.md).

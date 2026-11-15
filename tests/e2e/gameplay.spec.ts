@@ -72,25 +72,32 @@ test.describe('gameplay scenarios', () => {
       G.cam.yaw = 0;
     });
     await page.waitForTimeout(400);
-    // walk
-    // speeds are checked against simulated time (ticks x 0.1 s), which is what the animal actually experienced
+    // Speeds are measured against simulated time (ticks x 0.1 s) and only while the key is held AND the deer is
+    // already moving: on a slow renderer the key can wait a frame (several hundred ms) before it is first seen, and
+    // counting those ticks diluted the speed (CI run 48 measured 1.12 m/s for a 2.08 m/s walk).
     const tick = (): Promise<number> => g(page, (G) => G.sim.tick as number);
-    let a = await deer();
-    let t0 = await tick();
-    await hold(page, ['KeyW'], 2000);
-    let b = await deer();
-    const walkSpeed = Math.hypot(b.x - a.x, b.z - a.z) / (((await tick()) - t0) * 0.1);
+    const measure = async (keys: string[]): Promise<{ speed: number; end: any }> => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      for (const k of keys) await page.keyboard.down(k);
+      await expect.poll(async () => (await deer()).speed, { timeout: 15_000 }).toBeGreaterThan(0);
+      const s0 = await deer();
+      const t0 = await tick();
+      await expect.poll(async () => (await tick()) - t0, { timeout: 60_000 }).toBeGreaterThan(15); // >= 1.5 s simulated
+      const s1 = await deer();
+      const t1 = await tick();
+      for (const k of [...keys].reverse()) await page.keyboard.up(k);
+      return { speed: Math.hypot(s1.x - s0.x, s1.z - s0.z) / ((t1 - t0) * 0.1), end: s1 };
+    };
+    const walk = await measure(['KeyW']);
+    const walkSpeed = walk.speed;
     expect(walkSpeed).toBeGreaterThan(1.3); // chital walk 1.3 m/s; the player's brisk walk is 1.6x
     expect(walkSpeed).toBeLessThan(2.6);
-    expect(b.stamina).toBeCloseTo(1, 1);
+    expect(walk.end.stamina).toBeCloseTo(1, 1);
     // run: several times faster, and it costs stamina
-    a = b;
-    t0 = await tick();
-    await hold(page, ['ShiftLeft', 'KeyW'], 2000);
-    b = await deer();
-    const runSpeed = Math.hypot(b.x - a.x, b.z - a.z) / (((await tick()) - t0) * 0.1);
-    expect(runSpeed).toBeGreaterThan(walkSpeed * 3);
-    expect(runSpeed).toBeLessThan(13.5);
+    const run = await measure(['ShiftLeft', 'KeyW']);
+    let b = run.end;
+    let a = b;
+    expect(run.speed).toBeGreaterThan(walkSpeed * 3);
+    expect(run.speed).toBeLessThan(13.5);
     expect(b.stamina).toBeLessThan(0.995);
     // the drawn deer stands on the ground
     expect(Math.abs(b.rendered - b.ground)).toBeLessThan(1.2);

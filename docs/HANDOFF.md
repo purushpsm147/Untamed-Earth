@@ -24,28 +24,24 @@ See `docs/QA.md` for commands and results. Key browser measurements:
 - Simulation state hash at tick 300 identical whether quality stayed on Low or was changed by the governor mid-run.
 - Curiosity, 90 s from the settlement: 0 samples inside a ruin below its roof, 0 below terrain, max 53 m/s over 2 s windows.
 
+## Follow-up session (quality and verification)
+| Commit | Change | Evidence |
+|---|---|---|
+| `1695c09` | Natural dawn/dusk lighting in `Sky.ts`; wildlife test flake fixed | `docs/evidence/dawn-dusk-before-after.jpg`, `tests/unit/sky-lighting.test.ts` |
+| `d7423cd` | Curiosity frames animals by body size, 3.5 m safe minimum | `docs/evidence/curiosity-framing-before-after.jpg`, 2 new unit tests |
+| `6c1a3e4` | Instance buffers sized to need (Low 10.82 → 0.72 MB); `?profile=1` profiler; click-select test flake fixed | `docs/PERFORMANCE.md`, `docs/evidence/profile-swiftshader-2026-11-15.json` |
+| `6b8261e` | Key taps between frames no longer lost; input-timing test races fixed | `tests/unit/input-latch.test.ts` |
+
+PR #8 was closed with an explanatory comment (its code is in `e6310ce`); #6 shows as merged; #7 stays open as an experiment.
+
 ## Known defects and unsupported claims
-- No real-GPU, phone, Firefox or WebKit testing. No FPS, memory or download-budget claims are made.
-- Governor *upgrade* has only been exercised with synthetic frame traces (software rendering never has headroom).
-- Curiosity frames small birds from too far away (fixed 10 m standoff).
-- Low-sun scenes (dawn, golden hour) are very dark.
-- Grass and rain buffers are preallocated at Ultra capacity on every preset (P2 from the independent review).
-- Audio never listened to; touch and gamepad never used on a device.
+- **No physical GPU or phone has been profiled** (none attached to the session). Run `/?profile=1` on real hardware.
+- Auto quality *recovery* is still unverified on real hardware; on SwiftShader there is never headroom.
+- At the 3.5 m safety minimum a myna is ~6% of frame height; midday grass reads pale.
+- Audio never listened to; touch and gamepad never used on a device; no Firefox/WebKit runs.
 - Social Lens history is session-only.
 
 ## Next engineering task
-Run the game on a real desktop GPU (and a midrange phone if available) with F3 diagnostics open:
-record p50/p95 frame time per preset, watch the governor climb back after load is removed, and record JS heap after
-repeated restarts. Then fix dawn/dusk exposure in `apps/web/src/render/Sky.ts` (`update()`: hemisphere intensity and
-fog colour at low sun elevation) with before/after screenshots at a fixed seed, pose and frozen time.
-
-## Commands
-```bash
-npm ci
-npm run typecheck
-npm test               # ~2 min (includes 100-day runs)
-npm run build
-npm run test:e2e       # ~12 min: smoke, reliability, gameplay (needs build; Playwright Chromium)
-npm run sim -- 150 7
-npm run bench
-```
+Open `/?profile=1` on a real desktop GPU (and a midrange phone if available) and commit the downloaded JSON under
+`docs/evidence/`. From it: per-preset p50/p95 on hardware, whether Auto recovers after the artificial load, and heap
+across restarts. Then decide preset budgets (`apps/web/src/render/quality.ts`) from those numbers.

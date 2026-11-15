@@ -917,7 +917,8 @@ export class Game {
       const tick = (): void => {
         if (this.disposed) return resolve();
         const now = performance.now();
-        const dt = Math.min(0.1, (now - last) / 1000);
+        // real elapsed time (capped), so a scripted route takes the same wall time however slow the renderer is
+        const dt = Math.min(0.5, (now - last) / 1000);
         last = now;
         const a = points[seg]!;
         const b = points[seg + 1]!;
