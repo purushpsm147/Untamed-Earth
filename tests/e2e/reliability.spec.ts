@@ -53,8 +53,19 @@ test.describe('reliability: lifecycle and streaming (software-rendered Chromium)
     // far faster than any player: at software-renderer frame rates the camera jumps hundreds of metres per frame,
     // so most in-flight requests are superseded before they return
     await g(page, (G) => G.debugPath([[150, 150], [1300, 250], [200, 700], [1300, 1250], [150, 1300], [700, 700], [1300, 150], [150, 150]], 900, 14));
-    const during = await g(page, (G) => G.debugTerrain());
-    expect(during.stale + during.superseded, JSON.stringify(during)).toBeGreaterThan(before.stale + before.superseded);
+    // Whether the flight itself outruns the Worker depends on this machine's frame rate, so also force the case
+    // deterministically: dispatch requests around one point, then move the streaming focus far away in the same
+    // task, before any Worker reply can be delivered. Those replies must be discarded, never applied late.
+    await g(page, (G) => {
+      const t = G.engine.terrain;
+      t.update({ x: 1350, y: 30, z: 1350 });
+      t.update({ x: 90, y: 30, z: 90 });
+      t.update({ x: 1350, y: 30, z: 90 });
+    });
+    await expect.poll(async () => {
+      const d = await g(page, (G) => G.debugTerrain());
+      return d.stale + d.superseded;
+    }, { timeout: 30_000 }).toBeGreaterThan(before.stale + before.superseded);
     await g(page, (G) => G.debugCam(720, 690, 10, 0.4, -0.2));
     await terrainSettled(page);
     const after = await g(page, (G) => G.debugTerrain());
