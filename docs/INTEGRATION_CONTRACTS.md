@@ -27,8 +27,8 @@ tests: `tests/unit/observe-contracts.test.ts`.
 |---|---|
 | `id`, `species`, `sex`, `lifeStage`, `group`, `mother` | Stable identity and relationships |
 | `x`, `z`, `alt`, `prevX`, `prevZ`, `prevAlt` | Current and previous-tick position (interpolate with the renderer's alpha); sample terrain for y |
-| `heading`, `speed` | Radians (0 = +z toward +x), m/s |
-| `behavior` | `idle, wander, graze, travel-to-water, drink, rest, flee, court, stalk, chase, travel-to-carrion, feed, roost, follow-mother` |
+| `heading`, `speed` | Radians (0 = +z toward +x), m/s. Since Living Valley V1 speed changes smoothly (acceleration), so gait transitions can blend from it |
+| `behavior` | `idle, wander, graze, travel-to-water, drink, rest, flee, court, stalk, chase, travel-to-carrion, feed, roost, follow-mother, regroup` (regroup added in v1, additive) |
 | `gait` | `still, walk, trot, run, fly, swim`, from speed relative to the species' own walk/run speeds |
 | `fear` | 0..1 perceived danger, for alert posture only |
 | `size`, `speciesLength` | Growth fraction and adult body length (m), for scale and camera framing |

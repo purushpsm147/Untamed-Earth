@@ -100,13 +100,25 @@ test.describe('gameplay scenarios', () => {
       G.cam.yaw = 0;
     });
     await page.waitForTimeout(400);
-    // Speeds are measured against simulated time (ticks x 0.1 s) and only while the key is held AND the deer is
-    // already moving: on a slow renderer the key can wait a frame (several hundred ms) before it is first seen, and
+    // Speeds are measured against simulated time (ticks x 0.1 s) and only while the key is held AND the deer has
+    // reached a steady speed: on a slow renderer the key can wait a frame (several hundred ms) before it is first seen, and
     // counting those ticks diluted the speed (CI run 48 measured 1.12 m/s for a 2.08 m/s walk).
     const tick = (): Promise<number> => g(page, (G) => G.sim.tick as number);
     const measure = async (keys: string[]): Promise<{ speed: number; end: any }> => { // eslint-disable-line @typescript-eslint/no-explicit-any
       for (const k of keys) await page.keyboard.down(k);
-      await expect.poll(async () => (await deer()).speed, { timeout: 15_000 }).toBeGreaterThan(0);
+      // the deer accelerates over ~2 s (Living Valley steering); measure top speed, so wait for a plateau
+      // (compare samples at least 0.5 s of simulated time apart: two polls in the same tick read identical speeds)
+      let last = -1;
+      let lastT = -1;
+      await expect.poll(async () => {
+        const t = await tick();
+        if (t - lastT < 5) return false;
+        const sp = (await deer()).speed as number;
+        const flat = sp > 0 && Math.abs(sp - last) <= sp * 0.02;
+        last = sp;
+        lastT = t;
+        return flat;
+      }, { timeout: 60_000, intervals: [200] }).toBe(true);
       const s0 = await deer();
       const t0 = await tick();
       await expect.poll(async () => (await tick()) - t0, { timeout: 60_000 }).toBeGreaterThan(15); // >= 1.5 s simulated

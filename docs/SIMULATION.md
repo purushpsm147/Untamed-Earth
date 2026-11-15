@@ -30,6 +30,23 @@ State per individual: identity, species, position, altitude (birds), heading, ag
 
 **Decisions** are utility scores re-evaluated every few seconds: flee (overrides everything), drink, forage, rest or roost, seek a mate, approach carrion, stalk prey, wander. The current behaviour gets a small bonus to prevent dithering.
 
+**Movement** (Living Valley V1). Behaviours set a *desired* speed; the body follows with species acceleration and
+braking (heavier animals are slower to start: hare ~9 m/s², chital ~4.5 m/s²) and slows to arrive instead of stopping
+dead. Turning rate falls with speed and body mass, so a sprinting deer arcs and a walking one can pivot. Ground animals
+steer by looking ahead (1.2 m, half and full look distance; look grows with speed) along eleven headings around the goal
+and taking the cheapest: buildings and the region edge are walls, slopes above ~44° up or ~52° down are refused and
+steep ground costs more, jackals avoid deep water strongly and small mammals cannot enter it. Once a wall forces a
+detour, the animal commits to that side until the direct line is clear (a "bug" wall-following rule), which stops
+left-right dithering in front of wide ruins. Every 4 s each animal checks progress (moved at all, and closest approach
+to its destination improved); after two failed checks it abandons the destination (flee re-plans an escape, water
+seekers forget the unreachable site, others go idle).
+
+**Herds** (chital and boar; not bird flocks). Many eyes: an individual's chance of detecting a predator rises with the
+number of herd mates nearby. When an alarm sends them running, each blends its own escape direction with the herd's
+centre (unless the centre lies toward the threat), so the herd tends to flee together. After a flight, and whenever an
+animal has drifted more than 30 m from its herd, it *regroups*, trotting back to the herd's near side; a rejoined animal
+resumes ordinary behaviour.
+
 **Food web**: grazers remove forage from their cell (with a functional response, so sparse forage feeds slowly); omnivores also draw on invertebrate and small-fauna pools; jackals stalk, chase and kill hares, fawns, weak deer and piglets, limited by sprint stamina and by adults defending young; kills and other deaths leave carcasses that jackals, boar and crows eat and that otherwise rot into detritus.
 
 **Demography**: conception needs a receptive female in season and in condition, and a male that finds her; only the dominant female in a jackal family breeds. Gestation, litter size, weaning and maturity come from the species table. Deaths: predation, starvation, dehydration, old age, poisoning (leachate), and a density-dependent background hazard standing in for causes not modelled individually (raptors, snakes, disease). Nothing respawns.
@@ -55,4 +72,8 @@ One seeded generator drives all stochastic choices, in a fixed iteration order. 
 
 - Jackals rarely starve because the small-fauna pool is forgiving; their numbers are held mainly by breeding rules and background mortality.
 - Hares can be driven locally extinct by a drought followed by a jackal peak; there is no immigration from outside the valley.
-- Steering is local (no path-finding); animals can be delayed by walls and river bends.
+- Steering is local with wall-following, not path-finding: an animal can still give up on a destination behind a long
+  river bend or inside a courtyard of ruins, and choose another. `npm run movement` reports pinned animals (≈1–5 twenty-second
+  windows per seed-day across ~200 animals).
+- Herd cohesion uses the group centre only: there is no leader, no spacing between individuals, and no lying-down group
+  vigilance rota.

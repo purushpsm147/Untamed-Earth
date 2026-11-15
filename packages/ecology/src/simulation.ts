@@ -12,10 +12,10 @@ export const SAVE_VERSION = 1;
 
 export const B = {
   Idle: 0, Wander: 1, Forage: 2, SeekWater: 3, Drink: 4, Rest: 5, Flee: 6, SeekMate: 7,
-  Stalk: 8, Chase: 9, SeekCarrion: 10, Feed: 11, Roost: 12, Follow: 13,
+  Stalk: 8, Chase: 9, SeekCarrion: 10, Feed: 11, Roost: 12, Follow: 13, Regroup: 14,
 } as const;
 export const BEHAVIOR_NAMES = ['Idle', 'Wandering', 'Foraging', 'Seeking water', 'Drinking', 'Resting', 'Fleeing', 'Seeking mate',
-  'Stalking', 'Chasing', 'Approaching carrion', 'Feeding', 'Roosting', 'Following mother'];
+  'Stalking', 'Chasing', 'Approaching carrion', 'Feeding', 'Roosting', 'Following mother', 'Rejoining the herd'];
 
 export interface Animal {
   id: number;
@@ -23,7 +23,23 @@ export interface Animal {
   x: number; z: number; alt: number;
   px: number; pz: number; palt: number;
   heading: number;
+  /** Actual speed, m/s (changes within acceleration limits). */
   speed: number;
+  /** Speed the current behaviour asks for, m/s. */
+  want: number;
+  /** Steering memory: last chosen avoidance offset (radians), for hysteresis. */
+  steer: number;
+  /** Progress check: kinetic seconds since the last check, distance to target at it, consecutive failures. */
+  chkT: number;
+  chkD: number;
+  stuck: number;
+  /** Own position and target position at the last progress check. */
+  cx: number;
+  cz: number;
+  ctx: number;
+  ctz: number;
+  /** Closest the animal has come to its current destination. */
+  bestD: number;
   /** Age in game days. */
   age: number;
   sex: 0 | 1;
@@ -104,6 +120,20 @@ export interface SimSnapshot {
 }
 
 const NO_CONTROL: ControlInput = { mx: 0, mz: 0, run: false, action: null };
+
+/** Candidate steering offsets from the goal direction (radians), in tie-break order: straight first, then alternating. */
+const STEER_OFFSETS = [0, 0.35, -0.35, 0.8, -0.8, 1.35, -1.35, 2.0, -2.0, 2.7, -2.7];
+/** Grades (rise/run) a ground animal will not climb or descend. */
+const MAX_UP_GRADE = 0.95;
+const MAX_DOWN_GRADE = 1.3;
+
+/** Ground locomotion limits from body size: heavier animals accelerate and turn less sharply. */
+function locomotion(sp: SpeciesDef): { accel: number; decel: number; agility: number } {
+  if (sp.flies) return { accel: 14, decel: 14, agility: 1 };
+  const lm = Math.log2(sp.mass);
+  const accel = clamp(9 - lm * 0.8, 3.5, 9);
+  return { accel, decel: accel * 1.4, agility: clamp(1.6 - Math.log10(sp.mass) * 0.35, 0.8, 1.6) };
+}
 
 /**
  * The authoritative world state. Headless: no rendering, DOM or timing dependencies.
@@ -206,7 +236,7 @@ export class Simulation {
       z = lerp(z, homeZ, 0.5);
     }
     const a: Animal = {
-      id: this.nextId++, sp, x, z, alt: 0, px: x, pz: z, palt: 0, heading: this.rng.range(0, 6.283), speed: 0, age,
+      id: this.nextId++, sp, x, z, alt: 0, px: x, pz: z, palt: 0, heading: this.rng.range(0, 6.283), speed: 0, want: 0, steer: 0, chkT: 0, chkD: 0, stuck: 0, cx: x, cz: z, ctx: x, ctz: z, bestD: Infinity, age,
       sex: this.rng.chance(0.5) ? 0 : 1, health: 1, hunger: 0.2, thirst: 0.2, energy: 0.8, stamina: 1, fear: 0, beh: B.Idle,
       tx: x, tz: z, tAlt: 0, targetId: 0, threatX: x, threatZ: z, pregnantH: 0, cooldownH: 0, homeX, homeZ, group, mother,
       waterX: NaN, waterZ: NaN, timer: this.rng.range(0, 3), crowd: 0, alive: true, controlled: false,
@@ -255,6 +285,7 @@ export class Simulation {
       if (a && a.alive) {
         a.controlled = true;
         a.speed = 0;
+        a.want = 0;
         a.beh = B.Idle;
       }
     }
@@ -539,6 +570,8 @@ export class Simulation {
         let p = d < sp.hearing * 0.3 ? 1 : d < vis ? 1 - (d / vis) * (d / vis) : 0;
         if (o.beh === B.Stalk) p *= 0.4;
         if (a.beh === B.Rest) p *= 0.5;
+        // many eyes: each herd mate nearby adds a chance that someone spots the predator (group vigilance)
+        if (p > 0 && p < 1 && sp.group > 1) p = 1 - Math.pow(1 - p, 1 + 0.25 * Math.min(a.crowd, 8));
         if (p > 0 && d2 < threatD2 && rng.next() < p) {
           threat = o;
           threatD2 = d2;
@@ -636,6 +669,13 @@ export class Simulation {
     if (a.hunger > 0.22) consider(B.Forage, Math.pow(a.hunger, 1.15) * (0.55 + 0.45 * act));
     consider(sp.flies ? B.Roost : B.Rest, Math.pow(1 - a.energy, 1.4) * 1.1 + (1 - act) * 0.42);
     if (mt) consider(B.SeekMate, 0.5);
+    // herd cohesion: an animal that has drifted far from its group wants to rejoin it
+    // (ground herds only: flocking birds gather at roosts instead)
+    const grp = sp.group > 2 && !sp.flies ? this.groups.get(a.group) : undefined;
+    if (grp && grp.n > 1) {
+      const dg = Math.hypot(grp.x - a.x, grp.z - a.z);
+      if (dg > 30) consider(B.Regroup, clamp((dg - 30) / 60, 0, 0.55) + 0.12);
+    }
     let carc: Carcass | null = null;
     if (sp.diet.carrion > 0 && a.hunger > 0.25 && this.carcasses.length > 0) {
       const reach = sp.smell * (a.alt > 2 || !sp.flies ? 1 : 0.5);
@@ -651,7 +691,7 @@ export class Simulation {
     }
     if (pr) consider(B.Stalk, a.hunger * 1.35 * (0.6 + 0.4 * act));
 
-    if (best === a.beh && (best === B.Forage || best === B.Rest || best === B.Roost || best === B.SeekWater || best === B.Stalk)) {
+    if (best === a.beh && (best === B.Forage || best === B.Rest || best === B.Roost || best === B.SeekWater || best === B.Stalk || best === B.Regroup)) {
       if (best === B.Stalk && pr) a.targetId = pr.id;
       return;
     }
@@ -715,7 +755,7 @@ export class Simulation {
       }
       case B.Rest:
         a.beh = B.Rest;
-        a.speed = 0;
+        a.want = 0;
         a.tx = a.x;
         a.tz = a.z;
         break;
@@ -736,6 +776,9 @@ export class Simulation {
       case B.SeekMate:
         a.beh = B.SeekMate;
         a.targetId = mt!.id;
+        break;
+      case B.Regroup:
+        a.beh = B.Regroup;
         break;
       case B.SeekCarrion:
         a.beh = B.SeekCarrion;
@@ -792,8 +835,22 @@ export class Simulation {
     const j = sp.id === 'hare' ? this.rng.range(-0.9, 0.9) : this.rng.range(-0.25, 0.25);
     const c = Math.cos(j);
     const s = Math.sin(j);
-    const fx = dx * c - dz * s;
-    const fz = dx * s + dz * c;
+    let fx = dx * c - dz * s;
+    let fz = dx * s + dz * c;
+    // herd animals flee as a herd: bend the escape toward the group unless the group lies toward the threat
+    const g = sp.group > 2 && !sp.flies ? this.groups.get(a.group) : undefined;
+    if (g && g.n > 1) {
+      const gx = g.x - a.x;
+      const gz = g.z - a.z;
+      const gl = Math.hypot(gx, gz);
+      if (gl > 4 && (gx * dx + gz * dz) / gl > -0.2) {
+        fx = fx * 0.75 + (gx / gl) * 0.25;
+        fz = fz * 0.75 + (gz / gl) * 0.25;
+        const fl = Math.hypot(fx, fz) || 1;
+        fx /= fl;
+        fz /= fl;
+      }
+    }
     a.beh = B.Flee;
     a.tx = clamp(a.x + fx * 70, 8, REGION_SIZE - 8);
     a.tz = clamp(a.z + fz * 70, 8, REGION_SIZE - 8);
@@ -845,9 +902,9 @@ export class Simulation {
     const dist = Math.hypot(dx, dz);
     switch (a.beh) {
       case B.Forage: {
-        if (dist > 2.5) a.speed = sp.flies && dist > 12 ? sp.run : sp.walk;
+        if (dist > 2.5) a.want = sp.flies && dist > 12 ? sp.run : sp.walk;
         else {
-          a.speed = 0;
+          a.want = 0;
           if (a.alt < 0.3) {
             const richness = this.forageAt(a, sp, dtH);
             if (a.hunger <= 0.03) {
@@ -859,7 +916,7 @@ export class Simulation {
         break;
       }
       case B.SeekWater: {
-        a.speed = sp.flies && dist > 12 ? sp.run : sp.walk * 1.35;
+        a.want = sp.flies && dist > 12 ? sp.run : sp.walk * 1.35;
         if (a.alt < 0.3) {
           // probe the ground ahead metre by metre so animals stop and drink at the water's edge
           const reach = Math.min(dist, a.speed * dt) + 1.2;
@@ -873,6 +930,7 @@ export class Simulation {
               a.x += ux * back;
               a.z += uz * back;
               a.beh = B.Drink;
+              a.want = 0;
               a.speed = 0;
               a.tx = wx;
               a.tz = wz;
@@ -890,7 +948,7 @@ export class Simulation {
         break;
       }
       case B.Drink: {
-        a.speed = 0;
+        a.want = 0;
         const w = this.env.waterHere(a.tx, a.tz);
         if (!w) {
           a.beh = B.Idle;
@@ -905,21 +963,45 @@ export class Simulation {
         break;
       }
       case B.Rest:
-        a.speed = 0;
+        a.want = 0;
         break;
       case B.Roost:
-        a.speed = dist > 1 ? sp.run * 0.8 : 0;
+        a.want = dist > 1 ? sp.run * 0.8 : 0;
         break;
       case B.Flee: {
-        a.speed = sp.run * (a.stamina > 0.03 ? 1 : 0.5);
+        a.want = sp.run * (a.stamina > 0.03 ? 1 : 0.5);
         a.stamina = Math.max(0, a.stamina - dt / sp.sprintS);
         if (dist < 3) {
           if (a.fear > 0.3 && !sp.flies) this.startFlee(a, sp);
-          else {
+          else if (sp.group > 2 && !sp.flies && !a.controlled) {
+            // danger over: a herd animal rejoins its herd instead of grazing wherever the flight ended
+            a.beh = B.Regroup;
+            a.timer = this.rng.range(1, 3);
+          } else {
             a.beh = sp.flies ? B.Roost : B.Idle;
-            a.speed = 0;
+            a.want = 0;
             a.timer = sp.flies ? this.rng.range(4, 10) : 0;
           }
+        }
+        break;
+      }
+      case B.Regroup: {
+        const g = this.groups.get(a.group);
+        if (!g || g.n < 2) {
+          a.beh = B.Idle;
+          a.timer = 0;
+          break;
+        }
+        // head for the herd, aiming at a point on its near side rather than its exact centre
+        const dgx = g.x - a.x;
+        const dgz = g.z - a.z;
+        const dg = Math.hypot(dgx, dgz) || 1;
+        a.tx = g.x - (dgx / dg) * 5;
+        a.tz = g.z - (dgz / dg) * 5;
+        a.want = dg > 45 ? sp.walk * 2.4 : sp.walk * 1.4;
+        if (dg < 12) {
+          a.beh = B.Idle;
+          a.timer = 0;
         }
         break;
       }
@@ -934,7 +1016,7 @@ export class Simulation {
         a.tz = m.z;
         a.tAlt = m.alt > 1 ? m.tAlt : 0;
         const d = Math.hypot(m.x - a.x, m.z - a.z);
-        a.speed = d > 25 ? sp.run * 0.8 : d > 3.5 ? Math.max(sp.walk * 1.2, m.speed) : 0;
+        a.want = d > 25 ? sp.run * 0.8 : d > 3.5 ? Math.max(sp.walk * 1.2, m.speed) : 0;
         break;
       }
       case B.SeekMate: {
@@ -948,7 +1030,7 @@ export class Simulation {
         a.tx = m.x;
         a.tz = m.z;
         a.tAlt = m.alt;
-        a.speed = sp.flies ? sp.run * 0.7 : sp.walk * 1.5;
+        a.want = sp.flies ? sp.run * 0.7 : sp.walk * 1.5;
         if (Math.hypot(m.x - a.x, m.z - a.z) < 3 + a.speed * dt) {
           if (this.rng.next() < 0.6 * Math.min(1.6, this.fertility[a.sp]!)) m.pregnantH = gestationHours(sp);
           else m.cooldownH = 6;
@@ -970,17 +1052,17 @@ export class Simulation {
         a.tz = p.z;
         const d = Math.hypot(p.x - a.x, p.z - a.z);
         if (a.beh === B.Stalk) {
-          a.speed = sp.walk * 1.15;
+          a.want = sp.walk * 1.15;
           if (d < 24 || p.beh === B.Flee) a.beh = B.Chase;
           else if (d > sp.vision * 1.3) (a.beh = B.Idle), (a.timer = 0);
         } else {
-          a.speed = sp.run;
+          a.want = sp.run;
           a.stamina = Math.max(0, a.stamina - dt / sp.sprintS);
           if (d < 1.8 + a.speed * dt * 0.6) this.attack(a, p);
           else if (a.stamina < 0.04 || d > 95) {
             a.beh = B.Rest;
             a.timer = this.rng.range(15, 30);
-            a.speed = 0;
+            a.want = 0;
           }
         }
         break;
@@ -992,15 +1074,15 @@ export class Simulation {
           a.timer = 0;
           break;
         }
-        a.speed = sp.flies && dist > 10 ? sp.run : sp.walk * 1.6;
+        a.want = sp.flies && dist > 10 ? sp.run : sp.walk * 1.6;
         if (dist < 2.2 && a.alt < 0.4) {
           a.beh = B.Feed;
-          a.speed = 0;
+          a.want = 0;
         }
         break;
       }
       case B.Feed: {
-        a.speed = 0;
+        a.want = 0;
         const c = this.carcasses.find((k) => k.id === a.targetId);
         if (!c || c.kg <= 0.02) {
           a.beh = B.Idle;
@@ -1021,7 +1103,7 @@ export class Simulation {
       }
       default: {
         // Idle / Wander
-        a.speed = a.beh === B.Wander && dist > 1.5 ? (sp.flies && dist > 14 ? sp.run * 0.8 : sp.walk * 0.85) : 0;
+        a.want = a.beh === B.Wander && dist > 1.5 ? (sp.flies && dist > 14 ? sp.run * 0.8 : sp.walk * 0.85) : 0;
         if (a.beh === B.Wander && dist <= 1.5) a.beh = B.Idle;
       }
     }
@@ -1047,7 +1129,7 @@ export class Simulation {
       const c = this.carcasses[this.carcasses.length - 1]!;
       pred.beh = B.Feed;
       pred.targetId = c.id;
-      pred.speed = 0;
+      pred.want = 0;
       this.events.emit({ type: 'kill', predator: pred.id, prey: prey.id, sp: prey.sp, x: prey.x, z: prey.z });
     } else {
       prey.fear = 1;
@@ -1056,7 +1138,7 @@ export class Simulation {
       prey.health -= 0.08;
       pred.stamina = 0;
       pred.beh = B.Rest;
-      pred.speed = 0;
+      pred.want = 0;
       pred.timer = this.rng.range(20, 40);
     }
   }
@@ -1066,14 +1148,14 @@ export class Simulation {
     const c = this.control;
     if (c.mx !== 0 || c.mz !== 0) {
       const sprint = c.run && a.stamina > 0.03;
-      a.speed = sprint ? sp.run : c.run ? sp.run * 0.5 : sp.walk * 1.6;
+      a.want = sprint ? sp.run : c.run ? sp.run * 0.5 : sp.walk * 1.6;
       if (sprint) a.stamina = Math.max(0, a.stamina - dt / sp.sprintS);
       a.beh = sprint ? B.Flee : B.Wander;
       a.tx = clamp(a.x + c.mx * 20, 8, REGION_SIZE - 8);
       a.tz = clamp(a.z + c.mz * 20, 8, REGION_SIZE - 8);
       return;
     }
-    a.speed = 0;
+    a.want = 0;
     a.tx = a.x;
     a.tz = a.z;
     if (c.action === 'eat') {
@@ -1125,13 +1207,21 @@ export class Simulation {
       // roofs are perches (tAlt > 0); nothing lands on the floor inside a ruin
       if (a.alt < 2.5 && a.tAlt < 1 && this.insideBuilding(a.x, a.z)) a.alt = 2.5;
     }
-    if (a.speed <= 0 || dist < 0.05) return;
-    const want = Math.atan2(dx, dz);
-    const turn = angleDiff(a.heading, want);
-    const maxTurn = (a.alt > 1 ? 2.2 : 4.5) * dt;
-    a.heading += clamp(turn, -maxTurn, maxTurn);
+    // ---- speed: approach what the behaviour wants within acceleration limits; brake for the destination ----
+    const loco = locomotion(sp);
+    const rate = a.want > a.speed ? loco.accel : loco.decel;
+    a.speed += clamp(a.want - a.speed, -rate * dt, rate * dt);
+    if (!sp.flies && a.want > 0) a.speed = Math.min(a.speed, Math.sqrt(2 * loco.decel * Math.max(0, dist - 0.4)) + 0.25);
+    if (a.speed < 0.02 && a.want <= 0) a.speed = 0;
+    if (a.speed <= 0 || dist < 0.05) {
+      a.chkT = 0;
+      return;
+    }
+    const goal = Math.atan2(dx, dz);
     let step = Math.min(a.speed * dt, dist);
     if (a.alt > 1) {
+      const maxTurn = 2.2 * dt;
+      a.heading += clamp(angleDiff(a.heading, goal), -maxTurn, maxTurn);
       a.x = clamp(a.x + Math.sin(a.heading) * step, 4, REGION_SIZE - 4);
       a.z = clamp(a.z + Math.cos(a.heading) * step, 4, REGION_SIZE - 4);
       return;
@@ -1142,26 +1232,109 @@ export class Simulation {
       a.z += Math.cos(a.heading) * step;
       return;
     }
+    // ---- steering: look ahead along a fixed set of headings and take the cheapest; turn toward it smoothly ----
+    const look = clamp(a.speed * 1.2, a.steer !== 0 ? 4 : 2.5, 12) + step;
+    const steered = this.steer(a, sp, goal, look);
+    const desired = Number.isNaN(steered) ? a.heading + Math.PI : steered; // everything blocked: turn around
+    // turning rate falls with speed (a sprinting deer arcs; a walking one can pivot) and with body size
+    const maxTurn = (loco.agility * 4.5 * dt) / (1 + a.speed / 6);
+    a.heading += clamp(angleDiff(a.heading, desired), -maxTurn, maxTurn);
     const depth = this.valley.waterDepth(a.x, a.z, this.env.stage);
     if (depth > 0.45) step *= 0.4; // wading / swimming
-    const tries = [0, 0.7, -0.7, 1.5, -1.5];
-    for (let i = 0; i < tries.length; i++) {
-      const h = a.heading + tries[i]!;
-      const nx = a.x + Math.sin(h) * step;
-      const nz = a.z + Math.cos(h) * step;
-      if (this.passable(sp, nx, nz, depth)) {
-        a.x = nx;
-        a.z = nz;
-        if (i > 0) a.heading = h;
-        return;
+    const nx = a.x + Math.sin(a.heading) * step;
+    const nz = a.z + Math.cos(a.heading) * step;
+    if (this.passable(sp, nx, nz, depth)) {
+      a.x = nx;
+      a.z = nz;
+    } else {
+      a.speed = 0; // pressed against an obstacle: stop and keep turning next tick (no instant heading snaps)
+    }
+    // ---- progress check: give up on destinations the animal genuinely cannot reach ----
+    // Two signals, checked every 4 s: the animal itself has not moved (pinned, whatever its goal is doing), or its
+    // closest approach to the current destination has not improved (which also catches back-and-forth dithering).
+    const fixedGoal = a.beh !== B.Chase && a.beh !== B.Stalk && a.beh !== B.Follow && a.beh !== B.SeekMate && a.beh !== B.Regroup;
+    // a new destination (fixed goals: moved > 1 m; moving goals: jumped > 25 m in one tick) restarts the record
+    if (Math.hypot(a.tx - a.ctx, a.tz - a.ctz) > (fixedGoal ? 1 : 25)) {
+      a.bestD = dist;
+      a.chkD = Infinity;
+    }
+    if (!fixedGoal || Math.hypot(a.tx - a.ctx, a.tz - a.ctz) > 1) {
+      a.ctx = a.tx;
+      a.ctz = a.tz;
+    }
+    a.bestD = Math.min(a.bestD, dist);
+    a.chkT += dt;
+    if (a.chkT >= 4) {
+      const selfMoved = Math.hypot(a.x - a.cx, a.z - a.cz);
+      // oscillating back and forth never improves the closest approach, so this catches dithering too
+      const noProgress = dist > 2 && a.chkD - a.bestD < 0.8;
+      if (!a.controlled && a.want > 0 && (selfMoved < 0.6 || noProgress)) a.stuck++;
+      else a.stuck = 0;
+      a.chkD = a.bestD;
+      a.cx = a.x;
+      a.cz = a.z;
+      a.chkT = 0;
+      if (a.stuck >= 2) {
+        a.stuck = 0;
+        a.steer = 0;
+        a.timer = 0;
+        if (a.beh === B.Flee) this.startFlee(a, sp);
+        else {
+          if (a.beh === B.SeekWater) a.waterX = a.waterZ = NaN; // remembered water is out of reach from here
+          a.beh = B.Idle;
+          a.want = 0;
+        }
       }
     }
-    // boxed in: give up on this destination
-    if (!a.controlled) {
-      a.heading += Math.PI;
-      a.timer = 0;
-      if (a.beh === B.Wander || a.beh === B.Forage) a.beh = B.Idle;
+  }
+
+  /**
+   * Cost of stepping toward (x, z) from the animal's position for a ground animal; Infinity if impassable.
+   * Buildings and region edges are walls; deep water is avoided (strongly by jackals, impassable for small mammals);
+   * slopes above ~25 degrees cost more and cliffs are refused.
+   */
+  private terrainCost(sp: SpeciesDef, a: Animal, x: number, z: number, h0: number, dist: number): number {
+    if (x < 6 || z < 6 || x > REGION_SIZE - 6 || z > REGION_SIZE - 6) return Infinity;
+    if (this.insideBuilding(x, z, 0.9)) return Infinity;
+    const h = this.valley.heightFast(x, z);
+    const depth = this.valley.waterSurface(z) + this.env.stage - h;
+    let cost = 0;
+    if (depth > 0.3) {
+      if (sp.mass < 5) return Infinity;
+      if (depth > 0.45) cost += (sp.id === 'jackal' ? 1.4 : 0.6) * (a.beh === B.Flee ? 0.35 : 1);
     }
+    const grade = (h - h0) / dist;
+    if (grade > MAX_UP_GRADE || grade < -MAX_DOWN_GRADE) return Infinity;
+    return cost + Math.max(0, Math.abs(grade) - 0.45) * 1.5;
+  }
+
+  /** Bounded look-ahead steering with deterministic tie-breaking and side hysteresis. Returns NaN if fully blocked. */
+  private steer(a: Animal, sp: SpeciesDef, goal: number, look: number): number {
+    const h0 = this.valley.heightFast(a.x, a.z);
+    let best = NaN;
+    let bestCost = Infinity;
+    let bestOff = 0;
+    for (const off of STEER_OFFSETS) {
+      // once an obstacle forces a detour, commit to that side until the direct line is clear again (the "bug"
+      // wall-following rule); without it an animal facing a wide wall dithers left-right in a local minimum
+      let cost = Math.abs(off) * 0.9 + (a.steer !== 0 && off !== 0 && Math.sign(off) !== Math.sign(a.steer) ? 3 : 0);
+      const h = goal + off;
+      const sx = Math.sin(h);
+      const sz = Math.cos(h);
+      // a near sample (just beyond this tick's step) stops far samples skipping over a building corner
+      for (const d of [1.2, look * 0.5, look]) {
+        const c = this.terrainCost(sp, a, a.x + sx * d, a.z + sz * d, h0, d);
+        cost += c;
+        if (cost === Infinity) break;
+      }
+      if (cost < bestCost - 1e-9) {
+        bestCost = cost;
+        best = h;
+        bestOff = off;
+      }
+    }
+    if (bestCost !== Infinity) a.steer = bestOff;
+    return best;
   }
 
   // ------------------------------------------------------------------ persistence & verification
@@ -1180,7 +1353,11 @@ export class Simulation {
     this.rng.state = s.rng;
     this.nextId = s.nextId;
     this.env.restore(s.env);
-    this.animals = s.animals.map((a) => ({ ...a }));
+    // fields added after save v1 was defined default sensibly, so older saves load unchanged
+    this.animals = s.animals.map((a) => {
+      const old = a as Partial<Animal> & Animal;
+      return { ...a, want: old.want ?? a.speed, steer: old.steer ?? 0, chkT: old.chkT ?? 0, chkD: old.chkD ?? 0, stuck: old.stuck ?? 0, cx: old.cx ?? a.x, cz: old.cz ?? a.z, ctx: old.ctx ?? a.tx, ctz: old.ctz ?? a.tz, bestD: old.bestD ?? Infinity };
+    });
     this.byId.clear();
     for (const a of this.animals) this.byId.set(a.id, a);
     this.carcasses = s.carcasses.map((c) => ({ ...c }));

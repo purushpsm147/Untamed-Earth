@@ -16,7 +16,8 @@
     "test:e2e": "playwright test --project=smoke --project=reliability --project=gameplay",
     "test:smoke": "playwright test --project=smoke",
     "bench": "tsx benchmarks/sim-bench.ts",
-    "sim": "tsx benchmarks/sim-report.ts"
+    "sim": "tsx benchmarks/sim-report.ts",
+    "movement": "tsx benchmarks/movement-report.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
