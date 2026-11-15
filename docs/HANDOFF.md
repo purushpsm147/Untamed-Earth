@@ -41,7 +41,7 @@ PR #8 was closed with an explanatory comment (its code is in `e6310ce`); #6 show
 | `eb92959` | First real-hardware profiles (HP Victus 16, Vega 8 + RTX 3060): presets at the 144 Hz cap; Auto downgrade **and recovery verified** | `docs/PERFORMANCE.md`, `docs/evidence/profile-hp-victus16-*.json` |
 | `e1303f9` | Read-only observation contracts for Gemini (motion/animation, audio events, ambient) | `docs/INTEGRATION_CONTRACTS.md`, CI run 78 success |
 | `364d942` | Navigation: acceleration, turning limits, look-ahead steering, wall following, give-up; herds: many eyes, coordinated flight, regroup | `npm run movement`, `tests/unit/navigation.test.ts` |
-| this session's last commit | Personal space in herds; `/?scenario=documentary` with browser walk-through and video | `docs/DOCUMENTARY.md`, `docs/evidence/documentary-scenario-swiftshader.jpg` |
+| `05a2cb9` | Personal space in herds; `/?scenario=documentary` with browser walk-through and video | `docs/DOCUMENTARY.md`, `docs/evidence/documentary-scenario-swiftshader.jpg` |
 
 Gemini PRs #11 (soundscape) and #12 (riverbank/chital) were reviewed with specific feedback and **not merged**; both
 should move to the contracts in `observe.ts` (events via `onAudioEvents`, pose from `behavior`/`gait`).
