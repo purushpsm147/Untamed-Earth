@@ -218,3 +218,10 @@ if (profiling) {
     })().catch((e: unknown) => log(`Profiling failed: ${e instanceof Error ? e.message : String(e)}`));
   };
 }
+
+ // Isolated audition: production audio remains unchanged.
+if (params.has('soundscape')) {
+  void import('./lab/NaturalSoundscapeDemo').then(({ mountNaturalSoundscapeDemo }) => {
+    mountNaturalSoundscapeDemo(150);
+  }).catch((error: unknown) => console.error('Natural Soundscape demo failed', error));
+}
