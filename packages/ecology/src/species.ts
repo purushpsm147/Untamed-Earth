@@ -51,6 +51,10 @@ export interface SpeciesDef {
   juvHazard: number;
   adultHazard: number;
   playable: boolean;
+  /** Species-level natural history (general knowledge, not derived from this simulation). */
+  note: string;
+  /** How the model groups this species; shown in the Social Lens. */
+  groupNoun: string;
 }
 
 /**
@@ -65,6 +69,7 @@ export const SPECIES: SpeciesDef[] = [
     diet: { veg: 1, invert: 0, fauna: 0, carrion: 0 }, prey: [], predators: ['jackal'], adultFearless: false, fleeDist: 38,
     group: 10, homeRange: 230, flies: false, habitat: { forest: 0.5, meadow: 1, wetland: 0.5, settlement: 0.25, dump: 0 },
     initial: 52, juvHazard: 0.006, adultHazard: 0.0012, playable: true,
+    note: 'Chital live in fluid herds that merge and split; an alarm bark from one animal puts the rest on alert.', groupNoun: 'herd',
   },
   {
     id: 'boar', name: 'Wild boar', sci: 'Sus scrofa cristatus', mass: 80, walk: 1.2, run: 9.5, sprintS: 45,
@@ -73,6 +78,7 @@ export const SPECIES: SpeciesDef[] = [
     diet: { veg: 0.7, invert: 0.5, fauna: 0.08, carrion: 0.5 }, prey: [], predators: ['jackal'], adultFearless: true, fleeDist: 25,
     group: 6, homeRange: 300, flies: false, habitat: { forest: 1, meadow: 0.4, wetland: 0.8, settlement: 0.3, dump: 0.3 },
     initial: 20, juvHazard: 0.016, adultHazard: 0.0018, playable: false,
+    note: 'Wild boar sows and their young form sounders; adult males are often solitary. They root in soil for tubers and invertebrates.', groupNoun: 'sounder',
   },
   {
     id: 'jackal', name: 'Golden jackal', sci: 'Canis aureus indicus', mass: 9, walk: 1.7, run: 11.5, sprintS: 110,
@@ -81,6 +87,7 @@ export const SPECIES: SpeciesDef[] = [
     diet: { veg: 0.12, invert: 0.3, fauna: 0.9, carrion: 1 }, prey: ['hare', 'chital', 'boar'], predators: [], adultFearless: true, fleeDist: 0,
     group: 2, pairBreeding: true, homeRange: 480, flies: false, habitat: { forest: 0.5, meadow: 0.8, wetland: 0.3, settlement: 0.9, dump: 0.9 },
     initial: 6, juvHazard: 0.026, adultHazard: 0.0025, playable: false,
+    note: 'Golden jackals usually live as a mated pair with their young; older offspring sometimes stay on as helpers.', groupNoun: 'family',
   },
   {
     id: 'hare', name: 'Indian hare', sci: 'Lepus nigricollis', mass: 2.3, walk: 1.5, run: 12, sprintS: 28,
@@ -89,6 +96,7 @@ export const SPECIES: SpeciesDef[] = [
     diet: { veg: 1, invert: 0, fauna: 0, carrion: 0 }, prey: [], predators: ['jackal'], adultFearless: false, fleeDist: 30,
     group: 0, homeRange: 130, flies: false, habitat: { forest: 0.3, meadow: 1, wetland: 0.2, settlement: 0.6, dump: 0.1 },
     initial: 64, juvHazard: 0.02, adultHazard: 0.004, playable: false,
+    note: 'Indian hares are largely solitary and rest by day in a shallow form in the grass.', groupNoun: 'loose neighbourhood',
   },
   {
     id: 'crow', name: 'House crow', sci: 'Corvus splendens', mass: 0.3, walk: 0.7, run: 10, sprintS: 600,
@@ -97,6 +105,7 @@ export const SPECIES: SpeciesDef[] = [
     diet: { veg: 0.3, invert: 0.7, fauna: 0.5, carrion: 1 }, prey: [], predators: ['jackal'], adultFearless: false, fleeDist: 14,
     group: 8, homeRange: 420, flies: true, habitat: { forest: 0.2, meadow: 0.4, wetland: 0.3, settlement: 1, dump: 1 },
     initial: 30, juvHazard: 0.012, adultHazard: 0.0035, playable: false,
+    note: 'House crows are closely tied to human settlements and gather in communal roosts at night.', groupNoun: 'roost flock',
   },
   {
     id: 'myna', name: 'Common myna', sci: 'Acridotheres tristis', mass: 0.11, walk: 0.8, run: 9, sprintS: 600,
@@ -105,6 +114,7 @@ export const SPECIES: SpeciesDef[] = [
     diet: { veg: 0.45, invert: 1, fauna: 0, carrion: 0.1 }, prey: [], predators: ['jackal'], adultFearless: false, fleeDist: 12,
     group: 6, homeRange: 260, flies: true, habitat: { forest: 0.3, meadow: 0.9, wetland: 0.4, settlement: 1, dump: 0.4 },
     initial: 44, juvHazard: 0.02, adultHazard: 0.007, playable: false,
+    note: 'Common mynas nest in cavities, including holes in buildings, and forage on the ground in small parties.', groupNoun: 'foraging party',
   },
 ];
 export const SPECIES_INDEX: Record<SpeciesId, number> = { chital: 0, boar: 1, jackal: 2, hare: 3, crow: 4, myna: 5 };

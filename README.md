@@ -45,7 +45,8 @@ A modern desktop browser with WebGL2 is required. If graphics or storage cannot 
 | `G`, `P`, `X` | Follow, take control (deer), release |
 | `E`, `F`, `R` | As a deer: graze, drink, rest |
 | `[` `]` | Slower / faster time (pause, 1×, 10×, 100×, 1000×) |
-| `Tab`, `F3`, `M`, `Esc` | Ecosystem panel, diagnostics, mute, menu |
+| `T`, `F3`, `M`, `Esc` | Ecosystem panel, diagnostics, mute, menu |
+| `V`, `N` | Curiosity Mode (documentary autopilot), skip to another subject |
 
 Touch (left thumb moves, right thumb looks, tap selects) and standard gamepads are wired through the same input abstraction; see QA for their test status.
 

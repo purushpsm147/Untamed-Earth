@@ -15,6 +15,8 @@ interface Vis {
   yaw: number;
   lie: number;
   seen: number;
+  /** Feet height above exact terrain at last draw (NaN when flying, swimming or lying). */
+  off: number;
 }
 
 const MAX = 700;
@@ -49,6 +51,7 @@ export class AnimalView {
   readonly marker: THREE.Mesh;
   private readonly batches: Record<string, Batch> = {};
   private readonly carcass: THREE.InstancedMesh;
+  private readonly groupRings: THREE.InstancedMesh;
   private readonly vis = new Map<number, Vis>();
   private frame = 0;
   private readonly m = new THREE.Matrix4();
@@ -79,13 +82,21 @@ export class AnimalView {
     this.carcass.count = 0;
     this.group.add(this.carcass);
     this.marker = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 40), new THREE.MeshBasicMaterial({ color: 0xffe9a8, transparent: true, opacity: 0.85, depthTest: false, side: THREE.DoubleSide }));
+    const ring = new THREE.RingGeometry(0.8, 0.95, 24);
+    ring.rotateX(-Math.PI / 2);
+    this.groupRings = new THREE.InstancedMesh(ring, new THREE.MeshBasicMaterial({ color: 0x9fd0ff, transparent: true, opacity: 0.7, depthTest: false, side: THREE.DoubleSide }), 80);
+    this.groupRings.frustumCulled = false;
+    this.groupRings.count = 0;
+    this.groupRings.renderOrder = 5;
+    this.group.add(this.groupRings);
     this.marker.rotation.x = -Math.PI / 2;
     this.marker.visible = false;
     this.marker.renderOrder = 5;
     this.group.add(this.marker);
   }
 
-  update(cam: THREE.Vector3, alpha: number, dt: number, time: number, maxDist: number, selected: number): void {
+  update(cam: THREE.Vector3, alpha: number, dt: number, time: number, maxDist: number, selected: number, highlightGroup = 0): void {
+    let rings = 0;
     const sim = this.sim;
     const valley = sim.valley;
     this.frame++;
@@ -103,7 +114,7 @@ export class AnimalView {
       const b = this.batches[sp.id === 'chital' && adult && a.sex === 1 ? 'stag' : sp.id]!;
       if (b.n >= MAX) continue;
       let v = this.vis.get(a.id);
-      if (!v) this.vis.set(a.id, (v = { phase: (a.id * 1.7) % 6.28, yaw: a.heading, lie: 0, seen: 0 }));
+      if (!v) this.vis.set(a.id, (v = { phase: (a.id * 1.7) % 6.28, yaw: a.heading, lie: 0, seen: 0, off: NaN }));
       v.seen = this.frame;
       const alt = a.palt + (a.alt - a.palt) * alpha;
       const ground = d2 < 300 * 300 ? valley.height(x, z) : valley.heightFast(x, z);
@@ -122,6 +133,7 @@ export class AnimalView {
       // swimming animals ride at the surface with only head and back showing
       let y = ground + alt - v.lie * b.model.lie * sc;
       if (!flying && wd > 0.45 * sc) y = ground + wd - b.model.height * sc * 0.72;
+      v.off = flying || wd > 0.45 * sc || v.lie > 0.02 || d2 >= 300 * 300 ? NaN : y - ground;
       const run = a.speed > sp.walk * 2;
       const pitch = flying ? -0.15 : run ? Math.sin(v.phase) * 0.05 : 0;
       this.e.set(pitch, v.yaw, 0);
@@ -140,6 +152,12 @@ export class AnimalView {
       let pv = this.pos.get(a.id);
       if (!pv) this.pos.set(a.id, (pv = new THREE.Vector3()));
       pv.set(x, y + b.model.height * sc * 0.6, z);
+      if (highlightGroup && a.group === highlightGroup && a.id !== selected && rings < 80) {
+        const r = sp.mass > 20 ? 0.8 : sp.mass > 4 ? 0.5 : 0.3;
+        this.e.set(0, 0, 0);
+        this.m.compose(this.p.set(x, y + 0.1 + v.lie * b.model.lie * sc, z), this.q.setFromEuler(this.e), this.s.setScalar(r));
+        this.groupRings.setMatrixAt(rings++, this.m);
+      }
       if (a.id === selected) {
         this.marker.visible = true;
         const r = Math.max(0.35, sp.mass > 20 ? 1 : sp.mass > 4 ? 0.6 : 0.35);
@@ -147,6 +165,8 @@ export class AnimalView {
         this.marker.position.set(x, y + 0.08 + (flying ? -0.1 : v.lie * b.model.lie * sc), z);
       }
     }
+    this.groupRings.count = rings;
+    this.groupRings.instanceMatrix.needsUpdate = true;
     for (const b of Object.values(this.batches)) {
       b.mesh.count = b.n;
       b.mesh.instanceMatrix.needsUpdate = true;
@@ -172,6 +192,18 @@ export class AnimalView {
         }
       }
     }
+  }
+
+  /** QA: largest gap between drawn feet and exact terrain among standing ground animals this frame. */
+  maxGroundError(): { max: number; n: number } {
+    let max = 0;
+    let n = 0;
+    for (const v of this.vis.values()) {
+      if (v.seen !== this.frame || Number.isNaN(v.off)) continue;
+      n++;
+      max = Math.max(max, Math.abs(v.off));
+    }
+    return { max, n };
   }
 
   /** Nearest rendered animal to a ray, within an angular tolerance. */

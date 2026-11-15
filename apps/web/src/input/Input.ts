@@ -1,8 +1,8 @@
-export type Action = 'eat' | 'drink' | 'rest' | 'release' | 'pause' | 'follow' | 'control' | 'diag' | 'help' | 'speedUp' | 'speedDown' | 'capture' | 'mute' | 'stats';
+export type Action = 'eat' | 'drink' | 'rest' | 'release' | 'pause' | 'follow' | 'control' | 'diag' | 'help' | 'speedUp' | 'speedDown' | 'capture' | 'mute' | 'stats' | 'curiosity' | 'skip';
 
 const KEY_ACTIONS: Record<string, Action> = {
   KeyE: 'eat', KeyF: 'drink', KeyR: 'rest', KeyX: 'release', Escape: 'pause', KeyG: 'follow', KeyP: 'control', F3: 'diag', KeyH: 'help',
-  BracketRight: 'speedUp', BracketLeft: 'speedDown', KeyC: 'capture', KeyM: 'mute', Tab: 'stats',
+  BracketRight: 'speedUp', BracketLeft: 'speedDown', KeyC: 'capture', KeyM: 'mute', KeyT: 'stats', KeyV: 'curiosity', KeyN: 'skip',
 };
 /** Standard-mapping gamepad buttons. */
 const PAD_ACTIONS: Record<number, Action> = { 0: 'eat', 2: 'drink', 3: 'rest', 1: 'release', 9: 'pause', 5: 'speedUp', 4: 'speedDown' };
@@ -35,13 +35,24 @@ export class Input {
 
   constructor(private readonly el: HTMLElement, private readonly stickEl: HTMLElement | null) {
     window.addEventListener('keydown', (e) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+      // Typing must not drive the game, but a slider or checkbox that merely holds focus must not swallow
+      // the game's keys either. Escape always works; text fields and dropdowns keep every other key;
+      // sliders keep the arrow keys; checkboxes keep Space. Tab is never intercepted (keyboard navigation).
+      const t = e.target;
+      if (e.code !== 'Escape' && (t instanceof HTMLInputElement || t instanceof HTMLSelectElement || t instanceof HTMLTextAreaElement)) {
+        const kind = t instanceof HTMLInputElement ? t.type : 'select';
+        if (kind !== 'range' && kind !== 'checkbox') return;
+        if (kind === 'range' && e.code.startsWith('Arrow')) return;
+        if (kind === 'checkbox' && e.code === 'Space') return;
+      }
+      // Space and Enter on a focused button activate that button, not the camera
+      if (t instanceof HTMLButtonElement && (e.code === 'Space' || e.code === 'Enter')) return;
       const a = KEY_ACTIONS[e.code];
       if (a && !e.repeat) {
         this.fired.add(a);
         this.held.add(a);
       }
-      if (e.code === 'Tab' || e.code === 'F3' || e.code === 'Space') e.preventDefault();
+      if (e.code === 'F3' || e.code === 'Space') e.preventDefault();
       this.keys.add(e.code);
     });
     window.addEventListener('keyup', (e) => {
@@ -65,7 +76,11 @@ export class Input {
         }
       }
       if (!this.drag) this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0 };
-      el.setPointerCapture(e.pointerId);
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch {
+        /* synthetic or already-released pointers cannot be captured; dragging still works without it */
+      }
     });
     el.addEventListener('pointermove', (e) => {
       if (document.pointerLockElement === el) {

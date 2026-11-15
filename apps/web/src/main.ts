@@ -3,6 +3,7 @@ import { SAVE_VERSION } from '@untamed/ecology';
 import { SaveStore, openEnvelope } from '@untamed/persistence';
 import { AudioEngine } from './audio/AudioEngine';
 import { Game, SAVE_FORMAT, SAVE_SLOT, SaveData, parseSeed, toast } from './game/Game';
+import { CLASSIFICATION_LABEL, WORLDS, getWorld } from './game/worldRegistry';
 import { Input } from './input/Input';
 import { GraphicsError } from './render/Engine';
 import { QualityName, guessQuality } from './render/quality';
@@ -18,6 +19,8 @@ interface Settings {
   auto?: boolean;
   volume?: number;
   muted?: boolean;
+  music?: number;
+  reducedMotion?: boolean;
 }
 function readSettings(): Settings {
   try {
@@ -34,8 +37,26 @@ function fatal(msg: string): void {
   $('loading').classList.add('hidden');
 }
 
+let worldId = WORLDS[0]!.id;
+// the destination list is rendered from the registry; the shell knows nothing else about worlds
+$('library').innerHTML = WORLDS.map((w, i) =>
+  `<button class="world${i === 0 ? ' on' : ''}" role="radio" aria-checked="${i === 0}" data-world="${w.id}"><em>${CLASSIFICATION_LABEL[w.classification]}</em><b>${w.name}</b><span>${w.tagline} · ${w.areaKm2} km² · ${w.creatures.length} species</span></button>`).join('');
+document.querySelectorAll<HTMLButtonElement>('.world').forEach((b) => b.addEventListener('click', () => {
+  worldId = b.dataset.world!;
+  document.querySelectorAll<HTMLButtonElement>('.world').forEach((o) => {
+    o.classList.toggle('on', o === b);
+    o.setAttribute('aria-checked', String(o === b));
+  });
+  $<HTMLInputElement>('seed').value = String(getWorld(worldId)!.defaultSeed);
+}));
+
 function start(seed: number, save?: SaveData): void {
   const st = readSettings();
+  const world = getWorld(save?.worldId ?? worldId);
+  if (!world) {
+    fatal(`This save belongs to a world ("${save?.worldId}") that this build does not include.`);
+    return;
+  }
   const choice = $<HTMLSelectElement>('startQuality').value;
   const quality: QualityName = choice !== 'auto' ? (choice as QualityName) : (st.quality ?? guessQuality());
   const auto = choice === 'auto' ? (st.auto ?? true) : false;
@@ -49,9 +70,12 @@ function start(seed: number, save?: SaveData): void {
   $('loadText').textContent = 'Growing the valley…';
   $('loadBar').style.width = '5%';
   // let the loading card paint before the synchronous world build
-  setTimeout(() => {
+  setTimeout(async () => {
     try {
-      game = new Game(canvas, seed, quality, auto, input, audio, { fatal, restart: start }, save);
+      const sim = await world.load(seed, save?.sim);
+      game = new Game(canvas, sim, world.id, quality, auto, input, audio, { fatal, restart: start }, save);
+      game.curiosity.reducedMotion = st.reducedMotion ?? window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      $<HTMLInputElement>('mMotion').checked = game.curiosity.reducedMotion;
     } catch (e) {
       console.error(e);
       fatal(e instanceof GraphicsError
@@ -71,6 +95,8 @@ function start(seed: number, save?: SaveData): void {
         $('loading').classList.add('hidden');
         $('hud').classList.remove('hidden');
         g.ready = true;
+        // ?qa=1 starts paused at tick 0 so automated screenshots and benchmarks begin from an identical state
+        if (new URLSearchParams(location.search).has('qa')) g.setSpeed(0);
         input.enabled = true;
         if (audio.error) toast(audio.error, true);
       } else if (performance.now() - t0 > 30000) fatal('Terrain generation is taking too long. Try the Low graphics preset.');
@@ -84,6 +110,8 @@ const st = readSettings();
 audio.setVolume(st.volume ?? 0.7);
 audio.muted = st.muted ?? false;
 $<HTMLInputElement>('mVolume').value = String(st.volume ?? 0.7);
+audio.setMusic(st.music ?? 0);
+$<HTMLInputElement>('mMusic').value = String(st.music ?? 0);
 
 $('btnNew').addEventListener('click', () => {
   audio.start();
@@ -97,6 +125,7 @@ store.get<unknown>(SAVE_SLOT).then((raw) => {
   if (!raw) return;
   try {
     const data = openEnvelope<SaveData>(raw, SAVE_FORMAT, SAVE_VERSION);
+    data.worldId ??= WORLDS[0]!.id; // saves from before the world library
     const b = $('btnContinue');
     b.classList.remove('hidden');
     b.textContent = `Continue (seed ${data.sim.seed}, day ${Math.floor(data.sim.env.timeH / 24)})`;

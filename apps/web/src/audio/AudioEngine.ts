@@ -24,6 +24,10 @@ export class AudioEngine {
   muted = false;
   private t = 0;
   error: string | null = null;
+  private music = 0;
+  private musicBus: GainNode | null = null;
+  private musicT = 99;
+  private chord = 0;
 
   /** Must be called from a user gesture. */
   start(): void {
@@ -94,6 +98,48 @@ export class AudioEngine {
   setMuted(m: boolean): void {
     this.muted = m;
     this.applyGain();
+  }
+  /**
+   * Optional ambient music: an original generative pad (slow pentatonic chords from oscillators).
+   * Off by default; natural sound is the intended default experience.
+   */
+  setMusic(v: number): void {
+    this.music = v;
+    if (this.ctx && this.musicBus) this.musicBus.gain.setTargetAtTime(v * 0.5, this.ctx.currentTime, 0.4);
+  }
+  private musicStep(dt: number): void {
+    const ctx = this.ctx!;
+    if (this.music <= 0) return;
+    if (!this.musicBus) {
+      this.musicBus = ctx.createGain();
+      this.musicBus.gain.value = this.music * 0.5;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 1100;
+      this.musicBus.connect(lp).connect(this.master);
+    }
+    this.musicT += dt;
+    if (this.musicT < 9) return;
+    this.musicT = 0;
+    // D major pentatonic voicings, drifting between four chords
+    const chords = [[146.8, 220, 293.7, 370], [164.8, 246.9, 293.7, 440], [123.5, 185, 293.7, 370], [110, 220, 329.6, 440]];
+    this.chord = (this.chord + 1 + Math.floor(Math.random() * 2)) % chords.length;
+    const t0 = ctx.currentTime;
+    for (const f of chords[this.chord]!) {
+      for (const det of [-3, 4]) {
+        const o = ctx.createOscillator();
+        o.type = det < 0 ? 'sine' : 'triangle';
+        o.frequency.value = f;
+        o.detune.value = det + Math.random() * 3;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(0.035, t0 + 4);
+        g.gain.linearRampToValueAtTime(0.0001, t0 + 15);
+        o.connect(g).connect(this.musicBus);
+        o.start(t0);
+        o.stop(t0 + 15.5);
+      }
+    }
   }
   private applyGain(): void {
     if (this.ctx) this.master.gain.setTargetAtTime(this.muted ? 0 : this.volume, this.ctx.currentTime, 0.05);
@@ -174,6 +220,7 @@ export class AudioEngine {
     const ctx = this.ctx;
     if (!ctx || ctx.state !== 'running') return;
     const now = ctx.currentTime;
+    this.musicStep(dt);
     this.wind.gain.setTargetAtTime(Math.min(0.5, 0.035 + s.wind * 0.03), now, 0.5);
     this.windF.frequency.setTargetAtTime(260 + s.wind * 60 + Math.sin(now * 0.3) * 80, now, 0.5);
     this.rain.gain.setTargetAtTime(Math.min(0.4, s.rain * 0.04), now, 0.6);

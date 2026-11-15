@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Untamed Earth: After Humanity — a living ecosystem simulation, a century after people." />
   <title>Untamed Earth: After Humanity</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%232f5d3a'/%3E%3Cpath d='M6 20c5-9 9-9 12-4s5 3 8-2v9H6z' fill='%239ccf7a'/%3E%3C/svg%3E" />
@@ -15,6 +15,7 @@
       <h1>Untamed Earth</h1>
       <h2>After Humanity</h2>
       <p class="lede">A hundred years on, the valley belongs to the deer, the boar and the jackals. Nothing here waits for you: watch it, live in it as an animal, or change the rain and see what follows.</p>
+      <div id="library" role="radiogroup" aria-label="Worlds"></div>
       <div class="row">
         <label for="seed">World seed</label>
         <input id="seed" type="text" inputmode="numeric" maxlength="12" value="1" />
@@ -42,12 +43,13 @@
         <button data-mode="observer" title="Free camera">Observer</button>
         <button data-mode="wildlife" title="Live as a spotted deer">Wildlife</button>
         <button data-mode="experiment" title="Change conditions and watch the consequences">Experiment</button>
+        <button data-mode="curiosity" title="Let the camera find what is happening (V)">Curiosity</button>
       </div>
       <div class="seg" id="speeds">
         <button data-speed="0" title="Pause simulation">❚❚</button><button data-speed="1">1×</button><button data-speed="10">10×</button><button data-speed="100">100×</button><button data-speed="1000">1000×</button>
       </div>
-      <button id="btnStats" title="Ecosystem statistics (Tab)">Ecosystem</button>
-      <button id="btnMenu" title="Menu (Esc)">Menu</button>
+      <button id="btnStats" title="Ecosystem statistics (T)">Ecosystem</button>
+      <button id="btnMenu" title="Menu (Esc)" aria-label="Open menu">Menu</button>
     </div>
 
     <div id="inspect" class="panel hidden">
@@ -55,7 +57,9 @@
       <div id="insSci" class="fine"></div>
       <div id="insMeta"></div>
       <div id="insBars"></div>
-      <div class="row tight"><button id="insFollow">Follow</button><button id="insControl">Take control</button></div>
+      <div id="insSocial" class="lens"></div>
+      <div id="insRole" class="fine"></div>
+      <div class="row tight"><button id="insFollow">Follow</button><button id="insGroup" title="Ring the members of this animal's group">Show group</button><button id="insControl">Take control</button></div>
     </div>
 
     <div id="wild" class="panel hidden">
@@ -89,6 +93,13 @@
       <div class="fine">Every lever changes the simulation's inputs; the charts show what the ecosystem does with them.</div>
     </div>
 
+    <div id="curio" class="hidden">
+      <div id="cuCaption" class="panel"><div id="cuWhat"></div><div id="cuFact"></div><div id="cuNote" class="fine"></div></div>
+      <div class="row tight" id="cuBar">
+        <button id="cuPause">Pause</button><button id="cuSkip" title="Look for something else (N)">Skip</button><button id="cuFollow">Follow this animal</button>
+        <button id="cuBecome">Become</button><button id="cuCaptions" title="Show or hide explanations">Captions</button><button id="cuExit">Free camera</button>
+      </div>
+    </div>
     <div id="ticker"></div>
     <pre id="diag" class="hidden"></pre>
     <div id="touch" class="hidden">
@@ -115,6 +126,9 @@
           <h4>Audio</h4>
           <label>Volume <input id="mVolume" type="range" min="0" max="1" step="0.05" /></label>
           <label class="check"><input id="mMute" type="checkbox" /> Mute (M)</label>
+          <label>Ambient music (off by default) <input id="mMusic" type="range" min="0" max="1" step="0.05" value="0" /></label>
+          <h4>Comfort</h4>
+          <label class="check"><input id="mMotion" type="checkbox" /> Reduce camera motion in Curiosity Mode</label>
           <div class="fine" id="mSaveInfo"></div>
         </div>
         <div>
@@ -128,8 +142,9 @@
             <tr><td>G · P</td><td>Follow · take control (deer)</td></tr>
             <tr><td>E · F · R</td><td>As a deer: graze · drink · rest</td></tr>
             <tr><td>X</td><td>Release animal / stop following</td></tr>
+            <tr><td>V · N</td><td>Curiosity Mode · skip to something else</td></tr>
             <tr><td>[ ]</td><td>Slower / faster time</td></tr>
-            <tr><td>Tab · F3 · M</td><td>Ecosystem · diagnostics · mute</td></tr>
+            <tr><td>T · F3 · M</td><td>Ecosystem · diagnostics · mute</td></tr>
           </table>
           <div class="fine">Touch: left thumb moves, right thumb looks, tap selects. Gamepad: sticks move and look, triggers rise and fall.</div>
         </div>

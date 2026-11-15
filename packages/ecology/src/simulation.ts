@@ -61,10 +61,10 @@ export type DeathCause = 'predation' | 'starvation' | 'dehydration' | 'age' | 'b
 export const DEATH_CAUSES: DeathCause[] = ['predation', 'starvation', 'dehydration', 'age', 'background', 'poison', 'experiment'];
 
 export type SimEvent =
-  | { type: 'birth'; sp: number; x: number; z: number; n: number }
+  | { type: 'birth'; sp: number; id: number; x: number; z: number; n: number }
   | { type: 'death'; sp: number; id: number; cause: DeathCause; x: number; z: number }
   | { type: 'kill'; predator: number; prey: number; sp: number; x: number; z: number }
-  | { type: 'alarm'; sp: number; x: number; z: number };
+  | { type: 'alarm'; sp: number; id: number; x: number; z: number };
 
 export interface StatSample {
   day: number;
@@ -100,6 +100,7 @@ export interface SimSnapshot {
   groupAcc: number;
   rainAcc: number;
   groups: [number, number, number, number][];
+  eaten?: number[];
 }
 
 const NO_CONTROL: ControlInput = { mx: 0, mz: 0, run: false, action: null };
@@ -124,6 +125,8 @@ export class Simulation {
   fertility: number[] = SPECIES.map(() => 1);
   births: number[] = SPECIES.map(() => 0);
   deaths: number[][] = SPECIES.map(() => DEATH_CAUSES.map(() => 0));
+  /** Cumulative food eaten per species, kg (forage + pools + carrion): evidence that needs drive consumption. */
+  eaten: number[] = SPECIES.map(() => 0);
   history: StatSample[] = [];
   /** Optional detail focus (camera). Animals far from it decide less often. null = uniform detail. */
   focus: { x: number; z: number } | null = null;
@@ -132,11 +135,18 @@ export class Simulation {
   private groupAcc = 0;
   private rainAcc = 0;
   private dead = false;
+  /** 1 for environment cells that touch a building footprint (cheap pre-filter for collision tests). */
+  private readonly bldCell: Uint8Array;
 
   constructor(readonly seed: number, snapshot?: SimSnapshot) {
     this.valley = new Valley(seed);
     this.env = new Environment(this.valley);
     this.rng = new Rng(hash3(seed, 99, 1));
+    this.bldCell = new Uint8Array(this.env.veg.length);
+    for (const b of this.valley.buildings) {
+      const r = (b.w + b.d) * 0.5 + 2;
+      for (let z = b.z - r; z <= b.z + r; z += 6) for (let x = b.x - r; x <= b.x + r; x += 6) this.bldCell[this.env.cellIndex(x, z)] = 1;
+    }
     if (snapshot) this.restore(snapshot);
     else {
       this.populate();
@@ -190,6 +200,11 @@ export class Simulation {
   private spawn(sp: number, x: number, z: number, age: number, group: number, mother: number, homeX: number, homeZ: number): Animal {
     x = clamp(x, 8, REGION_SIZE - 8);
     z = clamp(z, 8, REGION_SIZE - 8);
+    // never materialise inside a wall: fall back toward the (already validated) home point
+    for (let i = 0; i < 4 && this.insideBuilding(x, z); i++) {
+      x = lerp(x, homeX, 0.5);
+      z = lerp(z, homeZ, 0.5);
+    }
     const a: Animal = {
       id: this.nextId++, sp, x, z, alt: 0, px: x, pz: z, palt: 0, heading: this.rng.range(0, 6.283), speed: 0, age,
       sex: this.rng.chance(0.5) ? 0 : 1, health: 1, hunger: 0.2, thirst: 0.2, energy: 0.8, stamina: 1, fear: 0, beh: B.Idle,
@@ -418,7 +433,7 @@ export class Simulation {
     }
     if (n > 0) {
       this.births[m.sp] = this.births[m.sp]! + n;
-      this.events.emit({ type: 'birth', sp: m.sp, x: m.x, z: m.z, n });
+      this.events.emit({ type: 'birth', sp: m.sp, id: m.id, x: m.x, z: m.z, n });
     }
   }
 
@@ -544,7 +559,7 @@ export class Simulation {
       const d = Math.sqrt(threatD2);
       const urgency = clamp01(1.4 - d / sp.fleeDist) * (th.beh === B.Chase || th.beh === B.Stalk ? 1.3 : 0.8);
       if (urgency > a.fear) {
-        if (a.fear < 0.4 && urgency >= 0.4) this.events.emit({ type: 'alarm', sp: a.sp, x: a.x, z: a.z });
+        if (a.fear < 0.4 && urgency >= 0.4) this.events.emit({ type: 'alarm', sp: a.sp, id: a.id, x: a.x, z: a.z });
         a.fear = Math.min(1, urgency);
       }
       a.threatX = th.x;
@@ -558,6 +573,33 @@ export class Simulation {
     const far = this.focus !== null && (a.x - this.focus.x) ** 2 + (a.z - this.focus.z) ** 2 > 300 * 300;
     a.timer = rng.range(2, 4) * (far ? 2.5 : 1);
     if (a.controlled) return;
+
+    // ---- rising water: a small ground animal caught by a flood makes for the shallowest ground it can sense ----
+    if (sp.mass < 5 && !sp.flies) {
+      const here = this.valley.waterDepth(a.x, a.z, env.stage);
+      if (here > 0.2) {
+        let bd = here;
+        for (let k = 0; k < 8; k++) {
+          const ang = (k / 8) * 6.283;
+          for (const r of [8, 20]) {
+            const x = a.x + Math.sin(ang) * r;
+            const z = a.z + Math.cos(ang) * r;
+            const d = this.valley.waterDepth(x, z, env.stage);
+            if (d < bd && this.valley.inBounds(x, z, 8)) {
+              bd = d;
+              a.tx = x;
+              a.tz = z;
+            }
+          }
+        }
+        if (bd < here) {
+          a.beh = B.Flee;
+          a.fear = Math.max(a.fear, 0.35);
+          a.timer = 1;
+          return;
+        }
+      }
+    }
 
     // ---- flee overrides everything ----
     if (a.fear > 0.4) {
@@ -640,7 +682,9 @@ export class Simulation {
         // compare a handful of patches within sensory range; no global knowledge of the map
         const g = this.groups.get(a.group);
         const reach = Math.min(Math.max(vis, 25), 70);
-        let bs = this.foodScore(sp, a.x, a.z) * 1.1;
+        // a bird perched on a roof must not choose to "forage right here": that would land it inside the walls
+        const onRoof = this.insideBuilding(a.x, a.z, 1);
+        let bs = onRoof ? -1e9 : this.foodScore(sp, a.x, a.z) * 1.1;
         let bx = a.x;
         let bz = a.z;
         for (let i = 0; i < 5; i++) {
@@ -650,7 +694,7 @@ export class Simulation {
             x = lerp(x, g.x, 0.5);
             z = lerp(z, g.z, 0.5);
           }
-          if (!this.valley.inBounds(x, z, 12) || this.valley.waterDepth(x, z, env.stage) > 0.15) continue;
+          if (!this.valley.inBounds(x, z, 12) || this.valley.waterDepth(x, z, env.stage) > 0.15 || this.insideBuilding(x, z, 1)) continue;
           const homePull = Math.hypot(x - a.homeX, z - a.homeZ) / (sp.homeRange * 3);
           const s = this.foodScore(sp, x, z) - Math.hypot(x - a.x, z - a.z) * 0.0015 - homePull * homePull * 0.4;
           if (s > bs) {
@@ -658,6 +702,10 @@ export class Simulation {
             bx = x;
             bz = z;
           }
+        }
+        if (onRoof && bx === a.x && bz === a.z) {
+          this.startWander(a, sp, 1);
+          break;
         }
         a.beh = B.Forage;
         a.tx = bx;
@@ -727,6 +775,10 @@ export class Simulation {
     a.beh = B.Wander;
     a.tx = clamp(ax + this.rng.range(-r, r), 10, REGION_SIZE - 10);
     a.tz = clamp(az + this.rng.range(-r, r), 10, REGION_SIZE - 10);
+    if (this.insideBuilding(a.tx, a.tz, 1)) {
+      a.tx = a.x;
+      a.tz = a.z;
+    }
     a.tAlt = 0;
   }
 
@@ -772,6 +824,7 @@ export class Simulation {
     if (wV > 0) got += env.consume(env.veg, c, (want * wV) / sum, env.cap[c]! * 0.04);
     if (wI > 0) got += env.consume(env.invert, c, (want * wI) / sum, 0.02);
     if (wF > 0) got += env.consume(env.fauna, c, (want * wF) / sum, 0.02);
+    this.eaten[a.sp] = this.eaten[a.sp]! + got;
     a.hunger = Math.max(0, a.hunger - got / (sp.intake * 2 * (0.35 + 0.65 * g)));
     // succulent forage supplies part of the water budget (most of it for hares)
     a.thirst = Math.max(0, a.thirst - (got / (sp.intake * 2)) * sp.foodWater * env.moisture[c]! * 1.5);
@@ -957,6 +1010,7 @@ export class Simulation {
         const g = this.growth(a, sp);
         const bite = Math.min(c.kg, (sp.intake / 1.5) * dtH * (0.35 + 0.65 * g));
         c.kg -= bite;
+        this.eaten[a.sp] = this.eaten[a.sp]! + bite;
         // meat is energy dense relative to the mixed diet `intake` is expressed in
         a.hunger = Math.max(0, a.hunger - (bite * 1.6) / (sp.intake * 2 * (0.35 + 0.65 * g)));
         if (a.hunger <= 0.02) {
@@ -1041,11 +1095,18 @@ export class Simulation {
   }
 
   // ------------------------------------------------------------------ movement
-  private passable(sp: SpeciesDef, x: number, z: number): boolean {
+  private insideBuilding(x: number, z: number, margin = 0.6): boolean {
+    return this.bldCell[this.env.cellIndex(x, z)] === 1 && this.valley.blocked(x, z, margin);
+  }
+
+  private passable(sp: SpeciesDef, x: number, z: number, fromDepth: number): boolean {
     if (x < 6 || z < 6 || x > REGION_SIZE - 6 || z > REGION_SIZE - 6) return false;
-    const c = this.env.cellIndex(x, z);
-    if ((this.env.settlement[c]! > 0.02 || this.env.dump[c]! > 0.02) && this.valley.blocked(x, z)) return false;
-    if (sp.mass < 5 && this.valley.waterDepth(x, z, this.env.stage) > 0.3) return false;
+    if (this.insideBuilding(x, z)) return false;
+    if (sp.mass < 5) {
+      // small mammals will not wade deeper than their belly, but can always retreat toward shallower ground
+      const d = this.valley.waterDepth(x, z, this.env.stage);
+      if (d > 0.3 && d >= fromDepth) return false;
+    }
     return true;
   }
 
@@ -1061,6 +1122,8 @@ export class Simulation {
       const want = a.speed > sp.walk * 1.5 && dist > 9 ? Math.max(a.tAlt, 7 + (a.id % 9)) : dist < 9 ? a.tAlt : a.alt;
       a.alt += clamp(want - a.alt, -6 * dt, 5 * dt);
       if (a.alt < 0.05) a.alt = 0;
+      // roofs are perches (tAlt > 0); nothing lands on the floor inside a ruin
+      if (a.alt < 2.5 && a.tAlt < 1 && this.insideBuilding(a.x, a.z)) a.alt = 2.5;
     }
     if (a.speed <= 0 || dist < 0.05) return;
     const want = Math.atan2(dx, dz);
@@ -1073,13 +1136,20 @@ export class Simulation {
       a.z = clamp(a.z + Math.cos(a.heading) * step, 4, REGION_SIZE - 4);
       return;
     }
-    if (this.valley.waterDepth(a.x, a.z, this.env.stage) > 0.45) step *= 0.4; // wading / swimming
+    if (this.insideBuilding(a.x, a.z)) {
+      // defensive: anything that does end up inside walks straight out
+      a.x += Math.sin(a.heading) * step;
+      a.z += Math.cos(a.heading) * step;
+      return;
+    }
+    const depth = this.valley.waterDepth(a.x, a.z, this.env.stage);
+    if (depth > 0.45) step *= 0.4; // wading / swimming
     const tries = [0, 0.7, -0.7, 1.5, -1.5];
     for (let i = 0; i < tries.length; i++) {
       const h = a.heading + tries[i]!;
       const nx = a.x + Math.sin(h) * step;
       const nz = a.z + Math.cos(h) * step;
-      if (this.passable(sp, nx, nz)) {
+      if (this.passable(sp, nx, nz, depth)) {
         a.x = nx;
         a.z = nz;
         if (i > 0) a.heading = h;
@@ -1101,7 +1171,7 @@ export class Simulation {
       animals: this.animals.filter((a) => a.alive).map((a) => ({ ...a })), carcasses: this.carcasses.map((c) => ({ ...c })),
       fertility: [...this.fertility], births: [...this.births], deaths: this.deaths.map((r) => [...r]),
       history: this.history.map((h) => ({ ...h, pops: [...h.pops] })), statAcc: this.statAcc, groupAcc: this.groupAcc, rainAcc: this.rainAcc,
-      groups: [...this.groups].map(([id, g]) => [id, g.x, g.z, g.n]),
+      groups: [...this.groups].map(([id, g]) => [id, g.x, g.z, g.n]), eaten: [...this.eaten],
     };
   }
 
@@ -1121,6 +1191,7 @@ export class Simulation {
     this.statAcc = s.statAcc;
     this.groupAcc = s.groupAcc;
     this.rainAcc = s.rainAcc;
+    if (s.eaten) this.eaten = [...s.eaten];
     this.groups.clear();
     for (const [id, x, z, n] of s.groups) this.groups.set(id, { x, z, n });
   }

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { clamp, hashString } from '@untamed/core';
-import { Animal, BEHAVIOR_NAMES, DEATH_CAUSES, SAVE_VERSION, SPECIES, SimSnapshot, Simulation, SpeciesId, lifeDays, maturityDays } from '@untamed/ecology';
+import { Animal, BEHAVIOR_NAMES, DEATH_CAUSES, SAVE_VERSION, SPECIES, SimSnapshot, Simulation, SpeciesId, lifeDays, maturityDays, weanDays } from '@untamed/ecology';
 import { SEASONS, WeatherMode, YEAR_DAYS } from '@untamed/environment';
 import { SaveStore, openEnvelope, sealEnvelope } from '@untamed/persistence';
 import { REGION_SIZE } from '@untamed/worlds';
@@ -9,9 +9,11 @@ import { Input } from '../input/Input';
 import { Engine } from '../render/Engine';
 import { QUALITY_ORDER, QualityName } from '../render/quality';
 import { drawChart } from '../ui/chart';
+import { Curiosity } from './Curiosity';
 
-export type Mode = 'observer' | 'wildlife' | 'experiment';
+export type Mode = 'observer' | 'wildlife' | 'experiment' | 'curiosity';
 export interface SaveData {
+  worldId: string;
   sim: SimSnapshot;
   cam: { x: number; y: number; z: number; yaw: number; pitch: number };
 }
@@ -53,8 +55,10 @@ function meters(el: HTMLElement, rows: [string, number, string][]): void {
 }
 
 export class Game {
-  readonly sim: Simulation;
   readonly engine: Engine;
+  readonly curiosity: Curiosity;
+  highlightGroup = 0;
+  captions = true;
   mode: Mode = 'observer';
   speed = 1;
   menuOpen = false;
@@ -65,6 +69,12 @@ export class Game {
   achievedRate = 1;
   ready = false;
   private readonly cam = { x: 770, y: 30, z: 640, yaw: 2.2, pitch: -0.12, fly: 14, dist: 9 };
+  /** Curiosity Mode look-at point (the camera eases toward subjects rather than snapping). */
+  private readonly look = { x: 0, y: 0, z: 0 };
+  /** Bounded record of notable events seen this session, for the Social Lens. Not simulation state. */
+  private readonly sessionLog: { day: number; ids: number[]; text: string }[] = [];
+  private frozenTime: number | null = null;
+  private perf: { frame: number[]; sim: number[]; render: number[] } | null = null;
   private simAcc = 0;
   private time = 0;
   private last = 0;
@@ -77,6 +87,7 @@ export class Game {
   private rateT = 0;
   private fps = 60;
   private restToggle = false;
+  private prevNow = 0;
   private lastTick = 0;
   private disposed = false;
   private readonly ray = new THREE.Raycaster();
@@ -84,10 +95,10 @@ export class Game {
   private readonly store = new SaveStore();
   private readonly abort = new AbortController();
 
-  constructor(canvas: HTMLCanvasElement, seed: number, quality: QualityName, auto: boolean, private readonly input: Input, private readonly audio: AudioEngine,
+  constructor(canvas: HTMLCanvasElement, readonly sim: Simulation, readonly worldId: string, quality: QualityName, auto: boolean, private readonly input: Input, private readonly audio: AudioEngine,
     private readonly hooks: { fatal: (msg: string) => void; restart: (seed: number, save?: SaveData) => void }, save?: SaveData) {
-    this.sim = new Simulation(save ? save.sim.seed : seed, save?.sim);
     this.engine = new Engine(canvas, this.sim, quality);
+    this.curiosity = new Curiosity(this.sim);
     this.engine.auto = auto;
     if (save) Object.assign(this.cam, save.cam);
     else {
@@ -97,6 +108,7 @@ export class Game {
     this.engine.onQualityChange = () => this.refreshMenu();
     this.bindUi();
     this.unsub.push(this.sim.events.on((e) => {
+      this.logEvent(e);
       if (this.speed > 10) return;
       const name = SPECIES[e.sp]!.name.split(' (')[0]!.toLowerCase();
       const near = (e.x - this.cam.x) ** 2 + (e.z - this.cam.z) ** 2 < 350 * 350;
@@ -117,6 +129,20 @@ export class Game {
     window.addEventListener('pagehide', () => void this.save(true), { signal: this.abort.signal });
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
+  }
+
+  private logEvent(e: import('@untamed/ecology').SimEvent): void {
+    const day = this.sim.env.timeH / 24;
+    const nm = (sp: number): string => SPECIES[sp]!.name.split(' (')[0]!.toLowerCase();
+    let entry: { day: number; ids: number[]; text: string } | null = null;
+    if (e.type === 'kill') entry = { day, ids: [e.predator, e.prey], text: `killed a ${nm(e.sp)}` };
+    else if (e.type === 'birth') entry = { day, ids: [e.id], text: e.n > 1 ? `gave birth to ${e.n} young` : 'gave birth' };
+    else if (e.type === 'alarm') entry = { day, ids: [e.id], text: 'took fright at a predator' };
+    if (!entry) return;
+    const last = this.sessionLog[this.sessionLog.length - 1];
+    if (last && last.text === entry.text && last.ids[0] === entry.ids[0] && day - last.day < 0.02) return;
+    this.sessionLog.push(entry);
+    if (this.sessionLog.length > 300) this.sessionLog.splice(0, 100);
   }
 
   // ---------------------------------------------------------------- UI wiring
@@ -159,6 +185,31 @@ export class Game {
     this.on('insFollow', 'click', () => this.toggleFollow());
     this.on('insControl', 'click', () => this.takeControl(this.selected));
     this.on('wildRelease', 'click', () => this.setMode('observer'));
+    this.on('insGroup', 'click', () => {
+      const a = this.sim.byId.get(this.selected);
+      this.highlightGroup = this.highlightGroup ? 0 : (a?.group ?? 0);
+      this.uiT = 99;
+    });
+    this.on('cuPause', 'click', () => {
+      this.curiosity.paused = !this.curiosity.paused;
+      this.uiT = 99;
+    });
+    this.on('cuSkip', 'click', () => this.curiosity.skip());
+    this.on('cuFollow', 'click', () => this.leaveCuriosity(true, false));
+    this.on('cuBecome', 'click', () => this.leaveCuriosity(true, true));
+    this.on('cuCaptions', 'click', () => {
+      this.captions = !this.captions;
+      this.uiT = 99;
+    });
+    this.on('cuExit', 'click', () => this.setMode('observer'));
+    this.on('mMotion', 'change', (e) => {
+      this.curiosity.reducedMotion = (e.target as HTMLInputElement).checked;
+      this.storeSettings();
+    });
+    this.on('mMusic', 'input', (e) => {
+      this.audio.setMusic(Number((e.target as HTMLInputElement).value));
+      this.storeSettings();
+    });
 
     // experiment panel: every control writes straight into simulation parameters
     const p = this.sim.env.params;
@@ -219,6 +270,7 @@ export class Game {
     try {
       localStorage.setItem('untamed.settings', JSON.stringify({
         quality: this.engine.quality.name, auto: this.engine.auto, volume: Number($<HTMLInputElement>('mVolume').value), muted: this.audio.muted,
+        music: Number($<HTMLInputElement>('mMusic').value), reducedMotion: this.curiosity.reducedMotion,
       }));
     } catch {
       /* settings simply won't persist */
@@ -237,6 +289,7 @@ export class Game {
     document.querySelectorAll<HTMLButtonElement>('#speeds button').forEach((b) => b.classList.toggle('on', Number(b.dataset.speed) === this.speed));
     $('experiment').classList.toggle('hidden', this.mode !== 'experiment');
     $('wild').classList.toggle('hidden', this.mode !== 'wildlife');
+    $('curio').classList.toggle('hidden', this.mode !== 'curiosity');
     $('touch').classList.toggle('hidden', !this.input.touch);
     document.querySelectorAll<HTMLElement>('.wildOnly').forEach((b) => b.classList.toggle('hidden', this.mode !== 'wildlife'));
     $('insFollow').classList.toggle('on', this.following);
@@ -279,7 +332,9 @@ export class Game {
   select(id: number): void {
     this.selected = id;
     if (!id) this.following = false;
-    $('inspect').classList.toggle('hidden', !id || this.mode === 'wildlife');
+    $('inspect').classList.toggle('hidden', !id || this.mode === 'wildlife' || this.mode === 'curiosity');
+    if (!id) this.highlightGroup = 0;
+    else if (this.highlightGroup) this.highlightGroup = this.sim.byId.get(id)?.group ?? 0;
     this.refreshButtons();
     this.uiT = 99;
   }
@@ -336,15 +391,43 @@ export class Game {
       this.controlled = 0;
       this.following = true;
     }
+    if (this.mode === 'curiosity' && m !== 'curiosity') {
+      // keep looking where the autopilot was looking, so handing back control is seamless
+      const dx = this.look.x - this.cam.x;
+      const dy = this.look.y - this.cam.y;
+      const dz = this.look.z - this.cam.z;
+      this.cam.yaw = Math.atan2(dx, dz);
+      this.cam.pitch = clamp(Math.atan2(dy, Math.hypot(dx, dz)), -1.4, 1.4);
+    }
+    if (m === 'curiosity' && this.mode !== 'curiosity') {
+      const cp = Math.cos(this.cam.pitch);
+      this.look.x = this.cam.x + Math.sin(this.cam.yaw) * cp * 30;
+      this.look.y = this.cam.y + Math.sin(this.cam.pitch) * 30;
+      this.look.z = this.cam.z + Math.cos(this.cam.yaw) * cp * 30;
+      this.curiosity.paused = false;
+      this.following = false;
+      if (this.input.captured) this.input.toggleCapture();
+      if (this.speed > 10 || this.speed === 0) this.setSpeed(1);
+    }
     this.mode = m;
     if (m === 'experiment') this.toggleStats(true);
-    this.select(this.selected);
+    this.select(m === 'curiosity' ? 0 : this.selected);
+  }
+
+  /** Leave the autopilot, optionally keeping its subject: Observe -> Select -> Follow -> Become. */
+  private leaveCuriosity(keepSubject: boolean, become: boolean): void {
+    const a = keepSubject ? this.curiosity.subjectAnimal() : null;
+    this.setMode('observer');
+    if (!a) return;
+    this.select(a.id);
+    if (become && SPECIES[a.sp]!.playable) this.takeControl(a.id);
+    else if (!this.following) this.toggleFollow();
   }
 
   // ---------------------------------------------------------------- persistence
   async save(silent: boolean): Promise<void> {
     try {
-      const data: SaveData = { sim: this.sim.snapshot(), cam: { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch } };
+      const data: SaveData = { worldId: this.worldId, sim: this.sim.snapshot(), cam: { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch } };
       await this.store.put(SAVE_SLOT, sealEnvelope(data, SAVE_FORMAT, SAVE_VERSION, Date.now()));
       $('mSaveInfo').textContent = `Saved ${new Date().toLocaleTimeString()} (day ${this.sim.env.day})`;
       if (!silent) toast('World saved to this browser.');
@@ -362,7 +445,9 @@ export class Game {
         toast('There is no saved world yet.', true);
         return;
       }
-      this.hooks.restart(0, openEnvelope<SaveData>(raw, SAVE_FORMAT, SAVE_VERSION));
+      const data = openEnvelope<SaveData>(raw, SAVE_FORMAT, SAVE_VERSION);
+      data.worldId ??= this.worldId;
+      this.hooks.restart(0, data);
     } catch (e) {
       toast(`Could not load: ${e instanceof Error ? e.message : String(e)}`, true);
     }
@@ -388,6 +473,8 @@ export class Game {
     }
     if (this.menuOpen) return;
     if (i.pressed('stats')) this.toggleStats();
+    if (i.pressed('curiosity')) this.setMode(this.mode === 'curiosity' ? 'observer' : 'curiosity');
+    if (i.pressed('skip') && this.mode === 'curiosity') this.curiosity.skip();
     if (i.pressed('help')) this.setMenu(true);
     if (i.pressed('capture') && this.mode !== 'wildlife') this.input.toggleCapture();
     if (i.pressed('speedUp')) this.setSpeed(SPEEDS[Math.min(SPEEDS.length - 1, SPEEDS.indexOf(this.speed) + 1)]!);
@@ -399,7 +486,7 @@ export class Game {
       else if (this.following) this.toggleFollow();
     }
     if (i.pressed('rest')) this.restToggle = !this.restToggle;
-    if (i.click && this.mode !== 'wildlife') {
+    if (i.click && this.mode !== 'wildlife' && this.mode !== 'curiosity') {
       this.ray.setFromCamera(new THREE.Vector2(i.click.x, i.click.y), this.engine.camera);
       const a = this.engine.animals.pick(this.ray.ray, 400);
       this.select(a ? a.id : this.following ? this.selected : 0);
@@ -410,6 +497,27 @@ export class Game {
     const c = this.cam;
     const i = this.input;
     const v = this.sim.valley;
+    if (this.mode === 'curiosity') {
+      // any deliberate input hands control straight back to the player
+      if (Math.hypot(i.moveX, i.moveZ) > 0.2 || Math.abs(i.moveY) > 0.2 || Math.abs(i.lookX) + Math.abs(i.lookY) > 0.004 || i.click) {
+        this.setMode('observer');
+      } else {
+        const pose = this.curiosity.update(dt, { x: c.x, y: c.y, z: c.z, tx: this.look.x, ty: this.look.y, tz: this.look.z },
+          (x, z) => Math.max(v.heightFast(x, z), v.waterSurface(z) + this.sim.env.stage), (id) => this.engine.animals.pos.get(id));
+        // never fly through a ruin: hold position horizontally if the next step would enter a footprint at wall height
+        if (!(v.blocked(pose.x, pose.z, 1.2) && pose.y < v.heightFast(pose.x, pose.z) + 8)) {
+          c.x = clamp(pose.x, 4, REGION_SIZE - 4);
+          c.z = clamp(pose.z, 4, REGION_SIZE - 4);
+        }
+        c.y = Math.max(pose.y, Math.max(v.height(c.x, c.z), v.waterSurface(c.z) + this.sim.env.stage) + 1.4);
+        this.look.x = pose.tx;
+        this.look.y = pose.ty;
+        this.look.z = pose.tz;
+        this.engine.camera.position.set(c.x, c.y, c.z);
+        this.engine.camera.lookAt(this.look.x, this.look.y, this.look.z);
+        return;
+      }
+    }
     c.yaw += i.lookX;
     c.pitch = clamp(c.pitch + i.lookY, -1.5, 1.5);
     const cp = Math.cos(c.pitch);
@@ -457,8 +565,16 @@ export class Game {
     // free flight
     if (i.zoom) c.fly = clamp(c.fly * (1 - i.zoom * 0.15), 2, 160);
     const sp = c.fly * (i.fast ? 3.5 : 1) * dt;
+    const ox = c.x;
+    const oz = c.z;
     c.x += (fx * i.moveZ - Math.cos(c.yaw) * i.moveX) * sp;
     c.z += (fz * i.moveZ + Math.sin(c.yaw) * i.moveX) * sp;
+    // ruins are solid below roof height: slide along whichever axis is still free
+    if (v.blocked(c.x, c.z, 0.7) && c.y < v.heightFast(c.x, c.z) + 7.5 && !v.blocked(ox, oz, 0.7)) {
+      if (!v.blocked(c.x, oz, 0.7)) c.z = oz;
+      else if (!v.blocked(ox, c.z, 0.7)) c.x = ox;
+      else ((c.x = ox), (c.z = oz));
+    }
     c.y += (fy * i.moveZ + i.moveY) * sp;
     c.x = clamp(c.x, 4, REGION_SIZE - 4);
     c.z = clamp(c.z, 4, REGION_SIZE - 4);
@@ -472,9 +588,10 @@ export class Game {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.frame);
     try {
-      const dt = Math.min(0.1, (now - this.last) / 1000);
+      // long frames are clamped (tab switches, hitches) but slow devices still advance in real time down to 4 fps
+      const dt = Math.min(0.25, (now - this.last) / 1000);
       this.last = now;
-      this.time += dt;
+      this.time = this.frozenTime ?? this.time + dt;
       this.fps += (1 / Math.max(dt, 1e-3) - this.fps) * 0.05;
       this.input.poll(dt);
       this.handleActions();
@@ -487,12 +604,16 @@ export class Game {
         this.sim.focus = this.cam;
         const t0 = performance.now();
         let n = 0;
-        while (this.simAcc >= tick && performance.now() - t0 < 9) {
+        // simulation budget scales with the frame interval, so a slow GPU does not starve time acceleration:
+        // 9 ms at 60 fps, up to 45% of a long frame (capped at 70 ms)
+        const budget = Math.min(70, Math.max(9, dt * 450));
+        while (this.simAcc >= tick && performance.now() - t0 < budget) {
           this.sim.step(tick);
           this.simAcc -= tick;
           n++;
         }
         if (n > 0) this.tickMs += ((performance.now() - t0) / n - this.tickMs) * 0.1;
+        if (this.perf) this.perf.sim.push(performance.now() - t0);
         this.kineticDone += n * tick;
         // if the CPU cannot sustain the requested rate, drop the backlog rather than spiral
         if (this.simAcc > tick * 4) this.simAcc = 0;
@@ -505,7 +626,13 @@ export class Game {
         this.rateT = 0;
       }
       this.updateCamera(dt);
-      this.engine.frame(dt, alpha, this.time, this.selected, this.speed);
+      const r0 = performance.now();
+      this.engine.frame(dt, alpha, this.time, this.selected, this.speed, this.highlightGroup);
+      if (this.perf) {
+        this.perf.frame.push(now - this.prevNow);
+        this.perf.render.push(performance.now() - r0);
+      }
+      this.prevNow = now;
       this.updateAudio(dt);
       this.uiT += dt;
       if (this.uiT > 0.2) {
@@ -588,7 +715,25 @@ export class Game {
       $('insMeta').textContent = `${stage} ${a.sex ? 'male' : 'female'}, ${yrs} yr${a.pregnantH > 0 ? ' · gravid' : ''} · ${BEHAVIOR_NAMES[a.beh]}`;
       meters($('insBars'), this.animalRows(a));
       $<HTMLButtonElement>('insControl').classList.toggle('hidden', !sp.playable);
-    } else if (this.selected && this.mode !== 'wildlife') this.select(0);
+      $('insSocial').innerHTML = this.socialLens(a).map((l) => `<div>${l}</div>`).join('');
+      $('insGroup').classList.toggle('on', this.highlightGroup !== 0);
+      $('insRole').textContent = sp.note;
+    } else if (this.selected && this.mode !== 'wildlife' && this.mode !== 'curiosity') this.select(0);
+
+    if (this.mode === 'curiosity') {
+      const cap = this.captions ? this.curiosity.caption() : null;
+      $('cuCaption').classList.toggle('hidden', !cap);
+      if (cap) {
+        $('cuWhat').textContent = cap[0];
+        $('cuFact').textContent = cap[1];
+        $('cuNote').textContent = cap[2];
+      }
+      const subj = this.curiosity.subjectAnimal();
+      $('cuPause').textContent = this.curiosity.paused ? 'Resume' : 'Pause';
+      $<HTMLButtonElement>('cuFollow').disabled = !subj;
+      $('cuBecome').classList.toggle('hidden', !subj || !SPECIES[subj.sp]!.playable);
+      $('cuCaptions').classList.toggle('on', this.captions);
+    }
 
     const w = this.controlled ? this.sim.byId.get(this.controlled) : undefined;
     if (w) {
@@ -619,6 +764,44 @@ export class Game {
     }
   }
 
+  /** Relationships and pressures read directly from simulation state; nothing here is invented. */
+  private socialLens(a: Animal): string[] {
+    const sp = SPECIES[a.sp]!;
+    const out: string[] = [];
+    let members = 0;
+    let offspring = 0;
+    let dependants = 0;
+    for (const o of this.sim.animals) {
+      if (!o.alive) continue;
+      if (o.group === a.group && o.sp === a.sp) members++;
+      if (o.mother === a.id) {
+        offspring++;
+        if (o.age < weanDays(sp)) dependants++;
+      }
+    }
+    out.push(members > 1 ? `<b>Group</b> ${sp.groupNoun} of ${members}` : `<b>Group</b> alone (${sp.groupNoun})`);
+    if (a.mother) {
+      const m = this.sim.byId.get(a.mother);
+      out.push(`<b>Mother</b> #${a.mother} ${m && m.alive ? (m.group === a.group ? '— alive, same group' : '— alive, different group') : '— no longer alive'}`);
+    } else out.push('<b>Mother</b> not recorded (founding animal)');
+    if (offspring) out.push(`<b>Offspring alive</b> ${offspring}${dependants ? ` (${dependants} still dependent)` : ''}`);
+    const env = this.sim.env;
+    const c = env.cellIndex(a.x, a.z);
+    const pressures: string[] = [];
+    if (a.hunger > 0.6) pressures.push('hungry');
+    if (a.thirst > 0.6) pressures.push('thirsty');
+    if (a.energy < 0.3) pressures.push('tired');
+    if (a.fear > 0.3) pressures.push('alarmed');
+    if (a.health < 0.6) pressures.push('in poor health');
+    if (env.vegFrac(c) < 0.15 && sp.diet.veg > 0.5) pressures.push('on depleted forage');
+    if (Number.isNaN(a.waterX)) pressures.push('knows no water source');
+    out.push(`<b>Pressures</b> ${pressures.length ? pressures.join(', ') : 'none acute'}`);
+    const mine = this.sessionLog.filter((e) => e.ids.includes(a.id)).slice(-3);
+    for (const e of mine) out.push(`<b>Day ${Math.floor(e.day) % YEAR_DAYS + 1}</b> ${e.ids[0] === a.id ? e.text : 'was killed'}`);
+    if (!mine.length) out.push('<i>No notable events observed this session.</i>');
+    return out;
+  }
+
   private updateCharts(): void {
     const hist = this.sim.history;
     if (hist.length < 2) return;
@@ -640,7 +823,92 @@ export class Game {
     cancelAnimationFrame(this.raf);
     this.abort.abort();
     for (const u of this.unsub) u();
+    this.curiosity.dispose();
     this.engine.dispose();
+  }
+
+  // ---------------------------------------------------------------- QA instrumentation
+  /** Freeze visual time (wind, clouds, water) for repeatable screenshots; null resumes. */
+  debugFreeze(t: number | null): void {
+    this.frozenTime = t;
+  }
+  /** Mean and spread of luminance over a sparse pixel grid of a freshly rendered frame (blank-frame detection). */
+  debugLuma(): { mean: number; std: number } {
+    const r = this.engine.renderer;
+    r.render(this.engine.scene, this.engine.camera);
+    const gl = r.getContext();
+    const w = gl.drawingBufferWidth;
+    const h = gl.drawingBufferHeight;
+    const px = new Uint8Array(4);
+    let sum = 0;
+    let sq = 0;
+    let n = 0;
+    for (let j = 1; j < 12; j++) for (let i = 1; i < 20; i++) {
+      gl.readPixels(Math.floor((w * i) / 20), Math.floor((h * j) / 12), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      const l = (0.2126 * px[0]! + 0.7152 * px[1]! + 0.0722 * px[2]!) / 255;
+      sum += l; sq += l * l; n++;
+    }
+    const mean = sum / n;
+    return { mean, std: Math.sqrt(Math.max(0, sq / n - mean * mean)) };
+  }
+  debugGrounding(): { max: number; n: number } {
+    return this.engine.animals.maxGroundError();
+  }
+  /** Fly the observer camera along a polyline at constant speed (deterministic benchmark paths). Resolves when done. */
+  debugPath(points: [number, number][], speed: number, above = 12): Promise<void> {
+    return new Promise((resolve) => {
+      let seg = 0;
+      let t = 0;
+      let last = performance.now();
+      const tick = (): void => {
+        if (this.disposed) return resolve();
+        const now = performance.now();
+        const dt = Math.min(0.1, (now - last) / 1000);
+        last = now;
+        const a = points[seg]!;
+        const b = points[seg + 1]!;
+        const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+        t += (speed * dt) / len;
+        if (t >= 1) {
+          t = 0;
+          seg++;
+          if (seg >= points.length - 1) return resolve();
+        }
+        const p = points[seg]!;
+        const q = points[seg + 1]!;
+        const x = p[0] + (q[0] - p[0]) * t;
+        const z = p[1] + (q[1] - p[1]) * t;
+        this.debugCam(x, z, above, Math.atan2(q[0] - p[0], q[1] - p[1]), -0.15);
+        requestAnimationFrame(tick);
+      };
+      tick();
+    });
+  }
+  debugPerfStart(): void {
+    this.perf = { frame: [], sim: [], render: [] };
+  }
+  debugPerfStop(): { frame: number[]; sim: number[]; render: number[] } {
+    const p = this.perf ?? { frame: [], sim: [], render: [] };
+    this.perf = null;
+    return p;
+  }
+  /** Full state of one animal (default: the controlled or selected one), plus what it is standing on. */
+  debugAnimal(id = this.controlled || this.selected): (Animal & { ground: number; rendered: number | null; water: number; forage: number; blocked: boolean }) | null {
+    const a = this.sim.byId.get(id);
+    if (!a) return null;
+    const v = this.sim.valley;
+    const p = this.engine.animals.pos.get(a.id);
+    return { ...a, ground: v.height(a.x, a.z), rendered: p ? p.y : null, water: this.sim.waterNear(a), forage: this.sim.env.vegFrac(this.sim.env.cellIndex(a.x, a.z)), blocked: v.blocked(a.x, a.z, 0) };
+  }
+  debugCamera(): { x: number; y: number; z: number; yaw: number; pitch: number; ground: number } {
+    return { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch, ground: this.sim.valley.height(this.cam.x, this.cam.z) };
+  }
+  debugGfx(): { quality: string; auto: boolean; resScale: number; calls: number; triangles: number; geometries: number; textures: number; chunks: number; heapMB: number | null } {
+    const mem = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
+    return { quality: this.engine.quality.name, auto: this.engine.auto, resScale: this.engine.resScale, ...this.engine.info(), chunks: this.engine.terrain.loaded, heapMB: mem ? mem.usedJSHeapSize / 1048576 : null };
+  }
+  debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean } {
+    return { key: this.curiosity.subject?.key ?? null, tag: this.curiosity.tag, switches: this.curiosity.director.switches, paused: this.curiosity.paused };
   }
 
   /** For automated tests and debugging. */

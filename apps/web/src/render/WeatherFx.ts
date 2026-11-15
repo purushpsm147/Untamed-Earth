@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Rng } from '@untamed/core';
 import { shared } from './shared';
 
 /** Rain streaks in a camera-centred volume; positions wrap in the vertex shader so the buffer is static. */
@@ -8,10 +9,11 @@ export class WeatherFx {
   constructor(max: number) {
     const pos = new Float32Array(max * 6);
     const top = new Float32Array(max * 2);
+    const r = new Rng(4711); // seeded so frozen-time screenshots are repeatable
     for (let i = 0; i < max; i++) {
-      const x = Math.random() * 40 - 20;
-      const y = Math.random() * 30;
-      const z = Math.random() * 40 - 20;
+      const x = r.range(-20, 20);
+      const y = r.range(0, 30);
+      const z = r.range(-20, 20);
       pos.set([x, y, z, x, y, z], i * 6);
       top[i * 2] = 0;
       top[i * 2 + 1] = 1;
