@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 
 test('soundscape requires a gesture, attenuates with distance, mutes, and disposes', async ({ page }) => {
   const errors: string[] = [];
@@ -52,4 +53,7 @@ test('soundscape exports a valid 48-second stereo 44.1 kHz PCM audition', async 
   expect(bytes.readUInt32LE(24)).toBe(44100);
   expect(bytes.readUInt16LE(34)).toBe(16);
   expect(bytes.length).toBe(44 + 48 * 44100 * 2 * 2);
+  const outputDir = path.resolve(process.cwd(), 'test-results', 'soundscape');
+  await mkdir(outputDir, { recursive: true });
+  await writeFile(path.join(outputDir, 'untamed-earth-soundscape-audition.wav'), bytes);
 });

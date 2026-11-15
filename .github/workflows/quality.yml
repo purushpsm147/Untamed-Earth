@@ -47,5 +47,6 @@ jobs:
           name: playwright-reports
           path: |
             test-artifacts/playwright/
+            test-results/soundscape/
           if-no-files-found: ignore
           retention-days: 7
