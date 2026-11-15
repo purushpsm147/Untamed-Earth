@@ -1,0 +1,1180 @@
+{
+  "tool": "Untamed Earth ?profile=1",
+  "version": 1,
+  "startedAt": "2026-11-15T16:55:08.113Z",
+  "short": false,
+  "device": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+    "gpu": "ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001638) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "assessment": "desktop-class hints",
+    "viewport": [
+      1490,
+      706
+    ],
+    "devicePixelRatio": 1.25,
+    "cores": 16,
+    "deviceMemoryGB": 16,
+    "heapApi": "performance.memory (Chromium only, JS heap only; not GPU memory)"
+  },
+  "notes": "Frame times are requestAnimationFrame intervals with the frame-rate target set to uncapped. GPU memory cannot be measured from a web page.",
+  "presets": {
+    "low": {
+      "frames": 5677,
+      "fps": 143.6,
+      "p50": 6.9,
+      "p95": 7,
+      "p99": 7.1,
+      "worst": 34.8,
+      "spikesOver50ms": 0,
+      "simMs": 0.022,
+      "renderMs": 1.17,
+      "drawCalls": 68,
+      "triangles": 296288,
+      "geometries": 115,
+      "heapMB": 38
+    },
+    "medium": {
+      "frames": 5565,
+      "fps": 142.6,
+      "p50": 6.9,
+      "p95": 7,
+      "p99": 7.4,
+      "worst": 27.8,
+      "spikesOver50ms": 0,
+      "simMs": 0.02,
+      "renderMs": 1.77,
+      "drawCalls": 124,
+      "triangles": 756880,
+      "geometries": 201,
+      "heapMB": 30.1
+    },
+    "high": {
+      "frames": 5435,
+      "fps": 137.5,
+      "p50": 6.9,
+      "p95": 7.3,
+      "p99": 13.9,
+      "worst": 21,
+      "spikesOver50ms": 0,
+      "simMs": 0.018,
+      "renderMs": 1.94,
+      "drawCalls": 169,
+      "triangles": 1254960,
+      "geometries": 270,
+      "heapMB": 35.7
+    }
+  },
+  "auto": {
+    "settled": {
+      "quality": "high",
+      "scale": 1
+    },
+    "underLoad": {
+      "quality": "low",
+      "scale": 0.8
+    },
+    "afterRecovery": {
+      "quality": "high",
+      "scale": 1
+    },
+    "recoveredToSettled": true,
+    "timeline": [
+      {
+        "t": 0,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 16.7
+      },
+      {
+        "t": 1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 2,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 7.3
+      },
+      {
+        "t": 3,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 4,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 5,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 6,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 7,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 8,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 9,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 10.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 11.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 12.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 13.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 14.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 15.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 16.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 17.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 18.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 19.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 20.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 21.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 22.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 23.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 24.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 25.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 26.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 27.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 28.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 29.1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 7
+      },
+      {
+        "t": 30.1,
+        "phase": "loaded",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 31.1,
+        "phase": "loaded",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 28
+      },
+      {
+        "t": 32.1,
+        "phase": "loaded",
+        "quality": "high",
+        "scale": 0.9,
+        "frameMs": 31.7
+      },
+      {
+        "t": 33.2,
+        "phase": "loaded",
+        "quality": "high",
+        "scale": 0.9,
+        "frameMs": 31.6
+      },
+      {
+        "t": 34.2,
+        "phase": "loaded",
+        "quality": "high",
+        "scale": 0.8,
+        "frameMs": 31.8
+      },
+      {
+        "t": 35.2,
+        "phase": "loaded",
+        "quality": "high",
+        "scale": 0.7,
+        "frameMs": 31.9
+      },
+      {
+        "t": 36.2,
+        "phase": "loaded",
+        "quality": "high",
+        "scale": 0.7,
+        "frameMs": 31.8
+      },
+      {
+        "t": 37.3,
+        "phase": "loaded",
+        "quality": "high",
+        "scale": 0.6,
+        "frameMs": 31.7
+      },
+      {
+        "t": 38.3,
+        "phase": "loaded",
+        "quality": "high",
+        "scale": 0.5,
+        "frameMs": 31.8
+      },
+      {
+        "t": 39.3,
+        "phase": "loaded",
+        "quality": "high",
+        "scale": 0.5,
+        "frameMs": 31.9
+      },
+      {
+        "t": 40.3,
+        "phase": "loaded",
+        "quality": "medium",
+        "scale": 0.8,
+        "frameMs": 32
+      },
+      {
+        "t": 41.3,
+        "phase": "loaded",
+        "quality": "medium",
+        "scale": 0.7,
+        "frameMs": 31.8
+      },
+      {
+        "t": 42.4,
+        "phase": "loaded",
+        "quality": "medium",
+        "scale": 0.7,
+        "frameMs": 31.7
+      },
+      {
+        "t": 43.4,
+        "phase": "loaded",
+        "quality": "medium",
+        "scale": 0.6,
+        "frameMs": 31.8
+      },
+      {
+        "t": 44.4,
+        "phase": "loaded",
+        "quality": "medium",
+        "scale": 0.5,
+        "frameMs": 32.1
+      },
+      {
+        "t": 45.4,
+        "phase": "loaded",
+        "quality": "medium",
+        "scale": 0.5,
+        "frameMs": 31.7
+      },
+      {
+        "t": 46.5,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 31.5
+      },
+      {
+        "t": 47.5,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 31.2
+      },
+      {
+        "t": 48.5,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 31.2
+      },
+      {
+        "t": 49.5,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 31.6
+      },
+      {
+        "t": 50.5,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 31.4
+      },
+      {
+        "t": 51.5,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 31.1
+      },
+      {
+        "t": 52.5,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 31.5
+      },
+      {
+        "t": 53.5,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 31.4
+      },
+      {
+        "t": 54.5,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 31.3
+      },
+      {
+        "t": 55.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 31.2
+      },
+      {
+        "t": 56.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 57.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 58.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 59.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 60.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 61.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 62.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 63.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 64.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 65.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 66.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 67.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 68.5,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 69.6,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 70.6,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 71.6,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 72.6,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 73.6,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 7
+      },
+      {
+        "t": 74.6,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 75.6,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 76.6,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 7
+      },
+      {
+        "t": 77.6,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 78.6,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 79.6,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 80.6,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 81.6,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 82.6,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 83.6,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 84.6,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 85.6,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 86.6,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 87.6,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 88.6,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 89.6,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 90.6,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 91.6,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 92.7,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 93.7,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 94.7,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 95.7,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 1,
+        "frameMs": 7.7
+      },
+      {
+        "t": 96.7,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 97.7,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 98.7,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 99.7,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 100.7,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 101.7,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 102.7,
+        "phase": "recovering",
+        "quality": "medium",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 103.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.8,
+        "frameMs": 7.9
+      },
+      {
+        "t": 104.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 105.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 106.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 107.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 108.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 109.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 110.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.8,
+        "frameMs": 6.9
+      },
+      {
+        "t": 111.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.9,
+        "frameMs": 8.1
+      },
+      {
+        "t": 112.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 113.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 114.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 115.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 116.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 117.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.9,
+        "frameMs": 6.9
+      },
+      {
+        "t": 118.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 0.9,
+        "frameMs": 7
+      },
+      {
+        "t": 119.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 8.2
+      },
+      {
+        "t": 120.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 121.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 122.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 123.7,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 124.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 125.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 126.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 127.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 128.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 129.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 130.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 131.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 132.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 133.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 134.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      },
+      {
+        "t": 135.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 7.9
+      },
+      {
+        "t": 136.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 13.5
+      },
+      {
+        "t": 137.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 7.1
+      },
+      {
+        "t": 138.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 7.5
+      },
+      {
+        "t": 139.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 7.5
+      },
+      {
+        "t": 140.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 7.1
+      },
+      {
+        "t": 141.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 7.3
+      },
+      {
+        "t": 142.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 7.3
+      },
+      {
+        "t": 143.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 7.1
+      },
+      {
+        "t": 144.8,
+        "phase": "recovering",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 6.9
+      }
+    ]
+  },
+  "restarts": [
+    {
+      "run": 0,
+      "heapMB": 32.4,
+      "gl": {
+        "buffer": 663,
+        "texture": 7,
+        "program": 31,
+        "vao": 287,
+        "framebuffer": 4,
+        "renderbuffer": 0
+      },
+      "geometries": 157
+    },
+    {
+      "run": 1,
+      "heapMB": 44.5,
+      "gl": {
+        "buffer": 395,
+        "texture": 7,
+        "program": 29,
+        "vao": 170,
+        "framebuffer": 4,
+        "renderbuffer": 0
+      },
+      "geometries": 90
+    },
+    {
+      "run": 2,
+      "heapMB": 52.4,
+      "gl": {
+        "buffer": 395,
+        "texture": 7,
+        "program": 29,
+        "vao": 170,
+        "framebuffer": 4,
+        "renderbuffer": 0
+      },
+      "geometries": 90
+    },
+    {
+      "run": 3,
+      "heapMB": 68.7,
+      "gl": {
+        "buffer": 395,
+        "texture": 7,
+        "program": 29,
+        "vao": 170,
+        "framebuffer": 4,
+        "renderbuffer": 0
+      },
+      "geometries": 90
+    },
+    {
+      "run": 4,
+      "heapMB": 68.9,
+      "gl": {
+        "buffer": 395,
+        "texture": 7,
+        "program": 29,
+        "vao": 174,
+        "framebuffer": 4,
+        "renderbuffer": 0
+      },
+      "geometries": 90
+    },
+    {
+      "run": 5,
+      "heapMB": 69,
+      "gl": {
+        "buffer": 395,
+        "texture": 7,
+        "program": 29,
+        "vao": 172,
+        "framebuffer": 4,
+        "renderbuffer": 0
+      },
+      "geometries": 90
+    }
+  ],
+  "finishedAt": "2026-11-15T17:00:30.079Z"
+}

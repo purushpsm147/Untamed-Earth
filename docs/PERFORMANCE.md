@@ -1,9 +1,39 @@
 # Performance profiling
 
 ## Status
-**No physical GPU or phone has been profiled yet.** The development container has no GPU and no user computer was
-attached, so every number here comes from SwiftShader (a CPU rasteriser). Those numbers show relative cost between
-presets and verify bookkeeping (leaks, buffer sizes); they say nothing about real frame rates.
+**First real-hardware data (2026-11-15):** one laptop, two GPUs, run by the project owner with `?profile=1` in Edge 157.
+No phone has been profiled. SwiftShader numbers further down are kept only as a software baseline.
+
+## Real hardware: HP Victus 16 (2026-11-15)
+Ryzen 7 5800H (8 cores / 16 threads), 16 GB RAM, Windows 11, 1920×1080 144 Hz panel; browser window 1490×706 CSS px at
+DPR 1.25. Reports: [`evidence/profile-hp-victus16-radeon-vega8-run1.json`](evidence/profile-hp-victus16-radeon-vega8-run1.json),
+[`run2`](evidence/profile-hp-victus16-radeon-vega8-run2.json) (integrated Radeon Vega 8, driver 31.0.12044.3) and
+[`evidence/profile-hp-victus16-rtx3060-laptop.json`](evidence/profile-hp-victus16-rtx3060-laptop.json) (GeForce RTX 3060 Laptop, 6 GB).
+
+| GPU | Preset | p50 | p95 | p99 | worst | fps | draw calls | triangles | render CPU |
+|---|---|---|---|---|---|---|---|---|---|
+| Radeon Vega 8 (run 2) | Low | 6.9 ms | 7.0 | 7.1 | 34.8 | 143.6 | 68 | 296 k | 1.17 ms |
+| | Medium | 6.9 | 7.0 | 7.4 | 27.8 | 142.6 | 124 | 757 k | 1.77 |
+| | High | 6.9 | 7.3 | 13.9 | 21.0 | 137.5 | 169 | 1.25 M | 1.94 |
+| RTX 3060 Laptop | Low | 6.9 | 7.0 | 7.1 | 48.7 | 143.8 | 68 | 296 k | 1.41 |
+| | Medium | 6.9 | 7.0 | 7.1 | 7.4 | 144.0 | 124 | 757 k | 1.73 |
+| | High | 6.9 | 7.0 | 7.1 | 28.0 | 143.8 | 169 | 1.26 M | 2.12 |
+
+Reading the numbers honestly:
+- **Every preset on both GPUs sits at the 144 Hz refresh interval (6.9 ms).** "Uncapped" in the profiler still follows the
+  display's vsync, so this proves headroom on High at this window size, but it cannot rank presets or say how much spare
+  GPU time exists. Only the integrated GPU shows occasional drops on High (p99 13.9 ms). No frame exceeded 50 ms.
+- Simulation cost: 0.02–0.18 ms per tick. Render submission (CPU): 1.2–2.3 ms per frame.
+- **Auto quality** settled on High (the automatic ceiling; Ultra is never chosen automatically and was not measured).
+  Under the artificial load it stepped resolution 100→50%, then Medium, then Low at 80%; after the load was removed it
+  climbed back to High at 100% in ~65 s on both GPUs (`recoveredToSettled: true`). Downgrade and recovery are therefore
+  **verified on real hardware**.
+- **Finding (open):** the artificial load is main-thread CPU work, which lower graphics cannot fix, yet the governor still
+  went down to Low. It should notice when a downgrade does not reduce frame time and undo it. Not yet implemented.
+- **Restarts:** live WebGL objects stable across restarts 1–5 (395 buffers, 7 textures, 29 programs; VAO count varies
+  163–174 without trend). JS heap varied 44–108 MB with no monotonic growth; the browser did not expose forced GC, so
+  the heap figures are noisy.
+- Not yet measured: Ultra, full-screen 1080p, true GPU time (needs timer queries), a phone.
 
 ## How to profile a real device (about 5 minutes)
 1. `npm run build && npm run preview` (or deploy `apps/web/dist` to any static host), then open
