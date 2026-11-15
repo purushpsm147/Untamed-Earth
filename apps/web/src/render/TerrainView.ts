@@ -8,10 +8,12 @@ interface Chunk {
   mesh: THREE.Mesh | null;
   res: number;
   pending: number;
+  /** Unique generation of the most recently dispatched mesh request. */
+  pendingId: number;
   want: number;
   d: number;
 }
-type Result = ChunkMeshData & { cx: number; cz: number; res: number };
+type Result = ChunkMeshData & { id: number; cx: number; cz: number; res: number };
 
 /**
  * Streams terrain chunks around the camera. Geometry is generated off-thread at a
@@ -23,6 +25,7 @@ export class TerrainView {
   private readonly chunks = new Map<number, Chunk>();
   private worker: Worker | null = null;
   private inFlight = 0;
+  private nextRequestId = 1;
   private queue: Chunk[] = [];
   viewDist = 800;
   /** Number of chunks currently holding a mesh / expected in range (for the loading bar). */
@@ -73,6 +76,12 @@ export class TerrainView {
         this.worker?.terminate();
         this.worker = null;
         this.inFlight = 0;
+        this.queue.length = 0;
+        // Reset pending requests: a dead Worker will never deliver its responses.
+        for (const chunk of this.chunks.values()) {
+          chunk.pending = 0;
+          chunk.pendingId = 0;
+        }
       };
     } catch {
       this.worker = null;
@@ -86,8 +95,10 @@ export class TerrainView {
   private apply(r: Result): void {
     const key = (r.cx + 16) * 64 + (r.cz + 16);
     const c = this.chunks.get(key);
-    if (!c) return; // unloaded while in flight
+    if (!c || c.pendingId !== r.id) return; // stale response or chunk replaced while in flight
     c.pending = 0;
+    c.pendingId = 0;
+    if (c.want !== r.res) return; // target LOD changed while the worker was generating
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(r.positions, 3));
     g.setAttribute('normal', new THREE.BufferAttribute(r.normals, 3));
@@ -130,12 +141,12 @@ export class TerrainView {
           continue;
         }
         wanted++;
-        if (!c) this.chunks.set(key, (c = { cx, cz, mesh: null, res: 0, pending: 0, want: 6, d: 0 }));
+        if (!c) this.chunks.set(key, (c = { cx, cz, mesh: null, res: 0, pending: 0, pendingId: 0, want: 6, d: 0 }));
         if (c.mesh) loaded++;
         // a missing chunk is first filled at the coarsest LOD so the world appears quickly
         const want = c.mesh ? this.lodFor(d) : 6;
+        c.want = want;
         if (c.res !== want && c.pending !== want) {
-          c.want = want;
           c.d = c.mesh ? d + 5000 : d; // missing chunks first, then refinements
           this.queue.push(c);
         }
@@ -155,13 +166,16 @@ export class TerrainView {
         const c = this.queue.pop()!;
         if (c.pending === c.want) continue;
         c.pending = c.want;
+        c.pendingId = this.nextRequestId++;
         this.inFlight++;
-        this.worker.postMessage({ id: 0, cx: c.cx, cz: c.cz, res: c.want });
+        this.worker.postMessage({ id: c.pendingId, cx: c.cx, cz: c.cz, res: c.want });
       }
     } else if (this.queue.length > 0) {
       // main-thread fallback: one chunk per frame keeps the frame time bounded
       const c = this.queue.pop()!;
-      this.apply({ ...buildChunkMesh(this.valley, c.cx, c.cz, c.want), cx: c.cx, cz: c.cz, res: c.want });
+      c.pending = c.want;
+      c.pendingId = this.nextRequestId++;
+      this.apply({ ...buildChunkMesh(this.valley, c.cx, c.cz, c.want), id: c.pendingId, cx: c.cx, cz: c.cz, res: c.want });
     }
   }
 
