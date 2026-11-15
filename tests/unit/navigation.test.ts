@@ -129,6 +129,23 @@ describe('navigation: steering, termination, obstacles', () => {
 });
 
 describe('chital herd threat response', () => {
+  it('herd mates keep personal space instead of standing inside each other', () => {
+    const sim = new Simulation(1);
+    let n = 0;
+    let overlap = 0;
+    for (let t = 0; t < 7200; t++) {
+      sim.step(0.1);
+      if (t % 50) continue;
+      const deer = sim.animals.filter((a) => a.sp === SPECIES_INDEX.chital && a.alive);
+      for (const a of deer) {
+        n++;
+        if (deer.some((b) => b !== a && Math.hypot(a.x - b.x, a.z - b.z) < 0.5)) overlap++;
+      }
+    }
+    expect(overlap / n).toBeLessThan(0.02); // 15.4% of samples before personal spacing (seed 1, one day)
+  });
+
+
   it('a jackal close to one deer alarms the herd; herd mates flee too, then the herd re-forms', () => {
     const sim = new Simulation(1);
     // the largest chital herd

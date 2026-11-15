@@ -1213,6 +1213,8 @@ export class Simulation {
     a.speed += clamp(a.want - a.speed, -rate * dt, rate * dt);
     if (!sp.flies && a.want > 0) a.speed = Math.min(a.speed, Math.sqrt(2 * loco.decel * Math.max(0, dist - 0.4)) + 0.25);
     if (a.speed < 0.02 && a.want <= 0) a.speed = 0;
+    // personal space: herd animals standing or ambling shuffle apart instead of occupying the same spot
+    if (!sp.flies && sp.group > 1 && a.speed < sp.walk * 0.6 && !a.controlled && a.beh !== B.Drink && a.beh !== B.Flee && a.beh !== B.Follow) this.giveSpace(a, sp, dt);
     if (a.speed <= 0 || dist < 0.05) {
       a.chkT = 0;
       return;
@@ -1285,6 +1287,32 @@ export class Simulation {
           a.want = 0;
         }
       }
+    }
+  }
+
+  /** Shuffle (at most 0.25 m/s) away from same-species neighbours closer than about one body length. */
+  private giveSpace(a: Animal, sp: SpeciesDef, dt: number): void {
+    const personal = Math.max(0.6, sp.length * 1.1);
+    let px = 0;
+    let pz = 0;
+    this.hash.query(a.x, a.z, personal, (o, d2) => {
+      if (o === a || o.sp !== a.sp || !o.alive) return;
+      const d = Math.sqrt(d2);
+      // exactly coincident: separate along a direction fixed by the pair's ids (deterministic, symmetric)
+      const ang = d > 1e-3 ? Math.atan2(a.x - o.x, a.z - o.z) : ((Math.min(a.id, o.id) * 2.39996) % (Math.PI * 2)) + (a.id < o.id ? 0 : Math.PI);
+      const w = (personal - d) / personal;
+      px += Math.sin(ang) * w;
+      pz += Math.cos(ang) * w;
+    });
+    const m = Math.hypot(px, pz);
+    if (m < 1e-6) return;
+    const step = Math.min(0.25 * dt, 0.25 * m * dt * 4);
+    const nx = a.x + (px / m) * step;
+    const nz = a.z + (pz / m) * step;
+    const depth = this.valley.waterDepth(a.x, a.z, this.env.stage);
+    if (this.passable(sp, nx, nz, depth) && this.terrainCost(sp, a, nx, nz, this.valley.heightFast(a.x, a.z), step + 1e-3) < 0.5) {
+      a.x = nx;
+      a.z = nz;
     }
   }
 

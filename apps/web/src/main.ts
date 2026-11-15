@@ -12,6 +12,8 @@ import { FpsTarget } from './render/qualityGovernor';
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 const params = new URLSearchParams(location.search);
 const profiling = params.has('profile');
+/** ?scenario=documentary: fixed seed, time and camera for repeatable reviews (src/scenario/documentary.ts). */
+const documentary = params.get('scenario') === 'documentary';
 // the WebGL object counter must wrap the context before the first one is created
 let glCounts: (() => import('./profile/glCounter').GlCounts) | null = null;
 if (profiling) glCounts = (await import('./profile/glCounter')).installGlCounter();
@@ -94,7 +96,18 @@ function start(seed: number, save?: SaveData): void {
         gfx = { initial, ceiling, auto: true, fps: st.fps ?? assessed.fps, basis: assessed.reasons.join('; '), gpu: gpu.renderer };
       }
       const sim = await world.load(seed, save?.sim);
+      let scene: import('./scenario/documentary').DocumentaryStart | null = null;
+      if (documentary && !save && seed === (await import('./scenario/documentary')).DOCUMENTARY.seed) {
+        const d = await import('./scenario/documentary');
+        $('loadText').textContent = 'Letting the afternoon pass…';
+        d.advanceToScenario(sim);
+        scene = d.documentaryPose(sim);
+      }
       game = new Game(canvas, sim, world.id, gfx, input, audio, { fatal, restart: start }, save);
+      if (scene) {
+        game.setCameraPose(scene.pose);
+        (window as unknown as { __scenario: unknown }).__scenario = scene;
+      }
       game.curiosity.reducedMotion = st.reducedMotion ?? window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       $<HTMLInputElement>('mMotion').checked = game.curiosity.reducedMotion;
     } catch (e) {
@@ -134,6 +147,13 @@ function start(seed: number, save?: SaveData): void {
     };
     poll();
   }, 30);
+}
+
+if (documentary) {
+  void import('./scenario/documentary').then((d) => {
+    $<HTMLInputElement>('seed').value = String(d.DOCUMENTARY.seed);
+    $('startNote').textContent = `Documentary scenario: seed ${d.DOCUMENTARY.seed}, day 34 at ${Math.floor(d.DOCUMENTARY.hour)}:${String(Math.round((d.DOCUMENTARY.hour % 1) * 60)).padStart(2, '0')}, camera on the largest chital herd. Nothing is scripted after that.`;
+  });
 }
 
 const st = readSettings();

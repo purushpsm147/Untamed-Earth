@@ -19,11 +19,14 @@ npm run dev        # http://localhost:5173
 npm run build      # typecheck + production build into apps/web/dist
 npm run preview    # serve the build on http://localhost:4173
 npm test           # unit + 100-day headless simulation tests (about 100 s)
-npm run test:e2e   # Playwright smoke, reliability and gameplay suites (needs a prior build; ~12 min)
+npm run test:e2e   # Playwright smoke, reliability, gameplay and documentary suites (needs a prior build; ~12 min)
 npm run test:smoke # just the smoke tests
 npm run sim -- 150 7   # headless population report: 150 days, seed 7
 npm run bench      # simulation throughput
 # open /?profile=1 on any device for a ~5 min self-running performance report (docs/PERFORMANCE.md)
+# open /?scenario=documentary for a fixed, repeatable review start (docs/DOCUMENTARY.md)
+npm run movement   # movement-quality report: snaps, jolts, cliffs, wading, pinned animals, herd spread
+npm run documentary # browser walk-through of the documentary scenario with video
 ```
 
 A modern desktop browser with WebGL2 is required. If graphics or storage cannot be initialised, the game says why instead of failing silently.

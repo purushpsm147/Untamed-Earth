@@ -9,8 +9,8 @@ performance claims; see PERFORMANCE.md for the profiling procedure to run on rea
 | Check | Where | Result |
 |---|---|---|
 | Typecheck, build | local | Pass. JS 710 kB (194 kB gzip) + 11 kB worker + lazily loaded profiler (4 kB) |
-| Unit + headless simulation (13 files) | local | **78/78 pass** (69 baseline + 3 observation-contract + 6 navigation/herd) |
-| Browser suites (smoke, reliability, gameplay; 18 tests) | local | Full run with the new steering: 17/18; the wildlife run-speed check averaged in the new acceleration phase (fixed: measure after the speed plateaus, threshold unchanged); then 3/3 with `--repeat-each 3` |
+| Unit + headless simulation (14 files) | local | **80/80 pass** (69 baseline + 3 observation-contract + 7 navigation/herd + 1 documentary scenario) |
+| Browser suites (smoke, reliability, gameplay, documentary; 19 tests) | local | Final full run: 18/19. Chunk traversal sampled geometry while terrain was still streaming (76, 81, 75, 87: no growth trend, but last − first 11 > 10); now samples once streaming is idle, threshold unchanged, 3/3 repeats. Earlier run: wildlife run-speed averaged in the new acceleration phase; now measured after the speed plateaus, threshold unchanged, 3/3 repeats |
 | GitHub Actions | CI | **Run 78 on `e1303f9`: success**; run 70 on `9b64860` (after merging PR #10): success. Earlier failures diagnosed and fixed below |
 
 ## CI record
@@ -41,11 +41,13 @@ performance claims; see PERFORMANCE.md for the profiling procedure to run on rea
 - Scatter instance buffers: no truncation, growth, shrink with hysteresis, no reallocation on small changes.
 - Input: a key tapped between two frames counts once.
 - Observation contracts: the simulation hash is identical with animation/audio observers attached; audio events equal the raw event stream.
-- Navigation (`navigation.test.ts`): a deer detours round a 19 m ruin to its far side without entering it (path < 2.2× straight line); no ground animal turns faster or accelerates harder than its species limits over a day; cliffs refused and jackals out of deep water (< 3% of time); an unreachable goal is abandoned within 60 s; save/reload mid-movement is bit-identical and older saves load; a jackal beside a herd triggers alarms, at least half the herd flees, and the herd regroups within ten minutes.
+- Navigation (`navigation.test.ts`): a deer detours round a 19 m ruin to its far side without entering it (path < 2.2× straight line); no ground animal turns faster or accelerates harder than its species limits over a day; cliffs refused and jackals out of deep water (< 3% of time); an unreachable goal is abandoned within 60 s; save/reload mid-movement is bit-identical and older saves load; a jackal beside a herd triggers alarms, at least half the herd flees, and the herd regroups within ten minutes; herd mates stand inside each other in < 2% of samples (15.4% before).
+- Documentary scenario: identical state, conditions and camera on every run, equal to stepping a fresh world by hand.
 
 **Browser** (`tests/e2e/`)
 - Smoke: boot, render, time acceleration (exactly 1 game-minute per tick at 100×), mode switches, save and reload; resource disposal on restart; Auto overrides a saved manual setting.
 - Gameplay: camera in every direction and all four areas; deer walk/run speeds, grazing that removes forage, drinking only at water, rest, perceived predator and escape, release with identity intact; click-select, follow, Social Lens matches simulation state; experiment levers, pause, exact reset; save–close–reopen restores the same state hash; runtime quality changes leave the ecosystem untouched; repeated chunk traversal; every panel by mouse and keyboard; Curiosity Mode (subjects, hold, skip, pause, captions, instant hand-back, Become); 80 seeded random actions with invariants after each.
+- Documentary walk-through (`documentary.spec.ts`, records video): fixed start with deer in view, Curiosity, interruption, inspector shows the simulation record, save–close–reopen restores the same hash and the same deer.
 - Reliability: live WebGL objects identical after 4 restarts; terrain converges after violent travel with stale results discarded; world loads on the main thread if the Worker dies; Auto detects the software renderer and lowers resolution under real overload while manual settings are respected and persisted; governor decisions drive real renderer settings up to the ceiling, and the simulation hash at tick 300 matches a fixed-quality control.
 
 ## Measurements (software renderer)
@@ -60,9 +62,9 @@ performance claims; see PERFORMANCE.md for the profiling procedure to run on rea
 | Dawn/dusk mean luma (seed 1, fixed pose, clear, frozen time, Medium) | 05:24 0.203 → 0.258; 18:36 0.192 → 0.248; 06:24 0.379 → 0.360; noon 0.599 → 0.562; night 0.063 → 0.066 |
 | Curiosity framing | crow 10 m → 3.5 m, perched myna 3.8 m, chital 9 m |
 | Auto recovery after removing load | **Not verifiable here** (no headroom on a software rasteriser); verified on real hardware, see PERFORMANCE.md |
-| Movement quality, 1 game day, seeds 1/4/9 (`npm run movement`), before → after Living Valley V1 | heading snaps per 1000 moving ticks 0–2.6 → 0–0.01; chital speed jolts 1.1–2.0 → 0.3–0.5; hare jolts 9.6–35.8 → 0.3; jackal time in deep water 0.7/10.4/7.4% → 0.02/0/0%; chital distance to herd centre 25/52/39 m → 16/19/17 m; pinned 20 s windows 1/2/0 → 1/5/1 |
+| Movement quality, 1 game day, seeds 1/4/9 (`npm run movement`), before → after Living Valley V1 | heading snaps per 1000 moving ticks 0–2.6 → 0–0.01; chital speed jolts 1.1–2.0 → 0.3–0.5; hare jolts 9.6–35.8 → 0.3; jackal time in deep water 0.7/10.4/7.4% → 0.02/0/0%; chital distance to herd centre 25/52/39 m → 16/19/17 m; pinned 20 s windows 1/2/0 → 1/6/2; with personal spacing chital distance to herd centre is 20/21/18 m |
 
-Evidence images: `docs/evidence/dawn-dusk-before-after.jpg`, `docs/evidence/curiosity-framing-before-after.jpg`;
+Evidence images: `docs/evidence/documentary-scenario-swiftshader.jpg`, `docs/evidence/dawn-dusk-before-after.jpg`, `docs/evidence/curiosity-framing-before-after.jpg`;
 profile report: `docs/evidence/profile-swiftshader-2026-11-15.json`.
 
 ## Defects found and fixed (integration and follow-up sessions)
@@ -90,5 +92,5 @@ gamepad on devices; long (30 min+) browser soak; memory budgets; visual quality 
 - At the 3.5 m safety minimum a myna is still only ~6% of frame height.
 - Midday meadow grass still reads pale.
 - Animals steer locally with wall-following (no path-finding): occasionally one gives up on a destination behind a long obstacle. The camera passes through trees.
-- Herds have no leader or individual spacing; there is no lying/rest pose in the renderer yet (Gemini PR #12 feedback).
+- Herds have no leader; the personal-space shuffle slides the body without turning it; there is no lying/rest pose in the renderer yet (Gemini PR #12 feedback).
 - Jackal/hare dynamics are seed-sensitive (see SIMULATION.md).

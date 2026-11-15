@@ -1,4 +1,4 @@
-# Continuation handoff — 2026-11-15 (integration session, Claude)
+# Continuation handoff — 2026-11-15 (latest: Living Valley V1 session, Claude)
 
 ## Branch and state
 Integration branch `ccr-4783fee0-8wvc41`. Start of session: local HEAD `14e5732` plus uncommitted QA/Curiosity work;
@@ -34,14 +34,29 @@ See `docs/QA.md` for commands and results. Key browser measurements:
 
 PR #8 was closed with an explanatory comment (its code is in `e6310ce`); #6 shows as merged; #7 stays open as an experiment.
 
+## Living Valley V1 session (navigation, herds, contracts, documentary scenario)
+| Commit | Change | Evidence |
+|---|---|---|
+| `13e9e08`, `9b64860`, `755aa2f` | PR #10 merged (poll for movement); frame waits and commanded-speed comparison in camera tests | CI run 70 success; QA.md CI record |
+| `eb92959` | First real-hardware profiles (HP Victus 16, Vega 8 + RTX 3060): presets at the 144 Hz cap; Auto downgrade **and recovery verified** | `docs/PERFORMANCE.md`, `docs/evidence/profile-hp-victus16-*.json` |
+| `e1303f9` | Read-only observation contracts for Gemini (motion/animation, audio events, ambient) | `docs/INTEGRATION_CONTRACTS.md`, CI run 78 success |
+| `364d942` | Navigation: acceleration, turning limits, look-ahead steering, wall following, give-up; herds: many eyes, coordinated flight, regroup | `npm run movement`, `tests/unit/navigation.test.ts` |
+| this session's last commit | Personal space in herds; `/?scenario=documentary` with browser walk-through and video | `docs/DOCUMENTARY.md`, `docs/evidence/documentary-scenario-swiftshader.jpg` |
+
+Gemini PRs #11 (soundscape) and #12 (riverbank/chital) were reviewed with specific feedback and **not merged**; both
+should move to the contracts in `observe.ts` (events via `onAudioEvents`, pose from `behavior`/`gait`).
+
 ## Known defects and unsupported claims
 - **No physical GPU or phone has been profiled** (none attached to the session). Run `/?profile=1` on real hardware.
-- Auto quality *recovery* is still unverified on real hardware; on SwiftShader there is never headroom.
+- Auto quality recovery is verified on one laptop (two GPUs); the governor still downgrades under CPU-only load it cannot fix.
+- No phone profiled. Ultra, full-screen 1080p and true GPU time not measured.
 - At the 3.5 m safety minimum a myna is ~6% of frame height; midday grass reads pale.
 - Audio never listened to; touch and gamepad never used on a device; no Firefox/WebKit runs.
 - Social Lens history is session-only.
 
 ## Next engineering task
-Open `/?profile=1` on a real desktop GPU (and a midrange phone if available) and commit the downloaded JSON under
-`docs/evidence/`. From it: per-preset p50/p95 on hardware, whether Auto recovers after the artificial load, and heap
-across restarts. Then decide preset budgets (`apps/web/src/render/quality.ts`) from those numbers.
+1. Governor: detect a downgrade that did not reduce frame time (CPU-bound) and undo it; unit test with a synthetic
+   CPU-bound frame-time trace; re-run `/?profile=1` on the Victus to confirm the recovery phase no longer drops to Low.
+2. Integrate one Gemini component through the contracts (lying pose from `behavior: 'rest'`), measured with the
+   documentary scenario screenshots and the restart WebGL-object test.
+3. Profile a midrange phone with `/?profile=1`.

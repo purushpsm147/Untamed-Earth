@@ -958,6 +958,10 @@ export class Game {
     const p = this.engine.animals.pos.get(a.id);
     return { ...a, ground: v.height(a.x, a.z), rendered: p ? p.y : null, water: this.sim.waterNear(a), forage: this.sim.env.vegFrac(this.sim.env.cellIndex(a.x, a.z)), blocked: v.blocked(a.x, a.z, 0) };
   }
+  /** Place the free camera (scenario start). Observer mode; nothing in the simulation changes. */
+  setCameraPose(p: { x: number; y: number; z: number; yaw: number; pitch: number }): void {
+    Object.assign(this.cam, p);
+  }
   debugCamera(): { x: number; y: number; z: number; yaw: number; pitch: number; ground: number; speed: number } {
     return { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch, ground: this.sim.valley.height(this.cam.x, this.cam.z), speed: this.camSpeed };
   }

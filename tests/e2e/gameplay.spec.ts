@@ -391,7 +391,9 @@ test.describe('gameplay scenarios', () => {
     const counts: number[] = [];
     for (let i = 0; i < 4; i++) {
       await g(page, (G) => G.debugPath([[200, 200], [1250, 300], [1250, 1250], [200, 1250], [200, 200]], 420, 15));
-      await page.waitForTimeout(2500);
+      // sample once streaming is idle, so counts reflect settled terrain rather than chunks still in flight
+      await expect.poll(() => g(page, (G) => { const t = G.debugTerrain(); return t.pending + t.inFlight + t.queued + t.mismatched; }), { timeout: 60_000 }).toBe(0);
+      await page.waitForTimeout(500);
       const s = await g(page, (G) => G.debugGfx());
       counts.push(s.geometries);
       expect(s.chunks).toBeGreaterThan(8);

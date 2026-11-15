@@ -19,5 +19,7 @@ export default defineConfig({
     { name: 'smoke', testMatch: 'tests/e2e/smoke.spec.ts' },
     { name: 'gameplay', testMatch: 'tests/e2e/gameplay.spec.ts' },
     { name: 'reliability', testMatch: 'tests/e2e/reliability.spec.ts' },
+    // unedited capture of the documentary walk-through (test-artifacts/playwright/.../video.webm)
+    { name: 'documentary', testMatch: 'tests/e2e/documentary.spec.ts', use: { video: 'on' } },
   ],
 });

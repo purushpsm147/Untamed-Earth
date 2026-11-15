@@ -45,7 +45,8 @@ seekers forget the unreachable site, others go idle).
 number of herd mates nearby. When an alarm sends them running, each blends its own escape direction with the herd's
 centre (unless the centre lies toward the threat), so the herd tends to flee together. After a flight, and whenever an
 animal has drifted more than 30 m from its herd, it *regroups*, trotting back to the herd's near side; a rejoined animal
-resumes ordinary behaviour.
+resumes ordinary behaviour. Herd animals that are standing or ambling keep about one body length apart, shuffling at
+up to 0.25 m/s (chital standing within 0.5 m of a herd mate: 15.4% of samples before, 0.2% after; seed 1, one day).
 
 **Food web**: grazers remove forage from their cell (with a functional response, so sparse forage feeds slowly); omnivores also draw on invertebrate and small-fauna pools; jackals stalk, chase and kill hares, fawns, weak deer and piglets, limited by sprint stamina and by adults defending young; kills and other deaths leave carcasses that jackals, boar and crows eat and that otherwise rot into detritus.
 
@@ -75,5 +76,5 @@ One seeded generator drives all stochastic choices, in a fixed iteration order. 
 - Steering is local with wall-following, not path-finding: an animal can still give up on a destination behind a long
   river bend or inside a courtyard of ruins, and choose another. `npm run movement` reports pinned animals (≈1–5 twenty-second
   windows per seed-day across ~200 animals).
-- Herd cohesion uses the group centre only: there is no leader, no spacing between individuals, and no lying-down group
-  vigilance rota.
+- Herd cohesion uses the group centre only: there is no leader and no lying-down vigilance rota. The personal-space
+  shuffle moves the body without turning it (the renderer shows a short sideways slide).
