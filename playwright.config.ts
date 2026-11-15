@@ -20,5 +20,6 @@ export default defineConfig({
     { name: 'gameplay', testMatch: 'tests/e2e/gameplay.spec.ts' },
     { name: 'reliability', testMatch: 'tests/e2e/reliability.spec.ts' },
     { name: 'naturalism', testMatch: 'tests/e2e/naturalism-ab.spec.ts' },
+    { name: 'naturalism-v3', testMatch: 'tests/e2e/slice1-naturalism-ab.spec.ts' },
   ],
 });

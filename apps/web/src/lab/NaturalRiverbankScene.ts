@@ -35,6 +35,8 @@
  */
 
 import * as THREE from 'three';
+import { Slice1NaturalismController } from '../experiments/naturalism/Slice1NaturalismMount';
+import type { ReadonlyAnimalAnimState } from '../experiments/naturalism/NaturalRiverbankLab';
 import { Rng, clamp01, hash3f } from '@untamed/core';
 import { B, SPECIES, Simulation, maturityDays } from '@untamed/ecology';
 import { CHUNK_SIZE, Valley, buildChunkMesh } from '@untamed/worlds';
@@ -743,6 +745,7 @@ export class NaturalRiverbankApp {
   private readonly doePoseA: THREE.InstancedBufferAttribute;
   private readonly doePoseB: THREE.InstancedBufferAttribute;
   private readonly chitalGroup = new THREE.Group();
+  readonly v3: Slice1NaturalismController;
 
   private readonly riparianKit: { group: THREE.Group; dispose(): void };
   private readonly uWaterY = { value: 3.5 };
@@ -885,6 +888,19 @@ export class NaturalRiverbankApp {
     );
 
     this.arrangeRiverbankHerdShowcase();
+    // The new rig is a strictly visual representation of the same staged deer IDs.
+    // Only this isolated ?slice=1 laboratory uses posed ecological subjects.
+    const poseOf = (p: ChitalPoseName): ReadonlyAnimalAnimState['state'] => p === 'running' ? 'flee' : p === 'walking' ? 'walk' : p === 'grazing' ? 'graze' : p === 'drinking' ? 'drink' : 'idle';
+    this.v3 = new Slice1NaturalismController({
+      scene: this.scene,
+      renderer: this.renderer,
+      sampleTerrainHeight: (x, z) => this.sim.valley.height(x, z),
+      herdStates: this.focalAnimals.map(a => ({
+        id: a.id, x: a.x, z: a.z, heading: a.heading, speed: a.speed,
+        state: poseOf(a.poseLabel), alertLevel: a.fear,
+        hasAntlers: a.isAdult && a.sex === 1, phaseOffset: (a.id * 0.61803398875) % (Math.PI * 2),
+      })),
+    });
     this.resize();
     window.addEventListener('resize', this.onResize);
 
@@ -1146,7 +1162,9 @@ export class NaturalRiverbankApp {
 
     this.water.mesh.material = isNat ? this.naturalWaterMat : this.baselineWaterMat;
     this.riparianKit.group.visible = isNat;
-    this.chitalGroup.visible = isNat;
+    // v3 renders the same staged deer in naturalistic mode; do not double-draw v1 deer.
+    this.chitalGroup.visible = false;
+    this.v3.setMode(mode);
     this.baselineAnimals.group.visible = !isNat;
 
     this.renderFrame(0);
@@ -1267,6 +1285,7 @@ export class NaturalRiverbankApp {
     }
 
     this.weather.update(this.camera.position, env.rain, env.wind, env.windDir, day);
+    this.v3.update(t, this.currentMode, this.currentShot);
     this.renderer.render(this.scene, this.camera);
 
     if (syncFinish) {
@@ -1495,6 +1514,7 @@ export class NaturalRiverbankApp {
     (this.landmarks.material as THREE.Material).dispose();
 
     this.riparianKit.dispose();
+    this.v3.dispose();
 
     this.stagMesh.geometry.dispose();
     this.doeMesh.geometry.dispose();
@@ -1532,6 +1552,12 @@ export function mountNaturalRiverbankSlice(
 ): NaturalRiverbankApp {
   window.__naturalSlice?.dispose();
   const app = new NaturalRiverbankApp(canvas, seed, quality);
+  const q = new URLSearchParams(location.search);
+  const shot = q.get('preset');
+  if (shot === 'riverbank_vista' || shot === 'chital_closeup') app.selectShot(shot);
+  const mode = q.get('mode');
+  if (mode === 'baseline' || mode === 'naturalistic') app.setMode(mode);
+  window.__SLICE1_CONTROLLER__ = app.v3;
   app.mountUI();
   app.startLoop();
   window.__naturalSlice = app;
