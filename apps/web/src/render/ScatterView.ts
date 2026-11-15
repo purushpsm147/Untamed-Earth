@@ -128,5 +128,6 @@ export class ScatterView {
       b.mesh.geometry.dispose();
       (b.mesh.material as THREE.Material).dispose();
     }
+    this.group.clear();
   }
 }

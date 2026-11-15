@@ -166,8 +166,17 @@ export class TerrainView {
   }
 
   dispose(): void {
-    this.worker?.terminate();
+    if (this.worker) {
+      this.worker.onmessage = null;
+      this.worker.onerror = null;
+      this.worker.terminate();
+      this.worker = null;
+    }
+    this.queue.length = 0;
+    this.inFlight = 0;
     for (const c of this.chunks.values()) c.mesh?.geometry.dispose();
+    this.chunks.clear();
+    this.group.clear();
     this.material.dispose();
   }
 }

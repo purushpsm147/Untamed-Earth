@@ -194,4 +194,25 @@ export class AnimalView {
     }
     return best;
   }
+
+  /** The species batches share one material, but each model owns a geometry. */
+  dispose(): void {
+    const materials = new Set<THREE.Material>();
+    for (const batch of Object.values(this.batches)) {
+      batch.mesh.geometry.dispose();
+      const list = Array.isArray(batch.mesh.material) ? batch.mesh.material : [batch.mesh.material];
+      for (const material of list) materials.add(material);
+    }
+    this.carcass.geometry.dispose();
+    this.marker.geometry.dispose();
+    for (const mesh of [this.carcass, this.marker]) {
+      const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const material of list) materials.add(material);
+    }
+    for (const material of materials) material.dispose();
+    this.pos.clear();
+    this.vis.clear();
+    this.group.clear();
+  }
+
 }
