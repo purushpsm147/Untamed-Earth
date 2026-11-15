@@ -35,7 +35,7 @@
  */
 
 import * as THREE from 'three';
-import { Rng, clamp01, hash3f, smoothstep } from '@untamed/core';
+import { Rng, clamp01, hash3f } from '@untamed/core';
 import { B, SPECIES, Simulation, maturityDays } from '@untamed/ecology';
 import { CHUNK_SIZE, Valley, buildChunkMesh } from '@untamed/worlds';
 import { AnimalView } from '../render/AnimalView';
@@ -905,7 +905,6 @@ export class NaturalRiverbankApp {
   private arrangeRiverbankHerdShowcase(): void {
     const v = this.sim.valley;
     const z0 = this.anchorZ;
-    const rx0 = v.riverX(z0);
 
     const chitals = this.sim.animals.filter((a) => a.alive && SPECIES[a.sp]!.id === 'chital');
     const roles: Array<{
