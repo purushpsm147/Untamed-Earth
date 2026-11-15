@@ -6,7 +6,7 @@ test.describe('gameplay scenarios', () => {
     const p = watch(page);
     await enter(page);
     await g(page, (G) => G.debugCam(760, 640, 12, 0, 0));
-    const pos = (): Promise<{ x: number; y: number; z: number; yaw: number; pitch: number; ground: number }> => g(page, (G) => G.debugCamera());
+    const pos = (): Promise<{ x: number; y: number; z: number; yaw: number; pitch: number; ground: number; speed: number }> => g(page, (G) => G.debugCamera());
     const moved = async (keys: string[]): Promise<{ dx: number; dy: number; dz: number }> => {
       await frames(page); // start from a settled frame
       const a = await pos();
@@ -40,8 +40,22 @@ test.describe('gameplay scenarios', () => {
     } finally {
       await page.keyboard.up('KeyQ');
     }
-    const slow = (await moved(['KeyW'])).dz;
-    const fast = (await moved(['ShiftLeft', 'KeyW'])).dz;
+    // Shift is faster: compare the camera's commanded speed while the keys are held, not distance over a fixed
+    // wall-clock hold (which depends on how many frames happen to render; 1 in 5 local runs failed that way)
+    const speedWhile = async (keys: string[]): Promise<number> => {
+      for (const k of keys) await page.keyboard.down(k);
+      try {
+        await expect.poll(async () => (await pos()).speed, { timeout: 20_000 }).toBeGreaterThan(0);
+        await frames(page);
+        return (await pos()).speed;
+      } finally {
+        for (const k of [...keys].reverse()) await page.keyboard.up(k);
+        await frames(page);
+      }
+    };
+    const slow = await speedWhile(['KeyW']);
+    const fast = await speedWhile(['ShiftLeft', 'KeyW']);
+    expect(slow).toBeGreaterThan(1);
     expect(fast).toBeGreaterThan(slow * 2);
     // mouse drag turns the view
     const before = await pos();

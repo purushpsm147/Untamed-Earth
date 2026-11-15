@@ -102,6 +102,7 @@ export class Game {
   private rateT = 0;
   private fps = 60;
   private restToggle = false;
+  private camSpeed = 0;
   private prevNow = 0;
   private lastTick = 0;
   private disposed = false;
@@ -608,6 +609,8 @@ export class Game {
     // free flight
     if (i.zoom) c.fly = clamp(c.fly * (1 - i.zoom * 0.15), 2, 160);
     const sp = c.fly * (i.fast ? 3.5 : 1) * dt;
+    // free-flight speed commanded this frame (m/s), for diagnostics and frame-rate-independent tests
+    this.camSpeed = (Math.hypot(i.moveX, i.moveZ, i.moveY) > 0 ? sp / Math.max(dt, 1e-6) : 0);
     const ox = c.x;
     const oz = c.z;
     c.x += (fx * i.moveZ - Math.cos(c.yaw) * i.moveX) * sp;
@@ -955,8 +958,8 @@ export class Game {
     const p = this.engine.animals.pos.get(a.id);
     return { ...a, ground: v.height(a.x, a.z), rendered: p ? p.y : null, water: this.sim.waterNear(a), forage: this.sim.env.vegFrac(this.sim.env.cellIndex(a.x, a.z)), blocked: v.blocked(a.x, a.z, 0) };
   }
-  debugCamera(): { x: number; y: number; z: number; yaw: number; pitch: number; ground: number } {
-    return { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch, ground: this.sim.valley.height(this.cam.x, this.cam.z) };
+  debugCamera(): { x: number; y: number; z: number; yaw: number; pitch: number; ground: number; speed: number } {
+    return { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch, ground: this.sim.valley.height(this.cam.x, this.cam.z), speed: this.camSpeed };
   }
   /** Step the paused simulation to an exact tick with the standard 1x step and return its state hash. */
   debugStepTo(tick: number): number {

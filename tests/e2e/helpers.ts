@@ -10,7 +10,7 @@ export interface G {
   debugCam(x: number, z: number, above: number, yaw: number, pitch: number): void;
   debugFollow(id: string, dist?: number): boolean;
   debugAnimal(id?: number): any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  debugCamera(): { x: number; y: number; z: number; yaw: number; pitch: number; ground: number };
+  debugCamera(): { x: number; y: number; z: number; yaw: number; pitch: number; ground: number; speed: number };
   debugGfx(): { quality: string; ceiling: string; auto: boolean; resScale: number; frameMs: number; fpsTarget: number; divisor: number; refreshMs: number; calibrating: boolean; gpu: string; basis: string; calls: number; triangles: number; geometries: number; textures: number; chunks: number; heapMB: number | null };
   debugStepTo(tick: number): number;
   engine: any; // eslint-disable-line @typescript-eslint/no-explicit-any
