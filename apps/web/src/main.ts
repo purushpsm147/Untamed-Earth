@@ -37,8 +37,9 @@ function fatal(msg: string): void {
 function start(seed: number, save?: SaveData): void {
   const st = readSettings();
   const choice = $<HTMLSelectElement>('startQuality').value;
-  const quality: QualityName = choice !== 'auto' ? (choice as QualityName) : (st.quality ?? guessQuality());
-  const auto = choice === 'auto' ? (st.auto ?? true) : false;
+  const quality: QualityName = choice !== 'auto' ? (choice as QualityName) : (st.auto === false ? guessQuality() : (st.quality ?? guessQuality()));
+  // Selecting Auto must enable the governor even after previously saving manual mode.
+  const auto = choice === 'auto';
   game?.dispose();
   game = null;
   input.enabled = false;
@@ -81,6 +82,8 @@ function start(seed: number, save?: SaveData): void {
 }
 
 const st = readSettings();
+// Restore an explicit manual preset on the start screen; otherwise Auto is selected.
+$<HTMLSelectElement>('startQuality').value = st.auto === false && st.quality ? st.quality : 'auto';
 audio.setVolume(st.volume ?? 0.7);
 audio.muted = st.muted ?? false;
 $<HTMLInputElement>('mVolume').value = String(st.volume ?? 0.7);
