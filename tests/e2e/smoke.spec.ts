@@ -52,3 +52,46 @@ test('boots, renders, simulates, switches modes, saves', async ({ page }) => {
   await expect(page.locator('#btnContinue')).toBeVisible({ timeout: 10_000 });
   expect(errors, errors.join('\n')).toEqual([]);
 });
+
+
+test('restarting a world disposes the old renderer-owned materials and geometry', async ({ page }) => {
+  await page.goto('/');
+  await page.selectOption('#startQuality', 'low');
+  await page.click('#btnNew');
+  await expect(page.locator('#hud')).toBeVisible({ timeout: 90_000 });
+
+  await page.evaluate(() => {
+    const w = window as unknown as { __untamed: any; __restartProbe?: { old: unknown; hits: number[] } };
+    const engine = w.__untamed.engine;
+    const resources = [
+      engine.sky.mesh.geometry,
+      engine.sky.mesh.material,
+      engine.grass.mesh.geometry,
+      engine.grass.mesh.material,
+      engine.water.mesh.geometry,
+      engine.water.mesh.material,
+      engine.weather.rain.geometry,
+      engine.weather.rain.material,
+      engine.animals.group.children[0].geometry,
+      engine.animals.group.children[0].material,
+    ];
+    const hits = new Array<number>(resources.length).fill(0);
+    for (let i = 0; i < resources.length; i++) {
+      resources[i].addEventListener('dispose', () => { hits[i]!++; });
+    }
+    w.__restartProbe = { old: w.__untamed, hits };
+  });
+
+  await page.click('#btnMenu');
+  await expect(page.locator('#menu')).toBeVisible();
+  page.once('dialog', (dialog) => { void dialog.accept('1986'); });
+  await page.click('#mNew');
+  await page.waitForFunction(() => {
+    const w = window as unknown as { __untamed: unknown; __restartProbe?: { old: unknown } };
+    return Boolean(w.__restartProbe && w.__untamed !== w.__restartProbe.old);
+  });
+  await expect(page.locator('#hud')).toBeVisible({ timeout: 90_000 });
+  const counts = await page.evaluate(() => (window as unknown as { __restartProbe: { hits: number[] } }).__restartProbe.hits);
+  expect(counts).toHaveLength(10);
+  expect(counts.every((n) => n === 1), 'every old GPU resource must be disposed once').toBe(true);
+});
