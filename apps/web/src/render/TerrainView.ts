@@ -28,6 +28,8 @@ export class TerrainView {
   private worker: Worker | null = null;
   private inFlight = 0;
   private nextRequestId = 1;
+  /** Diagnostics: how many worker results were applied, dropped as stale, or dropped because the wanted LOD moved on. */
+  readonly counters = { applied: 0, stale: 0, superseded: 0, workerFailures: 0 };
   private queue: Chunk[] = [];
   viewDist = 800;
   /** Number of chunks currently holding a mesh / expected in range (for the loading bar). */
@@ -75,6 +77,7 @@ export class TerrainView {
       };
       this.worker.onerror = () => {
         // fall back to synchronous generation on the main thread
+        this.counters.workerFailures++;
         this.worker?.terminate();
         this.worker = null;
         this.inFlight = 0;
@@ -97,10 +100,17 @@ export class TerrainView {
   private apply(r: Result): void {
     const key = (r.cx + 16) * 64 + (r.cz + 16);
     const c = this.chunks.get(key);
-    if (!c || c.pendingId !== r.id) return; // stale response or chunk replaced while in flight
+    if (!c || c.pendingId !== r.id) {
+      this.counters.stale++; // stale response or chunk replaced while in flight
+      return;
+    }
     c.pending = 0;
     c.pendingId = 0;
-    if (c.want !== r.res) return; // target LOD changed while the worker was generating
+    if (c.want !== r.res) {
+      this.counters.superseded++; // target LOD changed while the worker was generating
+      return;
+    }
+    this.counters.applied++;
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(r.positions, 3));
     g.setAttribute('normal', new THREE.BufferAttribute(r.normals, 3));
@@ -175,16 +185,20 @@ export class TerrainView {
         this.worker.postMessage({ id: c.pendingId, cx: c.cx, cz: c.cz, res: c.want });
       }
     } else if (this.queue.length > 0) {
-      // main-thread fallback: one chunk per frame keeps the frame time bounded
-      const c = this.queue.pop()!;
-      c.pending = c.want;
-      c.pendingId = this.nextRequestId++;
-      this.apply({ ...buildChunkMesh(this.valley, c.cx, c.cz, c.want), id: c.pendingId, cx: c.cx, cz: c.cz, res: c.want });
+      // main-thread fallback: build nearest-first within a small time budget per frame. Coarse chunks cost a
+      // fraction of a millisecond, so the initial fill still completes quickly; full-detail ones take a few frames.
+      const t0 = performance.now();
+      do {
+        const c = this.queue.pop()!;
+        c.pending = c.want;
+        c.pendingId = this.nextRequestId++;
+        this.apply({ ...buildChunkMesh(this.valley, c.cx, c.cz, c.want), id: c.pendingId, cx: c.cx, cz: c.cz, res: c.want });
+      } while (this.queue.length > 0 && performance.now() - t0 < 6);
     }
   }
 
   /** QA: streaming health. `mismatched` counts in-range chunks whose mesh is missing or not at the wanted LOD. */
-  debugState(): { chunks: number; meshes: number; mismatched: number; pending: number; inFlight: number; queued: number } {
+  debugState(): { chunks: number; meshes: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; applied: number; stale: number; superseded: number; workerFailures: number } {
     let meshes = 0;
     let mismatched = 0;
     let pending = 0;
@@ -193,7 +207,7 @@ export class TerrainView {
       if (c.live && (!c.mesh || c.res !== c.want)) mismatched++;
       if (c.pending) pending++;
     }
-    return { chunks: this.chunks.size, meshes, mismatched, pending, inFlight: this.inFlight, queued: this.queue.length };
+    return { chunks: this.chunks.size, meshes, mismatched, pending, inFlight: this.inFlight, queued: this.queue.length, worker: this.worker !== null, ...this.counters };
   }
 
   dispose(): void {

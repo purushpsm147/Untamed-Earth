@@ -86,6 +86,9 @@ function start(seed: number, save?: SaveData): void {
     (window as unknown as { __untamed: Game }).__untamed = game;
     const g = game;
     const t0 = performance.now();
+    // watchdog: a slow device may legitimately take a long time, so only a stall (no progress) is an error
+    let best = -1;
+    let bestAt = t0;
     const poll = (): void => {
       if (game !== g) return;
       const p = g.loadProgress();
@@ -99,7 +102,11 @@ function start(seed: number, save?: SaveData): void {
         if (new URLSearchParams(location.search).has('qa')) g.setSpeed(0);
         input.enabled = true;
         if (audio.error) toast(audio.error, true);
-      } else if (performance.now() - t0 > 30000) fatal('Terrain generation is taking too long. Try the Low graphics preset.');
+      } else if (p > best) {
+        best = p;
+        bestAt = performance.now();
+        setTimeout(poll, 100);
+      } else if (performance.now() - bestAt > 25000) fatal('Terrain generation has stalled. Reload and try the Low graphics preset.');
       else setTimeout(poll, 100);
     };
     poll();

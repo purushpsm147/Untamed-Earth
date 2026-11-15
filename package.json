@@ -13,7 +13,7 @@
     "preview": "npm run preview -w @untamed/web",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test --project=smoke --project=gameplay",
+    "test:e2e": "playwright test --project=smoke --project=reliability --project=gameplay",
     "test:smoke": "playwright test --project=smoke",
     "bench": "tsx benchmarks/sim-bench.ts",
     "sim": "tsx benchmarks/sim-report.ts"

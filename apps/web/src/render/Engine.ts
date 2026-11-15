@@ -16,6 +16,30 @@ import { WeatherFx } from './WeatherFx';
 export class GraphicsError extends Error {}
 
 /**
+ * One WebGLRenderer per canvas for the lifetime of the page.
+ * Worlds are restarted on the same canvas, i.e. the same GL context. three.js does not delete all of its own
+ * context objects in WebGLRenderer.dispose() (three scratch framebuffers and four placeholder textures were
+ * measured leaking per renderer), so a renderer per world would grow the context without bound. Reusing the
+ * renderer makes a restart release exactly what the world allocated: see tests/e2e/reliability.spec.ts.
+ */
+const renderers = new WeakMap<HTMLCanvasElement, THREE.WebGLRenderer>();
+function acquireRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
+  let r = renderers.get(canvas);
+  if (r) return r;
+  try {
+    r = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  } catch (e) {
+    throw new GraphicsError(`WebGL2 could not be initialised (${e instanceof Error ? e.message : String(e)}).`);
+  }
+  if (!r.capabilities.isWebGL2) {
+    r.dispose();
+    throw new GraphicsError('This browser does not provide WebGL2.');
+  }
+  renderers.set(canvas, r);
+  return r;
+}
+
+/**
  * Owns the WebGL renderer and every view. Views read simulation state; nothing here writes to it.
  * The only renderer-specific types that escape this module are the camera and picking results,
  * which keeps a future WebGPU backend a contained change.
@@ -41,12 +65,7 @@ export class Engine {
   private nextFlash = 5;
 
   constructor(readonly canvas: HTMLCanvasElement, private readonly sim: Simulation, quality: QualityName) {
-    try {
-      this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    } catch (e) {
-      throw new GraphicsError(`WebGL2 could not be initialised (${e instanceof Error ? e.message : String(e)}).`);
-    }
-    if (!this.renderer.capabilities.isWebGL2) throw new GraphicsError('This browser does not provide WebGL2.');
+    this.renderer = acquireRenderer(canvas);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 0.95;
     this.renderer.shadowMap.enabled = true;
@@ -204,7 +223,9 @@ export class Engine {
     const materials = Array.isArray(this.landmarks.material) ? this.landmarks.material : [this.landmarks.material];
     for (const material of materials) material.dispose();
     this.scene.clear();
+    // the renderer itself is shared across worlds (see acquireRenderer); drop only what refers to this scene
     this.renderer.renderLists.dispose();
-    this.renderer.dispose();
+    this.renderer.setRenderTarget(null);
+    this.renderer.info.reset();
   }
 }
