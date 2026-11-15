@@ -218,7 +218,7 @@ export class Game {
   private storeSettings(): void {
     try {
       localStorage.setItem('untamed.settings', JSON.stringify({
-        quality: this.engine.quality.name, auto: this.engine.auto, volume: Number($<HTMLInputElement>('mVolume').value), muted: this.audio.muted,
+        quality: this.engine.qualityCeiling, auto: this.engine.auto, volume: Number($<HTMLInputElement>('mVolume').value), muted: this.audio.muted,
       }));
     } catch {
       /* settings simply won't persist */
@@ -226,7 +226,7 @@ export class Game {
   }
 
   private refreshMenu(): void {
-    $<HTMLSelectElement>('mQuality').value = this.engine.quality.name;
+    $<HTMLSelectElement>('mQuality').value = this.engine.auto ? this.engine.qualityCeiling : this.engine.quality.name;
     $<HTMLInputElement>('mAuto').checked = this.engine.auto;
     $<HTMLInputElement>('mMute').checked = this.audio.muted;
     $('mGfxInfo').textContent = `Render scale ${Math.round(this.engine.resScale * 100)}% · view ${this.engine.quality.viewDist} m`;

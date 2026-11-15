@@ -4,7 +4,8 @@ import { Simulation } from '@untamed/ecology';
 import { AnimalView } from './AnimalView';
 import { GrassView } from './GrassView';
 import { buildLandmarks } from './landmarks';
-import { QUALITY, QUALITY_ORDER, QualityName, QualityPreset } from './quality';
+import { QUALITY, QualityName, QualityPreset } from './quality';
+import { QualityGovernor } from './qualityGovernor';
 import { ScatterView } from './ScatterView';
 import { shared } from './shared';
 import { Sky } from './Sky';
@@ -31,14 +32,13 @@ export class Engine {
   readonly animals: AnimalView;
   readonly weather: WeatherFx;
   quality: QualityPreset;
-  auto = true;
-  resScale = 1;
-  frameMs = 16.7;
+  private readonly governor: QualityGovernor;
+  get auto(): boolean { return this.governor.auto; }
+  set auto(value: boolean) { this.governor.setAuto(value); }
+  get resScale(): number { return this.governor.scale; }
+  get qualityCeiling(): QualityName { return this.governor.ceiling; }
+  get frameMs(): number { return this.governor.frameMs; }
   onQualityChange: (() => void) | null = null;
-  private slowT = 0;
-  private fastT = 0;
-  private upWait = 8;
-  private sinceRaise = 99;
   private readonly fog = new THREE.FogExp2(0x9ab0c0, 0.002);
   private thunderCb: (() => void) | null = null;
   private nextFlash = 5;
@@ -55,6 +55,7 @@ export class Engine {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.scene.fog = this.fog;
+    this.governor = new QualityGovernor(quality);
     this.quality = QUALITY[quality];
 
     const valley = sim.valley;
@@ -74,9 +75,8 @@ export class Engine {
   }
 
   setQuality(name: QualityName, auto = this.auto): void {
+    this.governor.setQuality(name, auto);
     this.quality = QUALITY[name];
-    this.auto = auto;
-    this.resScale = 1;
     this.applyQuality();
     this.onQualityChange?.();
   }
@@ -130,44 +130,19 @@ export class Engine {
   }
 
   /**
-   * Resolution-first adaptation with smoothing and hysteresis: frame time is an exponential
-   * average, changes need sustained evidence, and failed upgrades back off exponentially.
+   * Renderer-independent quality decisions can be tested without a WebGL context.
+   * The governor retains the initial/user quality ceiling across automatic downgrades.
    */
   private adapt(dt: number): void {
-    if (dt > 0.25 || document.hidden) return;
-    this.frameMs += (dt * 1000 - this.frameMs) * 0.06;
-    if (!this.auto) return;
-    const budget = this.quality.name === 'low' ? 36 : 21;
-    this.sinceRaise += dt;
-    if (this.frameMs > budget) {
-      this.slowT += dt;
-      this.fastT = 0;
+    const changed = this.governor.sample(dt, document.hidden);
+    if (changed === 'none') return;
+    if (changed === 'preset') {
+      this.quality = QUALITY[this.governor.quality];
+      this.applyQuality();
     } else {
-      this.slowT = Math.max(0, this.slowT - dt * 0.5);
-      if (this.frameMs < 17.8) this.fastT += dt;
-    }
-    if (this.slowT > 1.5) {
-      this.slowT = 0;
-      if (this.sinceRaise < 5) this.upWait = Math.min(180, this.upWait * 2);
-      if (this.resScale > 0.55) {
-        this.resScale = Math.max(0.5, this.resScale - 0.1);
-        this.applyResolution();
-      } else {
-        const i = QUALITY_ORDER.indexOf(this.quality.name);
-        if (i > 0) {
-          this.quality = QUALITY[QUALITY_ORDER[i - 1]!];
-          this.resScale = 0.8;
-          this.applyQuality();
-        }
-      }
-      this.onQualityChange?.();
-    } else if (this.fastT > this.upWait && this.resScale < 1) {
-      this.fastT = 0;
-      this.sinceRaise = 0;
-      this.resScale = Math.min(1, this.resScale + 0.1);
       this.applyResolution();
-      this.onQualityChange?.();
     }
+    this.onQualityChange?.();
   }
 
   frame(dtReal: number, alpha: number, time: number, selected: number, simRate: number): void {
