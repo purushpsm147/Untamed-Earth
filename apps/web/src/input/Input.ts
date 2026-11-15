@@ -25,6 +25,8 @@ export class Input {
   /** Set when the user clicks/taps without dragging: normalised device coordinates. */
   click: { x: number; y: number } | null = null;
   private readonly keys = new Set<string>();
+  /** Keys pressed since the last poll: a tap that starts and ends between two frames still counts once. */
+  private readonly tapped = new Set<string>();
   private readonly fired = new Set<Action>();
   private readonly held = new Set<Action>();
   private drag: { id: number; x: number; y: number; moved: number } | null = null;
@@ -54,6 +56,7 @@ export class Input {
       }
       if (e.code === 'F3' || e.code === 'Space') e.preventDefault();
       this.keys.add(e.code);
+      this.tapped.add(e.code);
     });
     window.addEventListener('keyup', (e) => {
       this.keys.delete(e.code);
@@ -62,6 +65,7 @@ export class Input {
     });
     window.addEventListener('blur', () => {
       this.keys.clear();
+      this.tapped.clear();
       this.held.clear();
     });
     el.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -168,7 +172,9 @@ export class Input {
 
   /** Sample devices into axes. Call once per frame before reading. */
   poll(dt: number): void {
-    const k = this.keys;
+    // held keys plus anything tapped since the last frame (slow devices can render less often than a quick tap lasts)
+    const k = this.tapped.size ? new Set([...this.keys, ...this.tapped]) : this.keys;
+    this.tapped.clear();
     let mx = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
     let mz = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
     let my = (k.has("Space") ? 1 : 0) - (k.has("KeyQ") || k.has("ControlLeft") ? 1 : 0) + this.touchY;

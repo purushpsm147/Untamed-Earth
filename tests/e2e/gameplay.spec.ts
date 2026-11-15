@@ -456,8 +456,9 @@ test.describe('gameplay scenarios', () => {
     await page.keyboard.down('KeyW');
     await page.waitForTimeout(300);
     await page.keyboard.up('KeyW');
+    // input is handled on the next rendered frame, which can be several hundred ms away on a software renderer
+    await expect.poll(() => g(page, (G) => G.mode)).toBe('observer');
     const manual = await g(page, (G) => ({ mode: G.mode, c: G.debugCamera() }));
-    expect(manual.mode).toBe('observer');
     expect(Math.hypot(manual.c.x - auto.x, manual.c.z - auto.z)).toBeLessThan(15);
     void cam0;
     // Observe -> Follow -> Become from the autopilot's current subject
