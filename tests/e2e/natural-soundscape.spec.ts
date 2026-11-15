@@ -15,7 +15,12 @@ test('soundscape requires a gesture, attenuates with distance, mutes, and dispos
   const nearGain = (await telemetry())?.riverGain ?? 0;
   expect(nearGain).toBeGreaterThan(0);
 
-  await page.locator('#snd-dist').fill('140');
+  // Playwright fill() is not supported for range inputs; fire the browser's input event.
+  await page.locator('#snd-dist').evaluate((node) => {
+    const slider = node as HTMLInputElement;
+    slider.value = '140';
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   await expect.poll(async () => (await telemetry())?.riverGain ?? 1, { timeout: 5_000 })
     .toBeLessThan(nearGain);
   await page.locator('#snd-mute').click();
