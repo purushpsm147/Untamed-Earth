@@ -7,6 +7,14 @@ import { Input } from './input/Input';
 import { GraphicsError } from './render/Engine';
 import { QualityName, guessQuality } from './render/quality';
 
+// Keep the visual benchmark isolated: ordinary players never download the lab chunk.
+if (new URLSearchParams(window.location.search).get('lab') === '1') {
+  void import('./lab/VisualLabScene').then(({ mountVisualLabApp }) => {
+    mountVisualLabApp(document.getElementById('view') as HTMLCanvasElement);
+  }).catch((error: unknown) => {
+    console.error('Visual Lab could not be started', error);
+  });
+} else {
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 const canvas = $<HTMLCanvasElement>('view');
 const input = new Input(canvas, $('stick'));
@@ -114,3 +122,4 @@ store.get<unknown>(SAVE_SLOT).then((raw) => {
 window.addEventListener('error', (e) => {
   if (game && !$('hud').classList.contains('hidden')) console.error(e.error);
 });
+}
