@@ -130,4 +130,12 @@ export class Sky {
     const wet = clamp01(env.rain / 10);
     return (1.1 / viewDist) * (1 + wet * 2.2 + dawn * 1.3 + env.cloud * 0.3);
   }
+
+  /** Release this view's GPU objects when a world is replaced. */
+  dispose(): void {
+    this.mesh.geometry.dispose();
+    this.mat.dispose();
+    this.sun.shadow.map?.dispose();
+    this.sun.shadow.map = null;
+  }
 }

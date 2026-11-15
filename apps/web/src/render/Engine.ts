@@ -36,6 +36,8 @@ export class Engine {
   onQualityChange: (() => void) | null = null;
   private readonly fog = new THREE.FogExp2(0x9ab0c0, 0.002);
   private thunderCb: (() => void) | null = null;
+  private readonly landmarks: THREE.Mesh;
+  private disposed = false;
   private nextFlash = 5;
 
   constructor(readonly canvas: HTMLCanvasElement, private readonly sim: Simulation, quality: QualityName) {
@@ -63,6 +65,7 @@ export class Engine {
     const lm = new THREE.Mesh(buildLandmarks(valley), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0.05, flatShading: true }));
     lm.castShadow = true;
     lm.receiveShadow = true;
+    this.landmarks = lm;
     this.scene.add(this.sky.mesh, this.sky.sun, this.sky.sun.target, this.sky.hemi, this.terrain.group, this.scatter.group, this.grass.mesh,
       this.water.mesh, this.water.pools, this.animals.group, this.weather.rain, lm);
     this.applyQuality();
@@ -184,9 +187,24 @@ export class Engine {
     return { calls: i.render.calls, triangles: i.render.triangles, geometries: i.memory.geometries, textures: i.memory.textures };
   }
 
+  /** A Game can be restarted repeatedly on the same canvas; every owner must release its resources. */
   dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.thunderCb = null;
+    this.onQualityChange = null;
     this.terrain.dispose();
     this.scatter.dispose();
+    this.grass.dispose();
+    this.water.dispose();
+    this.animals.dispose();
+    this.weather.dispose();
+    this.sky.dispose();
+    this.landmarks.geometry.dispose();
+    const materials = Array.isArray(this.landmarks.material) ? this.landmarks.material : [this.landmarks.material];
+    for (const material of materials) material.dispose();
+    this.scene.clear();
+    this.renderer.renderLists.dispose();
     this.renderer.dispose();
   }
 }

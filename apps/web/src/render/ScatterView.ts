@@ -127,6 +127,8 @@ export class ScatterView {
       if (!b) continue;
       b.mesh.geometry.dispose();
       (b.mesh.material as THREE.Material).dispose();
+      b.mesh.dispose(); // per-instance matrix and colour buffers
     }
+    this.group.clear();
   }
 }

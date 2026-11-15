@@ -129,4 +129,10 @@ export class GrassView {
     this.mesh.count = k;
     this.mesh.instanceMatrix.needsUpdate = true;
   }
+
+  dispose(): void {
+    this.mesh.geometry.dispose();
+    (this.mesh.material as THREE.Material).dispose();
+    this.mesh.dispose(); // per-instance matrix buffer
+  }
 }

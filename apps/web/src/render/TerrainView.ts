@@ -165,9 +165,31 @@ export class TerrainView {
     }
   }
 
+  /** QA: streaming health. `mismatched` counts in-range chunks whose mesh is missing or not at the wanted LOD. */
+  debugState(): { chunks: number; meshes: number; mismatched: number; pending: number; inFlight: number; queued: number } {
+    let meshes = 0;
+    let mismatched = 0;
+    let pending = 0;
+    for (const c of this.chunks.values()) {
+      if (c.mesh) meshes++;
+      if (!c.mesh || c.res !== c.want) mismatched++;
+      if (c.pending) pending++;
+    }
+    return { chunks: this.chunks.size, meshes, mismatched, pending, inFlight: this.inFlight, queued: this.queue.length };
+  }
+
   dispose(): void {
-    this.worker?.terminate();
+    if (this.worker) {
+      this.worker.onmessage = null;
+      this.worker.onerror = null;
+      this.worker.terminate();
+      this.worker = null;
+    }
+    this.queue.length = 0;
+    this.inFlight = 0;
     for (const c of this.chunks.values()) c.mesh?.geometry.dispose();
+    this.chunks.clear();
+    this.group.clear();
     this.material.dispose();
   }
 }

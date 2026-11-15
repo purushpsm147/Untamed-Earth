@@ -226,4 +226,24 @@ export class AnimalView {
     }
     return best;
   }
+
+  /**
+   * The species batches share one material, but each model owns a geometry.
+   * Instance matrices and colours live outside the geometry: only InstancedMesh.dispose() releases them,
+   * and restarts reuse the same GL context, so skipping it leaks GPU buffers on every new world.
+   */
+  dispose(): void {
+    const materials = new Set<THREE.Material>();
+    const meshes: THREE.Mesh[] = [...Object.values(this.batches).map((b) => b.mesh), this.carcass, this.groupRings, this.marker];
+    for (const mesh of meshes) {
+      mesh.geometry.dispose();
+      const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const material of list) materials.add(material);
+      if (mesh instanceof THREE.InstancedMesh) mesh.dispose();
+    }
+    for (const material of materials) material.dispose();
+    this.pos.clear();
+    this.vis.clear();
+    this.group.clear();
+  }
 }

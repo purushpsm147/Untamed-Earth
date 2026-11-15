@@ -903,6 +903,9 @@ export class Game {
   debugCamera(): { x: number; y: number; z: number; yaw: number; pitch: number; ground: number } {
     return { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch, ground: this.sim.valley.height(this.cam.x, this.cam.z) };
   }
+  debugTerrain(): ReturnType<Engine['terrain']['debugState']> {
+    return this.engine.terrain.debugState();
+  }
   debugGfx(): { quality: string; auto: boolean; resScale: number; calls: number; triangles: number; geometries: number; textures: number; chunks: number; heapMB: number | null } {
     const mem = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
     return { quality: this.engine.quality.name, auto: this.engine.auto, resScale: this.engine.resScale, ...this.engine.info(), chunks: this.engine.terrain.loaded, heapMB: mem ? mem.usedJSHeapSize / 1048576 : null };

@@ -52,4 +52,9 @@ export class WeatherFx {
   setDensity(n: number): void {
     this.rain.geometry.setDrawRange(0, n * 2);
   }
+
+  dispose(): void {
+    this.rain.geometry.dispose();
+    this.mat.dispose();
+  }
 }

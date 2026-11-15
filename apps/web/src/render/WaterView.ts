@@ -95,4 +95,19 @@ export class WaterView {
     (u.uHorizon!.value as THREE.Color).copy(sky.horizon);
     (u.uTint!.value as THREE.Color).setRGB(0.05, 0.11, 0.09).multiplyScalar(0.15 + 0.85 * daylight);
   }
+
+  /** Pool meshes own distinct geometries but share one material. */
+  dispose(): void {
+    this.mesh.geometry.dispose();
+    this.mat.dispose();
+    const materials = new Set<THREE.Material>();
+    for (const object of this.pools.children) {
+      if (!(object instanceof THREE.Mesh)) continue;
+      object.geometry.dispose();
+      const list = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of list) materials.add(material);
+    }
+    for (const material of materials) material.dispose();
+    this.pools.clear();
+  }
 }
