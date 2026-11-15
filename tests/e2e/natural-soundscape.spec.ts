@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 test('soundscape requires a gesture, attenuates with distance, mutes, and disposes', async ({ page }) => {
   const errors: string[] = [];
@@ -33,4 +34,22 @@ test('soundscape requires a gesture, attenuates with distance, mutes, and dispos
   await page.evaluate(() => window.__soundscapeDemo?.dispose());
   await expect(page.locator('#soundscape-demo-panel')).toHaveCount(0);
   expect(errors).toEqual([]);
+});
+
+test('soundscape exports a valid 48-second stereo 44.1 kHz PCM audition', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto('/?soundscape=1');
+  const downloadPromise = page.waitForEvent('download', { timeout: 165_000 });
+  await page.locator('#snd-export').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('untamed-earth-soundscape-audition.wav');
+  const local = await download.path();
+  expect(local).toBeTruthy();
+  const bytes = await readFile(local!);
+  expect(bytes.toString('ascii', 0, 4)).toBe('RIFF');
+  expect(bytes.toString('ascii', 8, 12)).toBe('WAVE');
+  expect(bytes.readUInt16LE(22)).toBe(2);
+  expect(bytes.readUInt32LE(24)).toBe(44100);
+  expect(bytes.readUInt16LE(34)).toBe(16);
+  expect(bytes.length).toBe(44 + 48 * 44100 * 2 * 2);
 });

@@ -14,6 +14,7 @@
 
 import { SPECIES, Simulation } from '@untamed/ecology';
 import { NaturalSoundscape, type NaturalAudioInput } from './NaturalSoundscape';
+import { renderCompleteAuditionReelWav } from './SoundscapeAuditionExporter';
 
 export class NaturalSoundscapeDemoApp {
   readonly sim: Simulation;
@@ -94,6 +95,10 @@ export class NaturalSoundscapeDemoApp {
         <button id="snd-start" style="flex:1;padding:8px;border-radius:6px;border:1px solid #82c46c;background:#264529;color:#fff;font-weight:600;cursor:pointer;">Start Audio</button>
         <button id="snd-mute" style="padding:8px 12px;border-radius:6px;border:1px solid #4a6352;background:#1a241e;color:#fff;cursor:pointer;">Mute / Unmute</button>
       </div>
+      <div style="margin-bottom:12px;">
+        <button id="snd-export" style="padding:8px 12px;border-radius:6px;border:1px solid #82c46c;background:#264529;color:#fff;font-weight:600;cursor:pointer;">Export 48s audition (.wav)</button>
+        <span id="snd-export-status" role="status" aria-live="polite" style="display:block;color:#a9bdb0;font-size:12px;margin-top:4px;">Offline demo recording — not real ecological events or a capture of this live soundscape.</span>
+      </div>
       <div style="display:grid;gap:8px;margin-bottom:12px;font-size:12px;">
         <label>River Distance (<span id="snd-dist-val">6</span> m):
           <input id="snd-dist" type="range" min="1" max="140" value="6" style="width:100%;" />
@@ -128,6 +133,34 @@ export class NaturalSoundscapeDemoApp {
       const next = !this.soundscape.getTelemetry().muted;
       this.soundscape.setMuted(next);
       this.step(0.016);
+    });
+
+    const exportButton = panel.querySelector<HTMLButtonElement>('#snd-export');
+    const exportStatus = panel.querySelector<HTMLElement>('#snd-export-status');
+    exportButton?.addEventListener('click', () => {
+      if (exportButton.disabled) return;
+      exportButton.disabled = true;
+      if (exportStatus) exportStatus.textContent = 'Synthesizing offline audio…';
+      void (async () => {
+        try {
+          const blob = await renderCompleteAuditionReelWav();
+          if (this.disposed) return;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'untamed-earth-soundscape-audition.wav';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 3000);
+          if (exportStatus) exportStatus.textContent = '48s audition downloaded. Please listen with headphones; synthesized animal calls are experimental.';
+        } catch (error) {
+          console.warn('Soundscape WAV export failed', error);
+          if (exportStatus) exportStatus.textContent = 'WAV export failed; see browser console.';
+        } finally {
+          exportButton.disabled = false;
+        }
+      })();
     });
 
     const bindSlider = (id: string, valId: string | null, cb: (v: number) => void): void => {
