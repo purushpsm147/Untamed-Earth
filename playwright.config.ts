@@ -19,5 +19,6 @@ export default defineConfig({
     { name: 'smoke', testMatch: 'tests/e2e/smoke.spec.ts' },
     { name: 'gameplay', testMatch: 'tests/e2e/gameplay.spec.ts' },
     { name: 'reliability', testMatch: 'tests/e2e/reliability.spec.ts' },
+    { name: 'soundscape', testMatch: 'tests/e2e/natural-soundscape.spec.ts' },
   ],
 });

@@ -35,6 +35,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser smoke, reliability and gameplay suites (software renderer)
         run: npm run test:e2e -- --trace retain-on-failure
+      - name: Spatial soundscape browser audition (headless)
+        if: github.head_ref == 'experiment/gemini-natural-soundscape' || github.ref_name == 'experiment/gemini-natural-soundscape'
+        run: npx playwright test --project=soundscape
       - name: Upload Playwright reports, if produced
         if: always()
         uses: actions/upload-artifact@v4
