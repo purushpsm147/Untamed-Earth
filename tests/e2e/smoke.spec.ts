@@ -54,3 +54,19 @@ test('boots, renders, simulates, switches modes, saves', async ({ page }) => {
   await expect(page.locator('#btnContinue')).toBeVisible({ timeout: 10_000 });
   expect(errors, errors.join('\n')).toEqual([]);
 });
+
+
+test('explicit Auto at startup overrides a previously saved manual graphics setting', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('untamed.settings', JSON.stringify({ quality: 'low', auto: false, volume: 0, muted: true }));
+  });
+  await page.goto('/');
+  await expect(page.locator('#startQuality')).toHaveValue('low');
+  await page.selectOption('#startQuality', 'auto');
+  await page.click('#btnNew');
+  await expect(page.locator('#hud')).toBeVisible({ timeout: 90_000 });
+  const autoEnabled = await page.evaluate(() =>
+    (window as unknown as { __untamed: { engine: { auto: boolean } } }).__untamed.engine.auto
+  );
+  expect(autoEnabled).toBe(true);
+});
