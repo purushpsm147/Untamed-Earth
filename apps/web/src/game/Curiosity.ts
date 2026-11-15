@@ -1,5 +1,6 @@
 import { clamp } from '@untamed/core';
 import { Animal, B, SPECIES, Simulation } from '@untamed/ecology';
+import type { AnimalSnapshotView } from '../curiosity/CuriosityDirector';
 import { CuriosityDirector, WorldQueryView, WorldSnapshotView } from '../curiosity/CuriosityDirector';
 
 export interface CameraPose {
@@ -54,9 +55,17 @@ export class Curiosity {
     return this.director.isActive() ? this.director.getCurrentTarget() : null;
   }
 
+  /** Body length in metres: species adult length scaled by growth (juveniles are smaller). */
+  private readonly sizeOf = (a: AnimalSnapshotView): number => {
+    const full = this.sim.byId.get(a.id);
+    const sp = SPECIES[a.sp];
+    if (!full || !sp) return 1.5;
+    return sp.length * (0.42 + 0.58 * this.sim.growth(full, sp));
+  };
+
   private snapshot(): WorldSnapshotView {
     const s = this.sim;
-    return { tick: s.tick, animals: s.animals, env: s.env, world: this.world };
+    return { tick: s.tick, animals: s.animals, env: s.env, world: this.world, sizeOf: this.sizeOf };
   }
 
   start(pose: CameraPose): void {

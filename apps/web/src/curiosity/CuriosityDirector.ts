@@ -62,6 +62,8 @@ export interface WorldSnapshotView {
   readonly animals: ReadonlyArray<AnimalSnapshotView>;
   readonly env: EnvSnapshotView;
   readonly world: WorldQueryView;
+  /** Optional body length of an animal in metres (species size x growth). Used for framing; defaults to 1.5 m. */
+  readonly sizeOf?: (a: AnimalSnapshotView) => number;
 }
 
 export type SubjectKind = 'event' | 'animal' | 'scenic';
@@ -115,6 +117,10 @@ export interface DirectorConfig {
   readonly maxCooldownEntries: number;
   /** Comfort: maximum camera speed in m/s (reduced motion uses 40% of it). Long transitions glide instead of jumping. */
   readonly maxSpeedMps: number;
+  /** Framing: camera distance in body lengths, so a myna and a deer fill a similar part of the frame. */
+  readonly bodyLengthsAway: number;
+  /** Safety: never frame an animal from closer than this (near plane, foliage, comfort). */
+  readonly minStandoffM: number;
 }
 
 export const DEFAULT_DIRECTOR_CONFIG: DirectorConfig = {
@@ -130,6 +136,8 @@ export const DEFAULT_DIRECTOR_CONFIG: DirectorConfig = {
   maxCandidates: 64,
   maxCooldownEntries: 128,
   maxSpeedMps: 55,
+  bodyLengthsAway: 6,
+  minStandoffM: 3.5,
 };
 
 /** Behavior constants mirrored from packages/ecology/src/simulation.ts (read-only). */
@@ -225,6 +233,11 @@ function segmentIntersectsBuilding(
   return true;
 }
 
+const DEFAULT_SIZE_M = 1.5;
+const sizeOf = (snapshot: WorldSnapshotView, a: AnimalSnapshotView): number => Math.max(0.05, snapshot.sizeOf?.(a) ?? DEFAULT_SIZE_M);
+/** Aim at the animal's body, not 0.7 m above it: about 40% of its length above its feet, capped at 0.7 m. */
+const aimLift = (snapshot: WorldSnapshotView, a: AnimalSnapshotView): number => Math.min(0.7, sizeOf(snapshot, a) * 0.4);
+
 export class CuriosityDirector {
   private cfg: DirectorConfig;
   /** Number of subject changes so far (diagnostics / tests). */
@@ -283,7 +296,7 @@ export class CuriosityDirector {
     const a = snapshot.animals.find((o) => o.id === animalId && o.alive);
     if (!a) return false;
     const ground = Math.max(snapshot.world.height(a.x, a.z), snapshot.world.waterSurface(a.z) + snapshot.env.stage);
-    this.adoptTarget({ key: `animal:${a.id}`, kind: 'animal', animalId: a.id, eventType: null, x: a.x, y: ground + a.alt + 0.7, z: a.z, score: 1, reason: `Wildlife #${a.id} (${this.behaviorLabel(a.beh)})` });
+    this.adoptTarget({ key: `animal:${a.id}`, kind: 'animal', animalId: a.id, eventType: null, x: a.x, y: ground + a.alt + aimLift(snapshot, a), z: a.z, score: 1, reason: `Wildlife #${a.id} (${this.behaviorLabel(a.beh)})` });
     return true;
   }
 
@@ -460,7 +473,7 @@ export class CuriosityDirector {
         return {
           ...target,
           x: a.x,
-          y: groundY + a.alt + 0.7,
+          y: groundY + a.alt + aimLift(snapshot, a),
           z: a.z,
         };
       }
@@ -534,7 +547,7 @@ export class CuriosityDirector {
             animalId: a.id,
             eventType: null,
             x: a.x,
-            y: groundY + a.alt + 0.7,
+            y: groundY + a.alt + aimLift(snapshot, a),
             z: a.z,
             score,
             reason: `Wildlife #${a.id} (${this.behaviorLabel(a.beh)})`,
@@ -602,8 +615,7 @@ export class CuriosityDirector {
     const orbitSpeed = this.cfg.reducedMotion ? 0.025 : 0.08;
     this.orbitAngle = (this.orbitAngle + orbitSpeed * dt) % (Math.PI * 2);
 
-    const standoff = target.kind === 'scenic' ? 28 : target.kind === 'event' ? 14 : 10;
-    const heightOffset = target.kind === 'scenic' ? 12 : 4.2;
+    const { standoff, heightOffset } = this.framing(snapshot, target);
 
     let desiredX = target.x + Math.cos(this.orbitAngle) * standoff;
     let desiredZ = target.z + Math.sin(this.orbitAngle) * standoff;
@@ -687,6 +699,21 @@ export class CuriosityDirector {
       fov: target.kind === 'scenic' ? 58 : 50,
       fadeAlpha: targetFade,
     };
+  }
+
+  /**
+   * Camera distance and height for a target. Animals are framed by body size (bodyLengthsAway, never closer than
+   * minStandoffM) and from further back when they move fast; scenery and unattached events keep fixed framing.
+   */
+  framing(snapshot: WorldSnapshotView, target: ObservationTarget): { standoff: number; heightOffset: number } {
+    if (target.kind === 'scenic') return { standoff: 28, heightOffset: 12 };
+    const a = target.animalId === null ? undefined : snapshot.animals.find((o) => o.id === target.animalId);
+    if (!a) return target.kind === 'event' ? { standoff: 14, heightOffset: 4.2 } : { standoff: 10, heightOffset: 4.2 };
+    const size = sizeOf(snapshot, a);
+    const motion = 1 + clamp(a.speed / 8, 0, 1); // up to 2x for sprinting or flying subjects
+    const standoff = Math.max(this.cfg.minStandoffM, size * this.cfg.bodyLengthsAway * motion);
+    // a little above the subject, proportional to the distance, so the view looks gently down at it
+    return { standoff, heightOffset: clamp(standoff * 0.35, 1.2, 4.2) };
   }
 
   private eventSignificance(e: SimEventLike): number {

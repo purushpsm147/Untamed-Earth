@@ -334,4 +334,42 @@ describe('CuriosityDirector', () => {
     const moved = d.update(makeSnapshot([{ ...mother, x: 640, z: 610 }]), 0.1);
     expect(moved?.x).toBe(640);
   });
+
+  it('frames subjects by body size, never closer than the safe minimum, further back when they move fast', () => {
+    const d = new CuriosityDirector();
+    const sizes: Record<number, number> = { 1: 1.5, 2: 0.25, 3: 0.42, 4: 0.05 };
+    const animals = [
+      makeAnimal({ id: 1, speed: 0 }), // deer-sized
+      makeAnimal({ id: 2, speed: 0 }), // myna-sized
+      makeAnimal({ id: 3, speed: 10, alt: 8 }), // crow in flight
+      makeAnimal({ id: 4, speed: 0 }), // absurdly small: clamps to the minimum
+    ];
+    const snap: WorldSnapshotView = { ...makeSnapshot(animals), sizeOf: (a) => sizes[a.id]! };
+    const t = (id: number) => ({ key: `animal:${id}`, kind: 'animal' as const, animalId: id, eventType: null, x: 700, y: 12, z: 500, score: 1, reason: '' });
+    const deer = d.framing(snap, t(1));
+    const myna = d.framing(snap, t(2));
+    const crow = d.framing(snap, t(3));
+    const tiny = d.framing(snap, t(4));
+    expect(deer.standoff).toBeCloseTo(9, 5); // 6 body lengths
+    expect(myna.standoff).toBe(3.5); // 1.5 m would be too close: safe lower bound
+    expect(tiny.standoff).toBe(3.5);
+    expect(crow.standoff).toBeCloseTo(0.42 * 6 * 2, 5); // fast flyer: twice as far back
+    expect(myna.standoff).toBeLessThan(deer.standoff / 2); // birds are no longer framed from deer distance
+    for (const f of [deer, myna, crow, tiny]) {
+      expect(f.heightOffset).toBeGreaterThanOrEqual(1.2);
+      expect(f.heightOffset).toBeLessThanOrEqual(4.2);
+    }
+    // without size information the old behaviour (deer-like framing) is kept
+    expect(d.framing(makeSnapshot(animals), t(2)).standoff).toBeCloseTo(9, 5);
+  });
+
+  it('aims at a small animal\'s body rather than 0.7 m above it', () => {
+    const d = new CuriosityDirector();
+    const bird = makeAnimal({ id: 9, x: 700, z: 500, beh: 9, speed: 3 });
+    const snap: WorldSnapshotView = { ...makeSnapshot([bird]), sizeOf: () => 0.25 };
+    d.start({ x: 690, y: 30, z: 500, lookX: 700, lookY: 12, lookZ: 500 });
+    const target = d.update(snap, 0.1)!;
+    const ground = Math.max(snap.world.height(700, 500), snap.world.waterSurface(500));
+    expect(target.y - ground).toBeCloseTo(0.1, 5);
+  });
 });
