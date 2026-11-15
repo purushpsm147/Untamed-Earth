@@ -106,7 +106,7 @@ export class Engine {
     const valley = sim.valley;
     this.terrain = new TerrainView(valley);
     this.scatter = new ScatterView(valley);
-    this.grass = new GrassView(valley, sim.env, QUALITY.ultra.grassCount);
+    this.grass = new GrassView(valley, sim.env, QUALITY[quality].grassCount);
     this.water = new WaterView(valley);
     this.animals = new AnimalView(sim);
     this.weather = new WeatherFx(QUALITY.ultra.rain);
@@ -114,7 +114,7 @@ export class Engine {
     lm.castShadow = true;
     lm.receiveShadow = true;
     this.landmarks = lm;
-    this.scene.add(this.sky.mesh, this.sky.sun, this.sky.sun.target, this.sky.hemi, this.terrain.group, this.scatter.group, this.grass.mesh,
+    this.scene.add(this.sky.mesh, this.sky.sun, this.sky.sun.target, this.sky.hemi, this.terrain.group, this.scatter.group, this.grass.group,
       this.water.mesh, this.water.pools, this.animals.group, this.weather.rain, lm);
     this.applyQuality();
     this.resize();

@@ -87,6 +87,8 @@ export class Game {
   /** Bounded record of notable events seen this session, for the Social Lens. Not simulation state. */
   private readonly sessionLog: { day: number; ids: number[]; text: string }[] = [];
   private frozenTime: number | null = null;
+  /** QA/profiling: artificial main-thread work per rendered frame (ms), to test quality degradation and recovery. */
+  debugLoadMs = 0;
   private perf: { frame: number[]; sim: number[]; render: number[] } | null = null;
   private simAcc = 0;
   private time = 0;
@@ -669,6 +671,10 @@ export class Game {
         this.achievedRate = this.kineticDone / this.rateT;
         this.kineticDone = 0;
         this.rateT = 0;
+      }
+      if (this.debugLoadMs > 0) {
+        const until = performance.now() + this.debugLoadMs;
+        while (performance.now() < until) { /* deliberate busy wait (profiling only) */ }
       }
       this.updateCamera(dt);
       const r0 = performance.now();

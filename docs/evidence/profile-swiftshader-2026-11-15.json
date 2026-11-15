@@ -1,0 +1,1152 @@
+{
+  "tool": "Untamed Earth ?profile=1",
+  "version": 1,
+  "startedAt": "2026-11-15T14:57:13.242Z",
+  "short": false,
+  "device": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "assessment": "software renderer (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)): no GPU acceleration",
+    "viewport": [
+      1280,
+      720
+    ],
+    "devicePixelRatio": 1,
+    "cores": 4,
+    "deviceMemoryGB": 16,
+    "heapApi": "performance.memory (Chromium only, JS heap only; not GPU memory)"
+  },
+  "notes": "Frame times are requestAnimationFrame intervals with the frame-rate target set to uncapped. GPU memory cannot be measured from a web page.",
+  "presets": {
+    "low": {
+      "frames": 626,
+      "fps": 3.3,
+      "p50": 250,
+      "p95": 983.2,
+      "p99": 1583.3,
+      "worst": 1983.2,
+      "spikesOver50ms": 358,
+      "simMs": 0.491,
+      "renderMs": 27.5,
+      "drawCalls": 62,
+      "triangles": 284414,
+      "geometries": 109,
+      "heapMB": 39
+    },
+    "medium": {
+      "frames": 553,
+      "fps": 1.9,
+      "p50": 516.6,
+      "p95": 1516.6,
+      "p99": 1883.2,
+      "worst": 1999.9,
+      "spikesOver50ms": 374,
+      "simMs": 0.317,
+      "renderMs": 47.42,
+      "drawCalls": 115,
+      "triangles": 736322,
+      "geometries": 197,
+      "heapMB": 38.1
+    },
+    "high": {
+      "frames": 489,
+      "fps": 1.4,
+      "p50": 850,
+      "p95": 1766.5,
+      "p99": 1949.9,
+      "worst": 1983.2,
+      "spikesOver50ms": 335,
+      "simMs": 0.337,
+      "renderMs": 66.05,
+      "drawCalls": 158,
+      "triangles": 1170496,
+      "geometries": 265,
+      "heapMB": 38.5
+    }
+  },
+  "auto": {
+    "settled": {
+      "quality": "low",
+      "scale": 0.6
+    },
+    "underLoad": {
+      "quality": "low",
+      "scale": 0.5
+    },
+    "afterRecovery": {
+      "quality": "low",
+      "scale": 0.5
+    },
+    "recoveredToSettled": false,
+    "timeline": [
+      {
+        "t": 0,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 16.7
+      },
+      {
+        "t": 1,
+        "phase": "auto-settle",
+        "quality": "high",
+        "scale": 1,
+        "frameMs": 30.7
+      },
+      {
+        "t": 2.6,
+        "phase": "auto-settle",
+        "quality": "medium",
+        "scale": 1,
+        "frameMs": 250
+      },
+      {
+        "t": 5.4,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 250
+      },
+      {
+        "t": 6.4,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 250
+      },
+      {
+        "t": 7.4,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 250
+      },
+      {
+        "t": 8.4,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 250
+      },
+      {
+        "t": 9.4,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 250
+      },
+      {
+        "t": 10.4,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 250
+      },
+      {
+        "t": 11.4,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 250
+      },
+      {
+        "t": 12.4,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 222.8
+      },
+      {
+        "t": 13.4,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 212
+      },
+      {
+        "t": 14.4,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 214.3
+      },
+      {
+        "t": 15.4,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 1,
+        "frameMs": 214.3
+      },
+      {
+        "t": 17,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 218.4
+      },
+      {
+        "t": 18,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 209
+      },
+      {
+        "t": 19,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 209
+      },
+      {
+        "t": 20,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 211.4
+      },
+      {
+        "t": 21,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 213.7
+      },
+      {
+        "t": 22,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 0.9,
+        "frameMs": 209.9
+      },
+      {
+        "t": 23.7,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 212.3
+      },
+      {
+        "t": 24.7,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 208.2
+      },
+      {
+        "t": 25.7,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 0.8,
+        "frameMs": 213.1
+      },
+      {
+        "t": 26.7,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 0.7,
+        "frameMs": 205.4
+      },
+      {
+        "t": 27.7,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 0.7,
+        "frameMs": 208
+      },
+      {
+        "t": 28.7,
+        "phase": "auto-settle",
+        "quality": "low",
+        "scale": 0.7,
+        "frameMs": 196.1
+      },
+      {
+        "t": 30.3,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.6,
+        "frameMs": 202.4
+      },
+      {
+        "t": 31.3,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.6,
+        "frameMs": 198.1
+      },
+      {
+        "t": 32.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 209.5
+      },
+      {
+        "t": 33.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 206.4
+      },
+      {
+        "t": 34.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 211.4
+      },
+      {
+        "t": 35.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 197.2
+      },
+      {
+        "t": 36.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 180.9
+      },
+      {
+        "t": 37.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 169.6
+      },
+      {
+        "t": 38.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 170.8
+      },
+      {
+        "t": 39.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 168.9
+      },
+      {
+        "t": 40.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 180.7
+      },
+      {
+        "t": 41.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 181.2
+      },
+      {
+        "t": 42.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 192.4
+      },
+      {
+        "t": 43.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 204.1
+      },
+      {
+        "t": 44.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 211.9
+      },
+      {
+        "t": 45.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 219.3
+      },
+      {
+        "t": 46.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 214.9
+      },
+      {
+        "t": 47.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 217.1
+      },
+      {
+        "t": 48.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 214.1
+      },
+      {
+        "t": 49.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 219.2
+      },
+      {
+        "t": 50.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 223.5
+      },
+      {
+        "t": 51.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 228.4
+      },
+      {
+        "t": 52.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 230.6
+      },
+      {
+        "t": 53.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 232.9
+      },
+      {
+        "t": 54.8,
+        "phase": "loaded",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 232
+      },
+      {
+        "t": 55.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 235.1
+      },
+      {
+        "t": 56.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 238.3
+      },
+      {
+        "t": 57.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 239.4
+      },
+      {
+        "t": 58.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 229.7
+      },
+      {
+        "t": 59.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 217.9
+      },
+      {
+        "t": 60.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 197.8
+      },
+      {
+        "t": 61.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 194.5
+      },
+      {
+        "t": 62.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 194.1
+      },
+      {
+        "t": 63.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 198.7
+      },
+      {
+        "t": 64.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 194.2
+      },
+      {
+        "t": 65.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 180.9
+      },
+      {
+        "t": 66.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 181.9
+      },
+      {
+        "t": 67.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 191.5
+      },
+      {
+        "t": 68.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 203.4
+      },
+      {
+        "t": 69.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 199.6
+      },
+      {
+        "t": 70.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 208.1
+      },
+      {
+        "t": 71.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 214.3
+      },
+      {
+        "t": 72.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 222.1
+      },
+      {
+        "t": 73.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 226.8
+      },
+      {
+        "t": 74.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 217
+      },
+      {
+        "t": 75.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 213.2
+      },
+      {
+        "t": 76.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 205
+      },
+      {
+        "t": 77.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 205.4
+      },
+      {
+        "t": 78.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 212.9
+      },
+      {
+        "t": 79.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 197.2
+      },
+      {
+        "t": 80.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 207.8
+      },
+      {
+        "t": 81.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 212.3
+      },
+      {
+        "t": 82.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 217.9
+      },
+      {
+        "t": 83.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 222.5
+      },
+      {
+        "t": 84.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 215.3
+      },
+      {
+        "t": 85.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 208
+      },
+      {
+        "t": 86.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 194.4
+      },
+      {
+        "t": 87.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 202.4
+      },
+      {
+        "t": 88.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 210
+      },
+      {
+        "t": 89.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 195.7
+      },
+      {
+        "t": 90.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 204.9
+      },
+      {
+        "t": 91.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 213.8
+      },
+      {
+        "t": 92.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 214.3
+      },
+      {
+        "t": 93.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 217.2
+      },
+      {
+        "t": 94.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 220.5
+      },
+      {
+        "t": 95.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 224.4
+      },
+      {
+        "t": 96.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 226.3
+      },
+      {
+        "t": 97.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 230.3
+      },
+      {
+        "t": 98.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 208
+      },
+      {
+        "t": 99.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 216.3
+      },
+      {
+        "t": 100.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 221
+      },
+      {
+        "t": 101.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 221.7
+      },
+      {
+        "t": 102.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 225.5
+      },
+      {
+        "t": 103.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 216.2
+      },
+      {
+        "t": 104.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 220.8
+      },
+      {
+        "t": 105.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 212.7
+      },
+      {
+        "t": 106.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 207.5
+      },
+      {
+        "t": 107.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 210.3
+      },
+      {
+        "t": 108.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 203.3
+      },
+      {
+        "t": 109.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 198.3
+      },
+      {
+        "t": 110.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 206.1
+      },
+      {
+        "t": 111.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 213.1
+      },
+      {
+        "t": 112.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 217.6
+      },
+      {
+        "t": 113.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 221.9
+      },
+      {
+        "t": 114.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 218.3
+      },
+      {
+        "t": 115.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 208.9
+      },
+      {
+        "t": 116.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 193.6
+      },
+      {
+        "t": 117.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 202.5
+      },
+      {
+        "t": 118.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 212.1
+      },
+      {
+        "t": 119.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 217.5
+      },
+      {
+        "t": 120.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 211.5
+      },
+      {
+        "t": 121.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 217
+      },
+      {
+        "t": 122.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 222.3
+      },
+      {
+        "t": 123.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 227
+      },
+      {
+        "t": 124.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 227.7
+      },
+      {
+        "t": 125.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 220.8
+      },
+      {
+        "t": 126.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 216.4
+      },
+      {
+        "t": 127.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 200.9
+      },
+      {
+        "t": 128.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 205.5
+      },
+      {
+        "t": 129.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 191.9
+      },
+      {
+        "t": 130.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 199.9
+      },
+      {
+        "t": 131.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 206.5
+      },
+      {
+        "t": 132.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 213.5
+      },
+      {
+        "t": 133.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 219.7
+      },
+      {
+        "t": 134.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 212.7
+      },
+      {
+        "t": 135.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 220
+      },
+      {
+        "t": 136.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 225.1
+      },
+      {
+        "t": 137.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 218.2
+      },
+      {
+        "t": 138.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 223.3
+      },
+      {
+        "t": 139.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 226.4
+      },
+      {
+        "t": 140.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 230.6
+      },
+      {
+        "t": 141.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 216.2
+      },
+      {
+        "t": 142.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 198.8
+      },
+      {
+        "t": 143.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 209.1
+      },
+      {
+        "t": 144.8,
+        "phase": "recovering",
+        "quality": "low",
+        "scale": 0.5,
+        "frameMs": 206.1
+      }
+    ]
+  },
+  "restarts": [
+    {
+      "run": 0,
+      "heapMB": 33.9,
+      "gl": {
+        "buffer": 627,
+        "texture": 7,
+        "program": 28,
+        "vao": 266,
+        "framebuffer": 4,
+        "renderbuffer": 0
+      },
+      "geometries": 148
+    },
+    {
+      "run": 1,
+      "heapMB": 50.5,
+      "gl": {
+        "buffer": 299,
+        "texture": 5,
+        "program": 17,
+        "vao": 67,
+        "framebuffer": 3,
+        "renderbuffer": 0
+      },
+      "geometries": 66
+    },
+    {
+      "run": 2,
+      "heapMB": 71.6,
+      "gl": {
+        "buffer": 299,
+        "texture": 5,
+        "program": 17,
+        "vao": 67,
+        "framebuffer": 3,
+        "renderbuffer": 0
+      },
+      "geometries": 66
+    },
+    {
+      "run": 3,
+      "heapMB": 71.3,
+      "gl": {
+        "buffer": 299,
+        "texture": 5,
+        "program": 17,
+        "vao": 67,
+        "framebuffer": 3,
+        "renderbuffer": 0
+      },
+      "geometries": 66
+    },
+    {
+      "run": 4,
+      "heapMB": 67.2,
+      "gl": {
+        "buffer": 299,
+        "texture": 5,
+        "program": 17,
+        "vao": 67,
+        "framebuffer": 3,
+        "renderbuffer": 0
+      },
+      "geometries": 66
+    },
+    {
+      "run": 5,
+      "heapMB": 66.9,
+      "gl": {
+        "buffer": 299,
+        "texture": 5,
+        "program": 17,
+        "vao": 67,
+        "framebuffer": 3,
+        "renderbuffer": 0
+      },
+      "geometries": 66
+    }
+  ],
+  "finishedAt": "2026-11-15T15:17:26.030Z"
+}

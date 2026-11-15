@@ -45,7 +45,7 @@ For each P1/P2 issue: exact revision, reproduction seed and steps, before/after 
 |---|---|---|
 | P1 render teardown | **Fixed** (PR #2 + integration) | InstancedMesh buffers also disposed; one renderer per canvas (three.js leaked 3 framebuffers + 4 textures per renderer). `tests/e2e/reliability.spec.ts` counts live WebGL objects: identical after 4 restarts |
 | P1 Auto quality never recovers a preset | **Fixed** (PR #3) | Governor unit tests; browser test drives a trace through the real engine. Closed-loop recovery on a real GPU not yet observed |
-| P2 Ultra-size buffers on Low | **Open** | Grass and rain buffers still preallocated at Ultra capacity |
+| P2 Ultra-size buffers on Low | **Fixed** (follow-up session) | Measured: the bigger waste was scatter (9.0 MB), not grass (1.4 MB) or rain (0.1 MB). Instance buffers on Low 10.82 MB -> 0.72 MB, drawn counts unchanged; see PERFORMANCE.md |
 | P2 stale terrain Worker responses | **Fixed** (PR #4) | Unit tests + browser flight test with stale/superseded counters; Worker-death fallback test |
 | P2 high-speed sim drops backlog | **Mitigated** | Simulation budget now scales with frame time; achieved rate still shown and still hardware-dependent |
 | P2 narrow browser QA | **Improved** | 20 browser tests: gameplay scenarios, seeded random interaction, lifecycle, streaming, quality, Curiosity. Still no real device, Firefox or WebKit |

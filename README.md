@@ -23,6 +23,7 @@ npm run test:e2e   # Playwright smoke, reliability and gameplay suites (needs a 
 npm run test:smoke # just the smoke tests
 npm run sim -- 150 7   # headless population report: 150 days, seed 7
 npm run bench      # simulation throughput
+# open /?profile=1 on any device for a ~5 min self-running performance report (docs/PERFORMANCE.md)
 ```
 
 A modern desktop browser with WebGL2 is required. If graphics or storage cannot be initialised, the game says why instead of failing silently.

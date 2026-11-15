@@ -5,8 +5,19 @@ import { addWind } from './shared';
 
 interface Batch {
   mesh: THREE.InstancedMesh;
+  /** Instances written this refill. */
   n: number;
+  /** Instances wanted this refill (n plus whatever did not fit). */
+  want: number;
+  far: boolean;
+  model: ScatterModel;
 }
+
+/**
+ * Instance buffers start small and grow to what the current view actually needs (they used to be preallocated at
+ * each kind's maximum, ~9 MB of CPU arrays plus the same again on the GPU, even on Low where ~1% was used).
+ */
+const INITIAL_CAPACITY = 128;
 
 /**
  * Draws all scattered vegetation and debris with a handful of instanced draw calls.
@@ -30,20 +41,39 @@ export class ScatterView {
     const mk = (geo: THREE.BufferGeometry, m: ScatterModel, far: boolean): Batch => {
       const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0, flatShading: !m.foliage });
       if (m.foliage) addWind(mat, 1.2, 0.006);
-      const mesh = new THREE.InstancedMesh(geo, mat, m.max);
-      mesh.count = 0;
-      mesh.frustumCulled = false;
-      mesh.castShadow = m.shadow && !far;
-      mesh.receiveShadow = !m.foliage;
-      mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(m.max * 3), 3);
-      this.group.add(mesh);
-      return { mesh, n: 0 };
+      const b: Batch = { mesh: null as unknown as THREE.InstancedMesh, n: 0, want: 0, far, model: m };
+      this.allocate(b, geo, mat, Math.min(INITIAL_CAPACITY, m.max));
+      return b;
     };
     for (let k = 0; k < SCATTER_KINDS; k++) {
       const m = this.models[k]!;
       this.hi[k] = mk(m.hi, m, false);
       this.lo[k] = m.lo ? mk(m.lo, m, true) : null;
     }
+  }
+
+  /** (Re)create a batch's InstancedMesh with the given capacity, sharing geometry and material; the old one is disposed. */
+  private allocate(b: Batch, geo: THREE.BufferGeometry, mat: THREE.Material, capacity: number): void {
+    const mesh = new THREE.InstancedMesh(geo, mat, capacity);
+    mesh.count = 0;
+    mesh.frustumCulled = false;
+    mesh.castShadow = b.model.shadow && !b.far && this.shadows;
+    mesh.receiveShadow = !b.model.foliage;
+    mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3);
+    const old = b.mesh;
+    if (old) {
+      this.group.remove(old);
+      old.dispose(); // releases the old instance buffers (geometry and material are shared, not disposed)
+    }
+    this.group.add(mesh);
+    b.mesh = mesh;
+  }
+
+  /** Total instance capacity across batches (diagnostics and tests). */
+  capacity(): number {
+    let c = 0;
+    for (const b of [...this.hi, ...this.lo]) if (b) c += b.mesh.instanceMatrix.count;
+    return c;
   }
 
   invalidate(): void {
@@ -57,8 +87,8 @@ export class ScatterView {
     this.last.copy(cam);
     this.lastDir.copy(this.dir);
     for (let k = 0; k < SCATTER_KINDS; k++) {
-      this.hi[k]!.n = 0;
-      if (this.lo[k]) this.lo[k]!.n = 0;
+      this.hi[k]!.n = this.hi[k]!.want = 0;
+      if (this.lo[k]) this.lo[k]!.n = this.lo[k]!.want = 0;
     }
     const vd = this.vegDist;
     const hi2 = this.treeHiDist * this.treeHiDist;
@@ -88,7 +118,8 @@ export class ScatterView {
           if (d2 > lim * lim) continue;
           let b = this.hi[k]!;
           if (d2 > hi2 && this.lo[k]) b = this.lo[k]!;
-          if (b.n >= m.max) continue;
+          b.want++;
+          if (b.n >= b.mesh.instanceMatrix.count) continue; // overflow: grown after this pass
           const rot = sc[i + 4]!;
           // small objects shrink into the distance instead of popping
           const fade = m.range < 1 ? Math.min(1, (1 - Math.sqrt(d2) / lim) * 5) : 1;
@@ -115,6 +146,27 @@ export class ScatterView {
       b.mesh.instanceMatrix.needsUpdate = true;
       b.mesh.instanceColor!.needsUpdate = true;
     };
+    // resize: grow to 1.3x what is wanted (capped at the kind's maximum); shrink only when capacity exceeds
+    // 4x the need, so moving back and forth across the threshold never thrashes allocations
+    let regrow = false;
+    for (const b of [...this.hi, ...this.lo]) {
+      if (!b) continue;
+      const cap = b.mesh.instanceMatrix.count;
+      const max = b.model.max;
+      if (b.want > cap && cap < max) {
+        this.allocate(b, b.mesh.geometry, b.mesh.material as THREE.Material, Math.min(max, Math.ceil(b.want * 1.3)));
+        regrow = true;
+      } else if (cap > INITIAL_CAPACITY && cap > 4 * (b.want + 64)) {
+        this.allocate(b, b.mesh.geometry, b.mesh.material as THREE.Material, Math.max(INITIAL_CAPACITY, Math.ceil((b.want + 64) * 1.5)));
+        regrow = true;
+      }
+    }
+    if (regrow) {
+      // refill straight away into the resized buffers (bounded: a second pass always fits)
+      this.invalidate();
+      this.update(camera);
+      return;
+    }
     for (let k = 0; k < SCATTER_KINDS; k++) {
       flush(this.hi[k]!);
       if (this.lo[k]) flush(this.lo[k]!);

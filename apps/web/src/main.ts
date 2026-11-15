@@ -10,10 +10,17 @@ import { QUALITY_ORDER, QualityName, assessQuality, readHardwareHints } from './
 import { FpsTarget } from './render/qualityGovernor';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
+const params = new URLSearchParams(location.search);
+const profiling = params.has('profile');
+// the WebGL object counter must wrap the context before the first one is created
+let glCounts: (() => import('./profile/glCounter').GlCounts) | null = null;
+if (profiling) glCounts = (await import('./profile/glCounter')).installGlCounter();
 const canvas = $<HTMLCanvasElement>('view');
 const input = new Input(canvas, $('stick'));
 const audio = new AudioEngine();
 let game: Game | null = null;
+/** Called once each time a world becomes ready (used by the profiler to sequence restarts). */
+let onReady: ((g: Game) => void) | null = null;
 
 interface Settings {
   quality?: QualityName;
@@ -117,6 +124,7 @@ function start(seed: number, save?: SaveData): void {
         if (new URLSearchParams(location.search).has('qa')) g.setSpeed(0);
         input.enabled = true;
         if (audio.error) toast(audio.error, true);
+        onReady?.(g);
       } else if (p > best) {
         best = p;
         bestAt = performance.now();
@@ -167,3 +175,46 @@ store.get<unknown>(SAVE_SLOT).then((raw) => {
 window.addEventListener('error', (e) => {
   if (game && !$('hud').classList.contains('hidden')) console.error(e.error);
 });
+
+// ---------------------------------------------------------------- ?profile=1
+if (profiling) {
+  const panel = document.createElement('div');
+  panel.id = 'profilePanel';
+  panel.style.cssText = 'position:fixed;left:12px;top:64px;z-index:30;max-width:460px;max-height:70vh;overflow:auto;background:rgba(10,14,12,.88);color:#cfe3b6;font:12px/1.5 ui-monospace,monospace;padding:10px 12px;border-radius:8px;white-space:pre-wrap';
+  panel.textContent = 'Profiling: press "Enter the valley" (Auto is fine). The run takes about 5 minutes; keep this tab visible.\n';
+  document.body.appendChild(panel);
+  const log = (l: string): void => {
+    panel.textContent += l + '\n';
+    console.log('[profile]', l);
+  };
+  let firstReady = true;
+  onReady = (g) => {
+    if (!firstReady) return;
+    firstReady = false;
+    void (async () => {
+      const { runProfile } = await import('./profile/ProfileRunner');
+      const seed = g.sim.seed;
+      const report = await runProfile({
+        game: () => game,
+        gl: () => glCounts!(),
+        restart: () => new Promise<Game>((resolve) => {
+          onReady = (ng) => resolve(ng);
+          start(seed);
+        }),
+      }, params.has('short'), log);
+      onReady = null;
+      (window as unknown as { __profile: unknown }).__profile = report;
+      const json = JSON.stringify(report, null, 2);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      a.download = `untamed-earth-profile-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`;
+      a.textContent = 'Download report (JSON)';
+      a.style.cssText = 'display:inline-block;margin:6px 8px 0 0;color:#b9d98a';
+      const copy = document.createElement('button');
+      copy.textContent = 'Copy report';
+      copy.onclick = () => void navigator.clipboard?.writeText(json);
+      log('Done.');
+      panel.append(a, copy);
+    })().catch((e: unknown) => log(`Profiling failed: ${e instanceof Error ? e.message : String(e)}`));
+  };
+}

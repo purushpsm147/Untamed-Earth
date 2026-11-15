@@ -45,7 +45,9 @@ function tuftGeometry(): THREE.BufferGeometry {
  * heavily grazed or drought-stricken ground is visibly cropped.
  */
 export class GrassView {
-  readonly mesh: THREE.InstancedMesh;
+  /** Holds the grass mesh; the mesh is replaced when its capacity changes with the quality preset. */
+  readonly group = new THREE.Group();
+  mesh: THREE.InstancedMesh;
   private readonly last = new THREE.Vector3(1e9, 0, 0);
   private count: number;
   dist = 50;
@@ -70,14 +72,27 @@ export class GrassView {
         .replace('#include <color_vertex>', '#include <color_vertex>\nvColor.rgb = mix(vColor.rgb, vec3(0.6, 0.52, 0.28) * (0.5 + color.g), uDry * 0.8);');
     };
     this.count = max;
-    this.mesh = new THREE.InstancedMesh(tuftGeometry(), mat, max);
-    this.mesh.frustumCulled = false;
-    this.mesh.receiveShadow = true;
-    this.mesh.count = 0;
+    this.mesh = this.build(tuftGeometry(), mat, max);
   }
 
+  private build(geo: THREE.BufferGeometry, mat: THREE.Material, capacity: number): THREE.InstancedMesh {
+    const mesh = new THREE.InstancedMesh(geo, mat, capacity);
+    mesh.frustumCulled = false;
+    mesh.receiveShadow = true;
+    mesh.count = 0;
+    this.group.add(mesh);
+    return mesh;
+  }
+
+  /** Sized to the preset (it used to be allocated at the Ultra count on every preset). */
   setMax(n: number): void {
-    this.count = Math.min(n, this.mesh.instanceMatrix.count);
+    if (n !== this.mesh.instanceMatrix.count) {
+      const old = this.mesh;
+      this.group.remove(old);
+      this.mesh = this.build(old.geometry, old.material as THREE.Material, n);
+      old.dispose(); // instance buffer only; geometry and material are reused
+    }
+    this.count = n;
     this.last.set(1e9, 0, 0);
   }
 

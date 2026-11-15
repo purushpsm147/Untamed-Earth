@@ -167,13 +167,24 @@ test.describe('gameplay scenarios', () => {
   test('select by clicking, follow a moving animal, Social Lens shows only real relationships', async ({ page }) => {
     const p = watch(page);
     await enter(page);
+    // pause first: a walking deer leaves the screen centre between "stop following" and the click (CI flake)
+    await g(page, (G) => G.setSpeed(0));
     expect(await g(page, (G) => G.debugFollow('chital', 6))).toBe(true);
     await page.waitForTimeout(800);
     const id = await g(page, (G) => G.selected);
     await g(page, (G) => { G.following = false; G.select(0); });
     await expect(page.locator('#inspect')).toBeHidden();
-    await page.mouse.click(640, 360); // the followed animal was centred
+    await page.waitForTimeout(300); // let a frame render without the selection
+    // click where that deer actually is on screen
+    const at = await page.evaluate((id) => {
+      const G = (window as unknown as { __untamed: any }).__untamed; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const v = G.engine.animals.pos.get(id).clone().project(G.engine.camera);
+      const r = G.engine.canvas.getBoundingClientRect();
+      return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height };
+    }, id);
+    await page.mouse.click(at.x, at.y);
     await expect(page.locator('#inspect')).toBeVisible();
+    await g(page, (G) => G.setSpeed(1));
     const picked = await g(page, (G) => G.selected);
     const same = await g(page, (G) => { const a = G.sim.byId.get(G.selected); return a.sp as number; });
     expect(same).toBe(0);
