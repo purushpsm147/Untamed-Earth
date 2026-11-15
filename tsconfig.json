@@ -10,8 +10,8 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "isolatedModules": true,
-    "types": ["vite/client"],
+    "types": ["vite/client", "node"],
     "noEmit": true
   },
-  "include": ["packages/*/src", "apps/web/src", "tests", "benchmarks", "vitest.config.ts", "playwright.config.ts"]
+  "include": ["packages/*/src", "apps/web/src", "tests", "benchmarks", "vitest.config.ts", "playwright.config.ts", "apps/web/vite.config.ts"]
 }

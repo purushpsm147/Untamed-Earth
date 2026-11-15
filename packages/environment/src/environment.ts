@@ -27,6 +27,9 @@ export interface EnvSnapshot {
   windDir: number;
   stage: number;
   acc: number;
+  temperature: number;
+  meanMoisture: number;
+  totalVeg: number;
   params: EnvParams;
   veg: Float32Array;
   moisture: Float32Array;
@@ -353,7 +356,7 @@ export class Environment {
   snapshot(): EnvSnapshot {
     return {
       timeH: this.timeH, weather: this.weather, weatherTimer: this.weatherTimer, cloud: this.cloud, rain: this.rain,
-      wind: this.wind, windDir: this.windDir, stage: this.stage, acc: this.acc, params: { ...this.params },
+      wind: this.wind, windDir: this.windDir, stage: this.stage, acc: this.acc, temperature: this.temperature, meanMoisture: this.meanMoisture, totalVeg: this.totalVeg, params: { ...this.params },
       veg: this.veg.slice(), moisture: this.moisture.slice(), invert: this.invert.slice(), fauna: this.fauna.slice(),
       detritus: this.detritus.slice(), nutrients: this.nutrients.slice(), contam: this.contam.slice(),
     };
@@ -365,6 +368,8 @@ export class Environment {
     this.detritus.set(s.detritus); this.nutrients.set(s.nutrients); this.contam.set(s.contam);
     this.acc = s.acc;
     this.refreshAggregates();
-    this.updateTemperature();
+    this.temperature = s.temperature;
+    this.meanMoisture = s.meanMoisture;
+    this.totalVeg = s.totalVeg;
   }
 }

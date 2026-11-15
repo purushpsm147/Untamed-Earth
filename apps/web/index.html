@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="description" content="Untamed Earth: After Humanity — a living ecosystem simulation, a century after people." />
+  <title>Untamed Earth: After Humanity</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%232f5d3a'/%3E%3Cpath d='M6 20c5-9 9-9 12-4s5 3 8-2v9H6z' fill='%239ccf7a'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <canvas id="view"></canvas>
+
+  <div id="start" class="overlay">
+    <div class="card">
+      <h1>Untamed Earth</h1>
+      <h2>After Humanity</h2>
+      <p class="lede">A hundred years on, the valley belongs to the deer, the boar and the jackals. Nothing here waits for you: watch it, live in it as an animal, or change the rain and see what follows.</p>
+      <div class="row">
+        <label for="seed">World seed</label>
+        <input id="seed" type="text" inputmode="numeric" maxlength="12" value="1" />
+        <label for="startQuality">Graphics</label>
+        <select id="startQuality">
+          <option value="auto">Auto</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="ultra">Ultra</option>
+        </select>
+      </div>
+      <div class="row">
+        <button id="btnNew" class="primary">Enter the valley</button>
+        <button id="btnContinue" class="hidden">Continue saved world</button>
+      </div>
+      <p class="fine" id="startNote">Everything is generated in your browser. No account, no server.</p>
+    </div>
+  </div>
+
+  <div id="loading" class="overlay hidden"><div class="card small"><p id="loadText">Growing the valley…</p><div class="bar"><div id="loadBar"></div></div></div></div>
+  <div id="fatal" class="overlay hidden"><div class="card small"><h3>Something went wrong</h3><p id="fatalText"></p><button id="btnReload">Reload</button></div></div>
+
+  <div id="hud" class="hidden">
+    <div id="topbar">
+      <div id="clock"><div id="clockMain"></div><div id="clockSub"></div></div>
+      <div class="spacer"></div>
+      <div class="seg" id="modes">
+        <button data-mode="observer" title="Free camera">Observer</button>
+        <button data-mode="wildlife" title="Live as a spotted deer">Wildlife</button>
+        <button data-mode="experiment" title="Change conditions and watch the consequences">Experiment</button>
+      </div>
+      <div class="seg" id="speeds">
+        <button data-speed="0" title="Pause simulation">❚❚</button><button data-speed="1">1×</button><button data-speed="10">10×</button><button data-speed="100">100×</button><button data-speed="1000">1000×</button>
+      </div>
+      <button id="btnStats" title="Ecosystem statistics (Tab)">Ecosystem</button>
+      <button id="btnMenu" title="Menu (Esc)">Menu</button>
+    </div>
+
+    <div id="inspect" class="panel hidden">
+      <div class="phead"><span id="insName"></span><button id="insClose" class="x" title="Deselect">×</button></div>
+      <div id="insSci" class="fine"></div>
+      <div id="insMeta"></div>
+      <div id="insBars"></div>
+      <div class="row tight"><button id="insFollow">Follow</button><button id="insControl">Take control</button></div>
+    </div>
+
+    <div id="wild" class="panel hidden">
+      <div class="phead"><span>You are a spotted deer</span><button id="wildRelease" title="Release (X)">Release</button></div>
+      <div id="wildBars"></div>
+      <div id="wildPrompt" class="fine"></div>
+    </div>
+
+    <div id="stats" class="panel hidden">
+      <div class="phead"><span>Ecosystem</span><button id="statsClose" class="x">×</button></div>
+      <canvas id="chartPop" width="340" height="150"></canvas>
+      <div id="legend"></div>
+      <canvas id="chartEnv" width="340" height="90"></canvas>
+      <div class="fine">Forage biomass (green), soil moisture (blue), rainfall (bars)</div>
+      <table id="statTable"></table>
+    </div>
+
+    <div id="experiment" class="panel hidden">
+      <div class="phead"><span>Experiment</span></div>
+      <label>Rainfall intensity <output id="exRainOut"></output><input id="exRain" type="range" min="0" max="3" step="0.1" value="1" /></label>
+      <label>Weather pattern
+        <select id="exMode"><option value="natural">Natural seasons</option><option value="drought">Drought (no rain)</option><option value="monsoon">Persistent monsoon</option></select>
+      </label>
+      <label>Plant growth rate <output id="exVegOut"></output><input id="exVeg" type="range" min="0" max="3" step="0.1" value="1" /></label>
+      <hr />
+      <label>Species <select id="exSpecies"></select></label>
+      <label>Fertility <output id="exFertOut"></output><input id="exFert" type="range" min="0" max="3" step="0.1" value="1" /></label>
+      <div class="row tight"><button id="exAdd">Introduce 10</button><button id="exCull">Remove 10</button></div>
+      <hr />
+      <div class="row tight"><input id="exSeed" type="text" inputmode="numeric" maxlength="12" title="Scenario seed" /><button id="exReset">Reset world from seed</button></div>
+      <div class="fine">Every lever changes the simulation's inputs; the charts show what the ecosystem does with them.</div>
+    </div>
+
+    <div id="ticker"></div>
+    <pre id="diag" class="hidden"></pre>
+    <div id="touch" class="hidden">
+      <button data-hold="up">▲</button><button data-hold="down">▼</button><button data-toggle="fast">Fast</button>
+      <button data-hold="eat" class="wildOnly">Graze</button><button data-hold="drink" class="wildOnly">Drink</button><button data-act="rest" class="wildOnly">Rest</button>
+    </div>
+    <div id="stick"><div></div></div>
+    <div id="vignette"></div>
+  </div>
+
+  <div id="menu" class="overlay hidden">
+    <div class="card">
+      <h3>Paused</h3>
+      <div class="row"><button id="mResume" class="primary">Resume</button><button id="mSave">Save</button><button id="mLoad">Load</button><button id="mNew">New world…</button></div>
+      <div class="cols">
+        <div>
+          <h4>Graphics</h4>
+          <label>Quality
+            <select id="mQuality"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="ultra">Ultra</option></select>
+          </label>
+          <label class="check"><input id="mAuto" type="checkbox" /> Adapt automatically to hold frame rate</label>
+          <div class="fine" id="mGfxInfo"></div>
+          <label class="check"><input id="mDiag" type="checkbox" /> Performance diagnostics (F3)</label>
+          <h4>Audio</h4>
+          <label>Volume <input id="mVolume" type="range" min="0" max="1" step="0.05" /></label>
+          <label class="check"><input id="mMute" type="checkbox" /> Mute (M)</label>
+          <div class="fine" id="mSaveInfo"></div>
+        </div>
+        <div>
+          <h4>Controls</h4>
+          <table class="keys">
+            <tr><td>W A S D</td><td>Move</td></tr>
+            <tr><td>Space / Q</td><td>Up / down</td></tr>
+            <tr><td>Drag mouse</td><td>Look (C: capture mouse)</td></tr>
+            <tr><td>Shift · Wheel</td><td>Faster · adjust speed / zoom</td></tr>
+            <tr><td>Click</td><td>Select an animal</td></tr>
+            <tr><td>G · P</td><td>Follow · take control (deer)</td></tr>
+            <tr><td>E · F · R</td><td>As a deer: graze · drink · rest</td></tr>
+            <tr><td>X</td><td>Release animal / stop following</td></tr>
+            <tr><td>[ ]</td><td>Slower / faster time</td></tr>
+            <tr><td>Tab · F3 · M</td><td>Ecosystem · diagnostics · mute</td></tr>
+          </table>
+          <div class="fine">Touch: left thumb moves, right thumb looks, tap selects. Gamepad: sticks move and look, triggers rise and fall.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="toasts"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

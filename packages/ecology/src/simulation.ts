@@ -99,6 +99,7 @@ export interface SimSnapshot {
   statAcc: number;
   groupAcc: number;
   rainAcc: number;
+  groups: [number, number, number, number][];
 }
 
 const NO_CONTROL: ControlInput = { mx: 0, mz: 0, run: false, action: null };
@@ -140,8 +141,8 @@ export class Simulation {
     else {
       this.populate();
       this.recordStats();
+      this.rebuildGroups();
     }
-    this.rebuildGroups();
   }
 
   // ------------------------------------------------------------------ setup
@@ -1100,6 +1101,7 @@ export class Simulation {
       animals: this.animals.filter((a) => a.alive).map((a) => ({ ...a })), carcasses: this.carcasses.map((c) => ({ ...c })),
       fertility: [...this.fertility], births: [...this.births], deaths: this.deaths.map((r) => [...r]),
       history: this.history.map((h) => ({ ...h, pops: [...h.pops] })), statAcc: this.statAcc, groupAcc: this.groupAcc, rainAcc: this.rainAcc,
+      groups: [...this.groups].map(([id, g]) => [id, g.x, g.z, g.n]),
     };
   }
 
@@ -1119,6 +1121,8 @@ export class Simulation {
     this.statAcc = s.statAcc;
     this.groupAcc = s.groupAcc;
     this.rainAcc = s.rainAcc;
+    this.groups.clear();
+    for (const [id, x, z, n] of s.groups) this.groups.set(id, { x, z, n });
   }
 
   /** Order-sensitive digest of the dynamic state, for reproducibility tests. */
