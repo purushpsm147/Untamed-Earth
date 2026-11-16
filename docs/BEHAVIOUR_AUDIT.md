@@ -207,3 +207,131 @@ All of these should cost per group or per small fixed slot, not per-animal plann
   independently.
 
 None of this is implemented here. The audit changes no simulation behaviour.
+
+---
+
+# Mission 2: physical capabilities and movement (implemented on `fix/physical-locomotion`)
+
+## What changed
+| Area | Change | Replaces |
+|---|---|---|
+| `SpeciesDef.locomotion` | `wadeDepth`, `swim` (none / escape / capable / strong), `swimSpeed`, `waterAversion`, `wallows`, `evidence`. Deep wading lies between `wadeDepth` and `swimDepth` = 2 × `wadeDepth`; swimming is deeper than that. | `mass < 5` (small mammals), the jackal-only water cost, the global 0.45 m / 0.4× rule |
+| `Animal.mode` | walk / wade / swim / fly / perch, computed by the simulation each tick and saved. The renderer draws swimming only when the simulation says so. | The renderer guessing from terrain geometry |
+| Water entry | No walking deeper than `wadeDepth` unless the species may swim (escape-only species while fleeing). Retreat to shallower water is always allowed. | |
+| Swimming | Effortful: hunger as for sprinting, energy −0.15/h, no recovery. Speed × `swimSpeed`; deep wading × 0.6. | Free 0.4× movement |
+| Feeding | "Forage where I stand" passes the same depth test as other patches. Feeding depth ≤ min(0.15 m, `wadeDepth`): shallow-water feeding stays allowed. | Unchecked "here" candidate |
+| Resting | Dry-spot search out to 35 m with a shallowest-spot fallback. Wallowing species (boar) may rest in water up to `wadeDepth`. | 10 m search, else rest in place |
+| Flooding | Any grounded animal in water it may not be in heads for the shallowest ground. Birds tolerate up to 2 × `wadeDepth` so small rises at the edge don't flush them. | Small mammals only |
+| Birds and water | Water-seeking birds target the first standable point on the way to the water. No flyer touches down on water deeper than it can stand in. A flyer with no standable landing point within 60 m gives the destination up rather than hovering. | Landing at the channel centre |
+| Reachability | Animals don't choose a carcass lying in water they may not enter. | |
+| Swept movement | Each ground step is integrated in ≤ 8 sub-steps (nominally 1 m), each checked for walls, region edge and water entry. Work per animal per tick is bounded. | End-point-only check |
+| Steering | Never samples ground beyond the destination, so a target at the water's edge isn't judged blocked by the water behind it. | |
+| Flight arrival | Inside twice its turning radius a flyer slows (radius halves) and turns harder, then snaps to a target within one step. | Constant-speed orbiting |
+
+**Deviation from the approved proposal (sub-step length).** The proposal said that if a step needs more than 8 × 1 m,
+the remainder is lost.
+- Implemented instead: always ≤ 8 sub-steps, but at extreme ticks each sub-step is longer, up to ~3 m for a running
+  jackal at 1000×.
+- Reason: discarding the remainder caps every runner at 4 m/s at 1000× (jackal 11.5 → 4, hare 12 → 4). That would
+  change chase outcomes and all 1000× ecology evidence through an integration artefact, not a mechanism.
+- Cost: features narrower than ~3 m can still be clipped at 1000×. The final audit found 0.19 chital shoreline skips
+  per 100 chital-days at 1000× (from 0.64; jackal 9.4 → 0, boar 2.2 → 0, hare 0.6 → 0) and no wall passes.
+- The strict rule is a one-line change if you prefer it.
+
+## Evidence grades of the capability values
+| Species | wade / swim depth | swim | aversion | wallows | Evidence |
+|---|---|---|---|---|---|
+| Chital | 0.45 / 0.9 m | capable | 0.6 | no | wade: body size; swimming: **assumption** |
+| Boar | 0.35 / 0.7 m | strong | 0.5 | yes | wade: body size; strong swimmer, wallower: secondary sources |
+| Jackal | 0.22 / 0.44 m | capable | 1.4 | no | wade: body size; swimming: **assumption**; aversion: existing value |
+| Hare | 0.15 / 0.3 m | escape | 3 (last resort) | no | wade: body size; escape swimming: non-authoritative sources |
+| Crow | 0.05 m | none | — | no | drinks at the edge or in shallows |
+| Myna | 0.04 m | none | — | no | drinks at the edge or in shallows |
+
+## Tests
+- `tests/unit/locomotion.test.ts` (9 cases):
+  - capability table present;
+  - a bird stops at its wade depth;
+  - a thirsty bird drinks at the edge;
+  - a hare won't enter deep water unless fleeing;
+  - no grazing in deep water;
+  - rest heads for dry ground, while a wallowing boar rests in shallows;
+  - modes (swim, fly) survive save/load, and swimming is effortful;
+  - flight arrival reaches a 6 m perch at 1× instead of orbiting;
+  - the audit over 10 days shows no shoreline skipping at 1000×, no wall passing at 100×, and birds in water < 0.02% of
+    time.
+- `tests/unit/behaviour.test.ts`: the hare invariant now reads "no hare in deep water *except while escaping*", the
+  intended rule change (every deep-water hare in 10 days was fleeing).
+
+## Results (final build `cb80568`)
+Evidence lives in `docs/evidence/behaviour/`: `mission2-audit-10d-seeds1-3.json`, `mission2-audit-compare.txt`,
+`mission2-ecology-15-seeds.json` and `mission2-perf.txt`.
+
+### Audit, before → after (seeds 1–3, 10 game days; % of time, or episodes per 100 animal-days for step events)
+| Finding | 1× | 10× | 100× | 1000× |
+|---|---|---|---|---|
+| Crows standing in water | 1.11 → 0 | 1.59 → 0 | 2.28 → 0 | 2.01 → 0 |
+| Mynas standing in water | 1.50 → 0 | 1.61 → 0 | 1.68 → 0 | 2.68 → 0 |
+| Birds feeding in deep water (myna) | 0.93 → 0 | 0.82 → 0 | 0.71 → 0 | 0.88 → 0 |
+| Chital feeding in deep water | 0.37 → 0.10 | 0.43 → 0.04 | 0.59 → 0.07 | 0.42 → 0.07 |
+| Jackals resting in water | 0.37 → 0.002 | 0.91 → 0.02 | 1.43 → 0.02 | 0.80 → 0.04 |
+| Chital resting in water | 0.15 → 0.02 | 0.40 → 0.03 | 0.57 → 0.02 | 0.62 → 0.03 |
+| Boar resting in water (wallowing, intended) | 0.36 → 1.17 | 0.23 → 1.39 | 0.34 → 2.06 | 0.23 → 2.53 |
+| Shoreline skips (jackal / boar / hare / chital) | 0 | 0 | 0 | 9.4 / 2.2 / 0.6 / 0.64 → 0 / 0 / 0 / 0.19 |
+| Passing through walls (all species) | 0 | 0 | 3.0 → 0 | 0.05 → 0 |
+| Birds orbiting / stuck (crow) | 2.56 → 0.08 | 4.06 → 0.05 | 0.54 → 0.05 | 0.14 → 0.12 |
+| Diurnal birds travelling in darkness (crow) | 10.4 → 3.8 | 10.8 → 4.0 | 2.9 → 3.7 | 4.0 → 2.8 |
+
+Residuals, for Mission 3 rather than for this PR:
+- **Retry loops** (re-choosing an abandoned destination):
+  - Hares 0.2 → 28 per 100 hare-days at 1×. Their 15 cm wade limit now blocks routes they used to wade, and nothing
+    remembers that the target is unreachable.
+  - Chital 10 → 45 at 1×, with similar values at other speeds.
+  - Jackal carcass loops improved at 1× (3,244 → 935) but rose at 10–1000× (about 1,600 → 2,170). Deep wading now
+    costs jackals from 22 cm.
+  - Jackal stuck time rose at 10–1000× (1.2 → 2.2% at 10×).
+  - All of these are the failed-target-memory problem (finding 9). The fix belongs in Mission 3, not in water rules.
+- **Grade:** marginal sub-metre exceedances for hares (0.5 → 1.3 per 100 hare-days at 10×). Interpolation noise.
+- **Darkness travel** remains 2–4% of crow and myna time (carrion trips). Activity gating is Mission 3.
+
+### Ecology: 15 seeds × 365 game days (≈ 7.6 life-years), identical weather, against integration `5cf7b4a`
+| Measure | baseline | this PR |
+|---|---|---|
+| Extinct: chital / jackal / hare | 3 / 8 / 4 of 15 | 3 / 5 / 5 of 15 (Fisher p 1.0 / 0.46 / 1.0) |
+| All six persist | 3/15 | 5/15 |
+| Median day-365 chital / boar / jackal / hare / crow / myna | 6 / 11 / 0 / 9 / 67 / 64 | 5 / 14 / 1 / 36 / 68 / 62 |
+| Hare: median minimum after day 30 / CV days 183–365 | 5 / 0.79 | 14 / 0.44 |
+| Chases / kills (total) | 31,767 / 4,072 | 42,723 / 5,032 |
+| Kills per chase | 0.128 | 0.118 |
+| Kills per jackal-day | 0.125 | **0.149** |
+| Predation: hare / chital / boar | 2,651 / 534 / 887 | 3,317 / 629 / 1,086 |
+| Starvation: hare / chital / boar / myna | 3,098 / 877 / 1,473 / 142 | 2,335 / 826 / 1,592 / 181 |
+| Dehydration: chital / hare / crow / myna | 9 / 16 / 9 / 5 | 19 / 18 / 12 / 14 |
+
+**Interpretation.**
+- **Predator access rose.** Kills per jackal-day are up 19% and chases up 34%, even though kills per chase fell.
+  Plausible contributors:
+  - Prey can no longer escape by jumping the river at 1000×.
+  - Steering no longer refuses destinations at the water's edge, so jackals can now approach prey there.
+
+  This is a mechanism change, not tuning, but it moves the predator–prey balance and is reported as such.
+- **Hares are better off despite more predation.** Less starvation and much less boom-and-bust.
+- **Extinction differences are not significant at n = 15.**
+- **Dehydration rose modestly for chital and mynas** (small absolute numbers). An intermediate build showed crow 76 and
+  myna 42 dehydration deaths from birds hovering over water with nowhere to land. That was fixed before this
+  measurement (commit `cb80568`).
+
+### Performance (single runs on one container; same machine, sequential)
+`node --import tsx benchmarks/locomotion-bench.ts`, ms per tick:
+
+| Animals | 1× before → after | 1000× before → after |
+|---|---|---|
+| 250 | 0.66 → 0.85 | 1.14 → 1.12 |
+| 1,000 | 1.66 → 1.53 | 2.91 → 3.34 |
+| 5,000 | 6.21 → 6.67 | 33.4 → 34.0 |
+| 10,000 | 18.9 → 21.4 | 151 → 154 |
+
+- The sub-step loop and landing checks cost about 0–15% at large populations.
+- The 1000× cost at 10k animals is dominated by existing per-tick work, not movement.
+- No new per-tick allocations: sub-steps use locals; the landing search allocates a small result object only on
+  landing decisions.
