@@ -1,0 +1,13 @@
+{
+  "name": "untamed-spatial-bvh-experiment",
+  "private": true,
+  "type": "module",
+  "description": "Unmerged, isolated spatial-query benchmark; not loaded by the game or npm workspaces",
+  "scripts": {
+    "bench": "node run.mjs"
+  },
+  "dependencies": {
+    "three": "0.187.0",
+    "three-mesh-bvh": "0.9.18"
+  }
+}
