@@ -1,0 +1,773 @@
+{
+ "meta": {
+  "days": 365,
+  "dt": 2,
+  "species": [
+   "chital",
+   "boar",
+   "jackal",
+   "hare",
+   "crow",
+   "myna"
+  ],
+  "lifeYearDays": 48,
+  "generated": "2026-11-16T18:09:11.379Z",
+  "source": "/tmp/claude-0/-home-user-Untamed-Earth/86a1f3fb-40f1-5725-b28f-db92894a3eb6/scratchpad/g2ev",
+  "baseline": "integration 5cf7b4a (PR #20 merged)"
+ },
+ "variants": {
+  "baseline": {
+   "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "extinctCounts": {
+    "chital": 3,
+    "boar": 0,
+    "jackal": 8,
+    "hare": 4,
+    "crow": 0,
+    "myna": 0
+   },
+   "allSixPersist": 3,
+   "medianEnd": {
+    "chital": 6,
+    "boar": 11,
+    "jackal": 0,
+    "hare": 9,
+    "crow": 67,
+    "myna": 64
+   },
+   "medianJackalLitters": 8,
+   "medianKillsPerChase": 0.129,
+   "medianKills": 276,
+   "medianChitalStarvation": 54,
+   "medianChitalPredation": 32,
+   "medianJackalDehydration": 0,
+   "perSeedEnd": {
+    "1": [
+     2,
+     9,
+     2,
+     20,
+     53,
+     82
+    ],
+    "2": [
+     32,
+     1,
+     0,
+     144,
+     72,
+     135
+    ],
+    "3": [
+     0,
+     15,
+     0,
+     21,
+     67,
+     64
+    ],
+    "4": [
+     12,
+     29,
+     0,
+     208,
+     63,
+     41
+    ],
+    "5": [
+     5,
+     10,
+     5,
+     0,
+     70,
+     41
+    ],
+    "6": [
+     3,
+     5,
+     3,
+     0,
+     58,
+     75
+    ],
+    "7": [
+     14,
+     11,
+     0,
+     29,
+     102,
+     61
+    ],
+    "8": [
+     1,
+     8,
+     0,
+     131,
+     64,
+     66
+    ],
+    "9": [
+     9,
+     13,
+     12,
+     0,
+     60,
+     31
+    ],
+    "10": [
+     7,
+     16,
+     0,
+     4,
+     83,
+     31
+    ],
+    "11": [
+     9,
+     2,
+     3,
+     4,
+     51,
+     71
+    ],
+    "12": [
+     20,
+     23,
+     1,
+     46,
+     88,
+     121
+    ],
+    "13": [
+     0,
+     13,
+     0,
+     0,
+     86,
+     59
+    ],
+    "14": [
+     0,
+     13,
+     3,
+     3,
+     91,
+     62
+    ],
+    "15": [
+     6,
+     6,
+     0,
+     9,
+     41,
+     82
+    ]
+   },
+   "deathTotals": {
+    "predation": {
+     "chital": 534,
+     "boar": 887,
+     "jackal": 0,
+     "hare": 2651,
+     "crow": 0,
+     "myna": 0
+    },
+    "starvation": {
+     "chital": 877,
+     "boar": 1473,
+     "jackal": 142,
+     "hare": 3098,
+     "crow": 15,
+     "myna": 142
+    },
+    "dehydration": {
+     "chital": 9,
+     "boar": 0,
+     "jackal": 0,
+     "hare": 16,
+     "crow": 9,
+     "myna": 5
+    }
+   },
+   "medianCVdays183to365": {
+    "chital": 0.468,
+    "boar": 0.494,
+    "jackal": 0.434,
+    "hare": 0.789,
+    "crow": 0.167,
+    "myna": 0.146
+   },
+   "seedsWithCrashTo20pctOfPeak": {
+    "chital": 13,
+    "boar": 11,
+    "jackal": 10,
+    "hare": 11,
+    "crow": 0,
+    "myna": 0
+   },
+   "medianMinPopAfterDay30": {
+    "chital": 5,
+    "boar": 11,
+    "jackal": 0,
+    "hare": 5,
+    "crow": 40,
+    "myna": 48
+   },
+   "dehydrationBehaviour": {
+    "hare": {
+     "Wandering": 7,
+     "Seeking water": 6,
+     "Idle": 2,
+     "Fleeing": 1
+    },
+    "crow": {
+     "Idle": 1,
+     "Seeking water": 6,
+     "Roosting": 2
+    },
+    "chital": {
+     "Fleeing": 2,
+     "Seeking water": 5,
+     "Following mother": 2
+    },
+    "myna": {
+     "Idle": 1,
+     "Seeking water": 4
+    }
+   },
+   "jackalExtinctSeeds": [
+    2,
+    3,
+    4,
+    7,
+    8,
+    10,
+    13,
+    15
+   ],
+   "allSixPersistSeeds": [
+    1,
+    11,
+    12
+   ]
+  },
+  "jackal-veg-0.3": {
+   "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "extinctCounts": {
+    "chital": 2,
+    "boar": 1,
+    "jackal": 8,
+    "hare": 5,
+    "crow": 0,
+    "myna": 0
+   },
+   "allSixPersist": 3,
+   "medianEnd": {
+    "chital": 7,
+    "boar": 11,
+    "jackal": 0,
+    "hare": 62,
+    "crow": 74,
+    "myna": 69
+   },
+   "medianJackalLitters": 11,
+   "medianKillsPerChase": 0.129,
+   "medianKills": 270,
+   "medianChitalStarvation": 52,
+   "medianChitalPredation": 42,
+   "medianJackalDehydration": 0,
+   "perSeedEnd": {
+    "1": [
+     2,
+     17,
+     3,
+     0,
+     57,
+     73
+    ],
+    "2": [
+     36,
+     3,
+     0,
+     230,
+     74,
+     81
+    ],
+    "3": [
+     9,
+     9,
+     0,
+     35,
+     39,
+     24
+    ],
+    "4": [
+     15,
+     70,
+     0,
+     94,
+     68,
+     70
+    ],
+    "5": [
+     4,
+     12,
+     23,
+     86,
+     87,
+     69
+    ],
+    "6": [
+     6,
+     50,
+     0,
+     151,
+     71,
+     77
+    ],
+    "7": [
+     7,
+     10,
+     1,
+     78,
+     84,
+     66
+    ],
+    "8": [
+     6,
+     11,
+     0,
+     165,
+     85,
+     23
+    ],
+    "9": [
+     20,
+     16,
+     0,
+     62,
+     93,
+     49
+    ],
+    "10": [
+     22,
+     2,
+     24,
+     0,
+     104,
+     103
+    ],
+    "11": [
+     7,
+     0,
+     10,
+     0,
+     40,
+     65
+    ],
+    "12": [
+     13,
+     20,
+     8,
+     140,
+     93,
+     115
+    ],
+    "13": [
+     0,
+     12,
+     0,
+     0,
+     62,
+     35
+    ],
+    "14": [
+     0,
+     7,
+     0,
+     20,
+     74,
+     63
+    ],
+    "15": [
+     12,
+     6,
+     11,
+     0,
+     70,
+     89
+    ]
+   },
+   "deathTotals": {
+    "predation": {
+     "chital": 689,
+     "boar": 750,
+     "jackal": 0,
+     "hare": 2914,
+     "crow": 0,
+     "myna": 0
+    },
+    "starvation": {
+     "chital": 798,
+     "boar": 1249,
+     "jackal": 148,
+     "hare": 3002,
+     "crow": 49,
+     "myna": 172
+    },
+    "dehydration": {
+     "chital": 7,
+     "boar": 0,
+     "jackal": 0,
+     "hare": 9,
+     "crow": 9,
+     "myna": 6
+    }
+   },
+   "medianCVdays183to365": {
+    "chital": 0.537,
+    "boar": 0.493,
+    "jackal": 0.448,
+    "hare": 0.503,
+    "crow": 0.163,
+    "myna": 0.142
+   },
+   "seedsWithCrashTo20pctOfPeak": {
+    "chital": 11,
+    "boar": 11,
+    "jackal": 9,
+    "hare": 8,
+    "crow": 0,
+    "myna": 0
+   },
+   "medianMinPopAfterDay30": {
+    "chital": 7,
+    "boar": 10,
+    "jackal": 0,
+    "hare": 19,
+    "crow": 41,
+    "myna": 50
+   },
+   "dehydrationBehaviour": {
+    "hare": {
+     "Wandering": 6,
+     "Seeking water": 2,
+     "Fleeing": 1
+    },
+    "crow": {
+     "Seeking water": 7,
+     "Roosting": 1,
+     "Idle": 1
+    },
+    "chital": {
+     "Seeking water": 6,
+     "Fleeing": 1
+    },
+    "myna": {
+     "Seeking water": 4,
+     "Idle": 2
+    }
+   },
+   "jackalExtinctSeeds": [
+    2,
+    3,
+    4,
+    6,
+    8,
+    9,
+    13,
+    14
+   ],
+   "allSixPersistSeeds": [
+    5,
+    7,
+    12
+   ]
+  },
+  "jackal-veg-0.5": {
+   "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "extinctCounts": {
+    "chital": 2,
+    "boar": 1,
+    "jackal": 7,
+    "hare": 0,
+    "crow": 0,
+    "myna": 0
+   },
+   "allSixPersist": 6,
+   "medianEnd": {
+    "chital": 5,
+    "boar": 12,
+    "jackal": 1,
+    "hare": 62,
+    "crow": 76,
+    "myna": 67
+   },
+   "medianJackalLitters": 6,
+   "medianKillsPerChase": 0.13,
+   "medianKills": 187,
+   "medianChitalStarvation": 69,
+   "medianChitalPredation": 27,
+   "medianJackalDehydration": 0,
+   "perSeedEnd": {
+    "1": [
+     4,
+     2,
+     1,
+     54,
+     73,
+     89
+    ],
+    "2": [
+     6,
+     18,
+     0,
+     62,
+     75,
+     74
+    ],
+    "3": [
+     0,
+     12,
+     25,
+     3,
+     48,
+     60
+    ],
+    "4": [
+     6,
+     35,
+     2,
+     71,
+     76,
+     57
+    ],
+    "5": [
+     5,
+     15,
+     0,
+     175,
+     71,
+     68
+    ],
+    "6": [
+     2,
+     15,
+     0,
+     173,
+     58,
+     67
+    ],
+    "7": [
+     9,
+     20,
+     0,
+     2,
+     85,
+     52
+    ],
+    "8": [
+     8,
+     9,
+     5,
+     9,
+     96,
+     65
+    ],
+    "9": [
+     4,
+     12,
+     0,
+     123,
+     126,
+     79
+    ],
+    "10": [
+     23,
+     17,
+     1,
+     2,
+     91,
+     59
+    ],
+    "11": [
+     1,
+     0,
+     4,
+     17,
+     62,
+     98
+    ],
+    "12": [
+     10,
+     23,
+     7,
+     26,
+     83,
+     86
+    ],
+    "13": [
+     18,
+     3,
+     2,
+     144,
+     81,
+     48
+    ],
+    "14": [
+     0,
+     12,
+     0,
+     67,
+     62,
+     14
+    ],
+    "15": [
+     5,
+     7,
+     0,
+     182,
+     79,
+     76
+    ]
+   },
+   "deathTotals": {
+    "predation": {
+     "chital": 473,
+     "boar": 686,
+     "jackal": 0,
+     "hare": 2475,
+     "crow": 0,
+     "myna": 0
+    },
+    "starvation": {
+     "chital": 994,
+     "boar": 1547,
+     "jackal": 69,
+     "hare": 4030,
+     "crow": 8,
+     "myna": 202
+    },
+    "dehydration": {
+     "chital": 9,
+     "boar": 0,
+     "jackal": 0,
+     "hare": 10,
+     "crow": 10,
+     "myna": 10
+    }
+   },
+   "medianCVdays183to365": {
+    "chital": 0.548,
+    "boar": 0.395,
+    "jackal": 0.629,
+    "hare": 0.391,
+    "crow": 0.179,
+    "myna": 0.159
+   },
+   "seedsWithCrashTo20pctOfPeak": {
+    "chital": 13,
+    "boar": 10,
+    "jackal": 6,
+    "hare": 8,
+    "crow": 0,
+    "myna": 1
+   },
+   "medianMinPopAfterDay30": {
+    "chital": 5,
+    "boar": 12,
+    "jackal": 1,
+    "hare": 34,
+    "crow": 42,
+    "myna": 49
+   },
+   "dehydrationBehaviour": {
+    "hare": {
+     "Wandering": 8,
+     "Idle": 1,
+     "Seeking water": 1
+    },
+    "myna": {
+     "Seeking water": 6,
+     "Idle": 2,
+     "Roosting": 2
+    },
+    "crow": {
+     "Seeking water": 9,
+     "Idle": 1
+    },
+    "chital": {
+     "Seeking water": 6,
+     "Fleeing": 1,
+     "Following mother": 1,
+     "Idle": 1
+    }
+   },
+   "jackalExtinctSeeds": [
+    2,
+    5,
+    6,
+    7,
+    9,
+    14,
+    15
+   ],
+   "allSixPersistSeeds": [
+    1,
+    4,
+    8,
+    10,
+    12,
+    13
+   ]
+  }
+ }
+}
