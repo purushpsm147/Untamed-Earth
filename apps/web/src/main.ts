@@ -202,8 +202,8 @@ if (profiling) {
   panel.id = 'profilePanel';
   panel.style.cssText = 'position:fixed;left:12px;top:64px;z-index:30;max-width:460px;max-height:70vh;overflow:auto;background:rgba(10,14,12,.88);color:#cfe3b6;font:12px/1.5 ui-monospace,monospace;padding:10px 12px;border-radius:8px;white-space:pre-wrap';
   panel.textContent = params.has('uploadOnly')
-    ? 'Animal A/B High-only profile: enter the valley and keep this tab visible. Download JSON when done.\\n'.replace('\\n', '\n')
-    : 'Profiling: press "Enter the valley" (Auto is fine). The run takes about 5 minutes; keep this tab visible.\\n'.replace('\\n', '\n');
+    ? 'Animal A/B High-only profile: enter the valley and keep this tab visible. Download JSON when done.\n'
+    : 'Profiling: press "Enter the valley" (Auto is fine). The run takes about 5 minutes; keep this tab visible.\n';
   document.body.appendChild(panel);
   const log = (l: string): void => {
     panel.textContent += l + '\n';
