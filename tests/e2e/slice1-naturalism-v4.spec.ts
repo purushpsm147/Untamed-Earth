@@ -22,6 +22,14 @@ test.describe('V4 skinned chital — opt-in, isolated renderer experiment', () =
       const geo = rig.skinnedBody.geometry;
       const idx = geo.index!;
       expect(idx).toBeTruthy();
+      const vertexCount = geo.getAttribute('position').count;
+      // Topological closure alone can be falsely green when the cap indices
+      // reference vertices never uploaded to the GPU. Guard every attribute.
+      const maxIndex = Math.max(...Array.from(idx.array));
+      expect(maxIndex, 'No triangle may reference a missing GPU vertex').toBeLessThan(vertexCount);
+      for (const name of ['aBodyPos', 'uv', 'skinIndex', 'skinWeight']) {
+        expect(geo.getAttribute(name).count, `${name} count`).toBe(vertexCount);
+      }
       const edges = new Map<string, number>();
       for (let i = 0; i < idx.count; i += 3) {
         const v = [idx.getX(i), idx.getX(i + 1), idx.getX(i + 2)];
