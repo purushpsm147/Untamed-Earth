@@ -1,0 +1,27 @@
+name: Experimental spatial query baseline
+on:
+  push:
+    branches:
+      - experiment/spatial-query-baseline
+  workflow_dispatch:
+jobs:
+  spatial-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Typecheck all benchmark fixtures
+        run: npm run typecheck
+      - name: Compare deterministic static-ray fixtures with strict distance/hit parity
+        run: npm run bench:spatial -- --quick --out=docs/evidence/tech-experiments/spatial-baseline-ci.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spatial-baseline-quick
+          path: docs/evidence/tech-experiments/spatial-baseline-ci.json
+          retention-days: 14
