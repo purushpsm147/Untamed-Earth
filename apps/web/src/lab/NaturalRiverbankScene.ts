@@ -1459,6 +1459,10 @@ export class NaturalRiverbankApp {
         <button id="slice-mode-naturalistic" style="flex:1;padding:6px;border-radius:5px;border:1px solid #7cb368;background:#28422b;color:#fff;cursor:pointer;font-weight:600;">Naturalistic (Vertical Slice)</button>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <button id="slice-variant-v3" style="flex:1;padding:5px;border-radius:5px;border:1px solid rgba(255,255,255,0.18);background:#18201b;color:#dce5de;cursor:pointer;">Deer V3 (Reference)</button>
+        <button id="slice-variant-v4" style="flex:1;padding:5px;border-radius:5px;border:1px solid rgba(255,255,255,0.18);background:#18201b;color:#dce5de;cursor:pointer;">Deer V4 (Experimental)</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
         <button id="slice-shot-riverbank_vista" style="flex:1;padding:5px;border-radius:5px;border:1px solid rgba(255,255,255,0.18);background:#18201b;color:#dce5de;cursor:pointer;">Shot 1: Riverbank Vista</button>
         <button id="slice-shot-chital_closeup" style="flex:1;padding:5px;border-radius:5px;border:1px solid rgba(255,255,255,0.18);background:#18201b;color:#dce5de;cursor:pointer;">Shot 2: Chital Close-Up</button>
       </div>
@@ -1468,6 +1472,14 @@ export class NaturalRiverbankApp {
     document.body.appendChild(panel);
     this.hudEl = panel.querySelector('#slice-telemetry');
 
+    panel.querySelector('#slice-variant-v3')?.addEventListener('click', () => {
+      this.v3.setVariant('v3');
+      this.setMode('naturalistic');
+    });
+    panel.querySelector('#slice-variant-v4')?.addEventListener('click', () => {
+      this.v3.setVariant('v4');
+      this.setMode('naturalistic');
+    });
     panel.querySelector('#slice-mode-baseline')?.addEventListener('click', () => this.setMode('baseline'));
     panel
       .querySelector('#slice-mode-naturalistic')
@@ -1487,7 +1499,7 @@ export class NaturalRiverbankApp {
     const pose = this.getShotCameraPose(this.currentShot);
     const i = this.renderer.info;
     this.hudEl.textContent = [
-      `Shot: ${this.currentShot} | Mode: ${this.currentMode}`,
+      `Shot: ${this.currentShot} | Mode: ${this.currentMode} | Rig: ${window.__SLICE1_DIAGNOSTICS__?.variant ?? 'v3'}`,
       `Cam Y: ${pose.cam[1].toFixed(2)}m (Ground: ${pose.groundAtCam.toFixed(2)}m — Clearance +${(pose.cam[1] - pose.groundAtCam).toFixed(2)}m)`,
       `Draws: ${i.render.calls} | Tris: ${(i.render.triangles / 1000).toFixed(1)}k | Geos: ${i.memory.geometries} | Tex: ${i.memory.textures}`,
       `Herd Poses: ${this.focalAnimals.map((f) => f.poseLabel).slice(0, 5).join(', ')}`,
