@@ -1555,8 +1555,12 @@ export function mountNaturalRiverbankSlice(
   const q = new URLSearchParams(location.search);
   const shot = q.get('preset');
   if (shot === 'riverbank_vista' || shot === 'chital_closeup') app.selectShot(shot);
+  // The V4 skinned deer rig is opt-in and reuses this exact scene/renderer.
+  // All original mode=baseline|naturalistic and camera controls stay intact.
+  if (q.get('variant') === 'v4') app.v3.setVariant('v4');
   const mode = q.get('mode');
   if (mode === 'baseline' || mode === 'naturalistic') app.setMode(mode);
+  else if (q.get('variant') === 'v4') app.setMode('naturalistic');
   window.__SLICE1_CONTROLLER__ = app.v3;
   app.mountUI();
   app.startLoop();
