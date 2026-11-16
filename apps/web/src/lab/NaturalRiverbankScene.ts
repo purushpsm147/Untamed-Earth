@@ -895,6 +895,30 @@ export class NaturalRiverbankApp {
       scene: this.scene,
       renderer: this.renderer,
       sampleTerrainHeight: (x, z) => this.sim.valley.height(x, z),
+      legacyRiparianGroup: this.riparianKit.group,
+      // Generate the opt-in V4 ecotone in LOCAL coordinates, but ground every
+      // plant against the same authoritative valley geometry and water surface.
+      v4Vegetation: {
+        originX: valley.riverX(this.anchorZ) - 12,
+        originZ: this.anchorZ,
+        qualityTier: quality === 'low' ? 'low' : quality === 'medium' ? 'medium' : 'high',
+        sampleEcotone: (lx, lz) => {
+          const wz = this.anchorZ + lz;
+          const wx = valley.riverX(this.anchorZ) - 12 + lx;
+          const elevation = valley.height(wx, wz);
+          const waterLevel = valley.waterSurface(wz) + this.sim.env.stage;
+          const eps = 0.35;
+          const dhdx = (valley.height(wx + eps, wz) - valley.height(wx - eps, wz)) / (2 * eps);
+          const dhdz = (valley.height(wx, wz + eps) - valley.height(wx, wz - eps)) / (2 * eps);
+          // Valley's channel half-width varies approximately 7.5–10.5 m.
+          // This signed distance is a visual zoning approximation, not ecology.
+          const distToWater = Math.abs(wx - valley.riverX(wz)) - 9;
+          return {
+            x: lx, z: lz, elevation, waterLevel, distToWater,
+            slopeRadians: Math.atan(Math.hypot(dhdx, dhdz)),
+          };
+        },
+      },
       herdStates: this.focalAnimals.map(a => ({
         id: a.id, x: a.x, z: a.z, heading: a.heading, speed: a.speed,
         state: poseOf(a.poseLabel), alertLevel: a.fear,
