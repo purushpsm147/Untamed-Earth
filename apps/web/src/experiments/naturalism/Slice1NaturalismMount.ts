@@ -9,6 +9,8 @@ import {
 } from './NaturalRiverbankLab';
 import { ChitalPrototypeV4 } from './ChitalPrototypeV4';
 import type { ChitalSimInput, ChitalGroundingDiagnostic } from './ChitalPrototypeV4';
+import { RiparianVegetationKit } from './RiparianVegetationKitV4';
+import type { EcotoneSampleContext } from './RiparianVegetationKitV4';
 
 export interface Slice1Diagnostics {
   readonly mode: 'baseline' | 'naturalistic';
@@ -40,6 +42,14 @@ export interface Slice1HerdBindings {
   readonly renderer: THREE.WebGLRenderer;
   readonly sampleTerrainHeight: (x: number, z: number) => number;
   readonly herdStates: readonly ReadonlyAnimalAnimState[];
+  readonly legacyRiparianGroup?: THREE.Group;
+  /** V4 vegetation placement is relative to the existing valley, never a second terrain. */
+  readonly v4Vegetation?: {
+    readonly originX: number;
+    readonly originZ: number;
+    readonly qualityTier: 'low' | 'medium' | 'high';
+    readonly sampleEcotone: (x: number, z: number) => EcotoneSampleContext;
+  };
 }
 
 export class Slice1NaturalismController {
@@ -48,6 +58,7 @@ export class Slice1NaturalismController {
   private rigs: ArticulatedChitalRig[] = [];
   private groupRoot = new THREE.Group();
   private readonly v4Root = new THREE.Group();
+  private readonly v4Vegetation: RiparianVegetationKit | null;
   private readonly v4Rigs: ChitalPrototypeV4[] = [];
   private variant: 'v3' | 'v4' = 'v3';
   private lastV4Sec: number | null = null;
@@ -78,6 +89,18 @@ export class Slice1NaturalismController {
       this.v4Root.add(v4.root);
     }
     bindings.scene.add(this.v4Root);
+    const eco = bindings.v4Vegetation;
+    this.v4Vegetation = eco ? new RiparianVegetationKit({
+      seed: 150,
+      boundsRadius: 48,
+      qualityTier: eco.qualityTier,
+      sampleEcotone: eco.sampleEcotone,
+    }) : null;
+    if (this.v4Vegetation && eco) {
+      this.v4Vegetation.group.position.set(eco.originX, 0, eco.originZ);
+      this.v4Vegetation.group.visible = false;
+      bindings.scene.add(this.v4Vegetation.group);
+    }
   }
 
   private toV4Input(st: ReadonlyAnimalAnimState): ChitalSimInput {
@@ -97,6 +120,7 @@ export class Slice1NaturalismController {
     this.variant = variant;
     this.groupRoot.visible = false;
     this.v4Root.visible = false;
+    if (this.v4Vegetation) this.v4Vegetation.group.visible = false;
     this.lastV4Sec = null;
     this.resetFramePacingSamples();
   }
@@ -104,6 +128,8 @@ export class Slice1NaturalismController {
   public setMode(mode: 'baseline' | 'naturalistic'): void {
     this.groupRoot.visible = mode === 'naturalistic' && this.variant === 'v3';
     this.v4Root.visible = mode === 'naturalistic' && this.variant === 'v4';
+    if (this.v4Vegetation) this.v4Vegetation.group.visible = this.v4Root.visible;
+    if (this.bindings.legacyRiparianGroup) this.bindings.legacyRiparianGroup.visible = this.groupRoot.visible;
   }
 
   public resetFramePacingSamples(): void {
@@ -127,6 +153,7 @@ export class Slice1NaturalismController {
       }
     }
     this.lastFrameTimestamp = now;
+    this.v4Vegetation?.update(timeSec);
 
     this.setMode(mode);
 
@@ -212,6 +239,10 @@ export class Slice1NaturalismController {
 
   public dispose(): void {
     this.bindings.scene.remove(this.groupRoot, this.v4Root);
+    if (this.v4Vegetation) {
+      this.bindings.scene.remove(this.v4Vegetation.group);
+      this.v4Vegetation.dispose();
+    }
     for (const v4 of this.v4Rigs) v4.dispose();
     this.v4Rigs.length = 0;
     this.tracker.disposeAll();
