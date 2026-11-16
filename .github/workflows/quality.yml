@@ -36,8 +36,8 @@ jobs:
       # Capture experiment evidence before unrelated gameplay tests that can be
       # timing-sensitive under SwiftShader. Both remain mandatory CI stages.
       - name: Visual naturalism 720p/1080p A/B screenshots (SwiftShader)
-        if: github.head_ref == 'experiment/gemini-natural-riverbank' || github.ref_name == 'experiment/gemini-natural-riverbank'
-        run: npx playwright test --project=naturalism --project=naturalism-v3
+        if: github.head_ref == 'experiment/gemini-natural-riverbank' || github.ref_name == 'experiment/gemini-natural-riverbank' || github.head_ref == 'experiment/gpt6-v4-realism' || github.ref_name == 'experiment/gpt6-v4-realism'
+        run: npx playwright test --project=naturalism --project=naturalism-v3 --project=naturalism-v4
       - name: Browser smoke, reliability and gameplay suites (software renderer)
         run: npm run test:e2e -- --trace retain-on-failure
       - name: Upload Playwright reports, if produced
@@ -49,5 +49,6 @@ jobs:
             test-artifacts/playwright/
             test-results/naturalism-slice/
             docs/evidence/slice1-v3/
+            docs/evidence/slice1-v4/
           if-no-files-found: ignore
           retention-days: 7
