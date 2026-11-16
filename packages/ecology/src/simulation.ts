@@ -128,6 +128,10 @@ const STEER_OFFSETS = [0, 0.35, -0.35, 0.8, -0.8, 1.35, -1.35, 2.0, -2.0, 2.7, -
 /** Grades (rise/run) a ground animal will not climb or descend. */
 const MAX_UP_GRADE = 0.95;
 const MAX_DOWN_GRADE = 1.3;
+/** Thirst above which the emergency layer sends an animal to water (thirst saturates ~5 h later, then health drains). */
+export const CRITICAL_THIRST = 0.85;
+/** Daylight below which a diurnal animal settled on its roost/rest site waits for first light before going to water. */
+const DARK = 0.1;
 
 /** Ground locomotion limits from body size: heavier animals accelerate and turn less sharply. */
 function locomotion(sp: SpeciesDef): { accel: number; decel: number; agility: number } {
@@ -519,6 +523,29 @@ export class Simulation {
   }
 
   // ------------------------------------------------------------------ perception & decisions
+  /** Head for known or nearby water; with no idea where water is, range further afield. */
+  private decideWater(a: Animal, sp: SpeciesDef, vis: number): void {
+    const env = this.env;
+    let wx = a.waterX;
+    let wz = a.waterZ;
+    if (Number.isNaN(wx) || this.rng.chance(0.15)) {
+      // look for water within sensory range; otherwise fall back on the group's traditional knowledge
+      const site = env.findWater(a.x, a.z, Math.max(vis * 1.5, 140)) ?? (a.thirst > 0.55 ? env.findWater(a.x, a.z, sp.homeRange * 2.5 + 250) : null);
+      if (site) {
+        wx = a.waterX = site.x;
+        wz = a.waterZ = site.z;
+      }
+    }
+    if (Number.isNaN(wx)) {
+      this.startWander(a, sp, 2.5);
+    } else {
+      a.beh = B.SeekWater;
+      a.tx = wx;
+      a.tz = wz;
+      a.tAlt = 0;
+    }
+  }
+
   private activity(sp: SpeciesDef): number {
     const light = this.env.daylight();
     if (sp.activity === 'diurnal') return light;
@@ -648,18 +675,33 @@ export class Simulation {
       this.startFlee(a, sp);
       return;
     }
+    // dependent young shadow the mother (they are provisioned: their thirst and hunger track hers)
+    const mother = a.mother !== 0 && a.age < weanDays(sp) ? this.byId.get(a.mother) : undefined;
+    const dependent = mother !== undefined && mother.alive;
+
+    // ---- physiological emergency layer (docs/ECOLOGICAL_STABILITY_REPORT.md, "Behavioural priority policy") ----
+    // Order: flood escape > flee > emergency > committed actions > dependent young > utilities.
+    // Critical thirst (> CRITICAL_THIRST) interrupts feeding, chasing, stalking, resting, mating and regrouping and
+    // sends the animal to water; drinking itself is never interrupted, and escape (above) still wins. The one deferral
+    // is activity-pattern based, not species based: a diurnal animal already settled on its roost/rest site in darkness
+    // stays there until first light (thirst saturates ~5 h after the threshold and then drains health at 0.02/h, so a
+    // night's wait costs at most ~0.1 health; an animal already near death can still die, which is honest). A diurnal
+    // animal that is up and moving at night anyway (e.g. after a disturbance) goes to water rather than to food.
+    const restingInDark = sp.activity === 'diurnal' && env.daylight() < DARK && (a.beh === B.Roost || a.beh === B.Rest);
+    if (!dependent && a.thirst > CRITICAL_THIRST && a.beh !== B.Drink && !restingInDark) {
+      if (a.beh === B.SeekWater) return; // committed to the journey
+      this.decideWater(a, sp, vis);
+      return;
+    }
+
     // committed actions are not interrupted by the periodic re-evaluation
     if (a.beh === B.Chase || a.beh === B.Drink) return;
     if (a.beh === B.Feed && a.hunger > 0.05) return;
 
-    // dependent young shadow the mother
-    if (a.mother !== 0 && a.age < weanDays(sp)) {
-      const m = this.byId.get(a.mother);
-      if (m && m.alive) {
-        a.beh = B.Follow;
-        a.targetId = m.id;
-        return;
-      }
+    if (dependent) {
+      a.beh = B.Follow;
+      a.targetId = mother.id;
+      return;
     }
 
     // ---- utilities ----
@@ -673,10 +715,8 @@ export class Simulation {
         best = b;
       }
     };
-    // Critical thirst outranks every other need: dehydration drains health ~1.7x faster than starvation, so a
-    // severely dehydrated animal goes to water first (without this, a hungry animal could keep choosing a carcass it
-    // could not reach and die of thirst beside the river: docs/ECOLOGICAL_STABILITY_REPORT.md, finding 1).
-    if (a.thirst > 0.3) consider(B.SeekWater, Math.pow(a.thirst, 1.4) * 1.25 + (a.thirst > 0.85 ? 0.6 : 0));
+    // ordinary (non-critical) thirst competes with the other needs; critical thirst is handled by the emergency layer
+    if (a.thirst > 0.3) consider(B.SeekWater, Math.pow(a.thirst, 1.4) * 1.25);
     if (a.hunger > 0.22) consider(B.Forage, Math.pow(a.hunger, 1.15) * (0.55 + 0.45 * act));
     consider(sp.flies ? B.Roost : B.Rest, Math.pow(1 - a.energy, 1.4) * 1.1 + (1 - act) * 0.42);
     if (mt) consider(B.SeekMate, 0.5);
@@ -707,28 +747,9 @@ export class Simulation {
       return;
     }
     switch (best) {
-      case B.SeekWater: {
-        let wx = a.waterX;
-        let wz = a.waterZ;
-        if (Number.isNaN(wx) || rng.chance(0.15)) {
-          // look for water within sensory range; otherwise fall back on the group's traditional knowledge
-          const site = env.findWater(a.x, a.z, Math.max(vis * 1.5, 140)) ?? (a.thirst > 0.55 ? env.findWater(a.x, a.z, sp.homeRange * 2.5 + 250) : null);
-          if (site) {
-            wx = a.waterX = site.x;
-            wz = a.waterZ = site.z;
-          }
-        }
-        if (Number.isNaN(wx)) {
-          // no idea where water is: range further afield
-          this.startWander(a, sp, 2.5);
-        } else {
-          a.beh = B.SeekWater;
-          a.tx = wx;
-          a.tz = wz;
-          a.tAlt = 0;
-        }
+      case B.SeekWater:
+        this.decideWater(a, sp, vis);
         break;
-      }
       case B.Forage: {
         // compare a handful of patches within sensory range; no global knowledge of the map
         const g = this.groups.get(a.group);
