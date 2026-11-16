@@ -40,11 +40,14 @@ function summarize(p: { frame: number[]; sim: number[]; render: number[] }): Sta
   };
 }
 
-export async function runProfile(h: ProfileHooks, short: boolean, log: (line: string) => void): Promise<Record<string, unknown>> {
+export async function runProfile(h: ProfileHooks, short: boolean, log: (line: string) => void, uploadOnly = false): Promise<Record<string, unknown>> {
   const sec = (s: number): number => (short ? Math.max(4, s / 4) : s) * 1000;
   let g = h.game()!;
   const report: Record<string, unknown> = {
     tool: 'Untamed Earth ?profile=1', version: 1, startedAt: new Date().toISOString(), short,
+    profileKind: uploadOnly ? 'animal-upload-ab-high' : 'full-profile',
+    seed: g.sim.seed,
+    worldId: g.worldId,
     device: {
       userAgent: navigator.userAgent, gpu: g.debugGfx().gpu, assessment: g.debugGfx().basis,
       viewport: [innerWidth, innerHeight], devicePixelRatio: devicePixelRatio, cores: navigator.hardwareConcurrency ?? null,
@@ -56,6 +59,26 @@ export async function runProfile(h: ProfileHooks, short: boolean, log: (line: st
   };
   g.setFps(0); // uncapped, so frame times show what the device can do rather than the pacing target
   g.setSpeed(1);
+
+  // High-only profile for repeated paired A/B blocks: skip Auto and world restarts.
+  // The default profiler below is deliberately unchanged.
+  if (uploadOnly) {
+    g.engine.setQuality('high', false);
+    log('A/B: High preset only; warming up identical route…');
+    await sleep(4000);
+    g.debugPerfStart();
+    g.engine.animals.beginUploadSample();
+    await g.debugPath(ROUTE, 160, 14);
+    const st = summarize(g.debugPerfStop());
+    const animalUploads = g.engine.animals.endUploadSample();
+    const gfx = g.debugGfx();
+    report.presets = {
+      high: { ...st, drawCalls: gfx.calls, triangles: gfx.triangles, geometries: gfx.geometries, heapMB: heapMB(), animalUploads },
+    };
+    report.finishedAt = new Date().toISOString();
+    log(`High-only: ${st.fps} fps, ${st.renderMs} ms render CPU, ${st.p95}/${st.p99} ms p95/p99`);
+    return report;
+  }
 
   // 1. fixed presets on the same route
   const presets: Record<string, unknown> = {};
