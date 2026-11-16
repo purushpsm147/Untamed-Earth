@@ -19,9 +19,15 @@ jobs:
         run: npm run typecheck
       - name: Run baseline; enforce AoS vs SoA state and query parity
         run: npm run bench:scale -- --quick --out=docs/evidence/tech-experiments/population-baseline-ci.json
+      - name: Install experimental bitECS in isolated non-workspace package
+        run: npm install --prefix experiments/population-ecs --no-audit --no-fund --package-lock=false
+      - name: Run strict-state-parity bitECS versus arrays comparison
+        run: node experiments/population-ecs/run.mjs --quick --out=docs/evidence/tech-experiments/bitecs-quick-ci.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: population-baseline-quick
-          path: docs/evidence/tech-experiments/population-baseline-ci.json
+          path: |
+            docs/evidence/tech-experiments/population-baseline-ci.json
+            docs/evidence/tech-experiments/bitecs-quick-ci.json
           retention-days: 14
