@@ -108,7 +108,9 @@ export class Engine {
     this.scatter = new ScatterView(valley);
     this.grass = new GrassView(valley, sim.env, QUALITY[quality].grassCount);
     this.water = new WaterView(valley);
-    this.animals = new AnimalView(sim);
+    // Research-only A/B selection. Normal play stays on the exact baseline upload path.
+    const uploadMode = new URLSearchParams(window.location.search).get('animalUploads') === 'B' ? 'active' : 'full';
+    this.animals = new AnimalView(sim, uploadMode);
     this.weather = new WeatherFx(QUALITY.ultra.rain);
     const lm = new THREE.Mesh(buildLandmarks(valley), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0.05, flatShading: true }));
     lm.castShadow = true;
