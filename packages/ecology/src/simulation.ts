@@ -673,7 +673,10 @@ export class Simulation {
         best = b;
       }
     };
-    if (a.thirst > 0.3) consider(B.SeekWater, Math.pow(a.thirst, 1.4) * 1.25);
+    // Critical thirst outranks every other need: dehydration drains health ~1.7x faster than starvation, so a
+    // severely dehydrated animal goes to water first (without this, a hungry animal could keep choosing a carcass it
+    // could not reach and die of thirst beside the river: docs/ECOLOGICAL_STABILITY_REPORT.md, finding 1).
+    if (a.thirst > 0.3) consider(B.SeekWater, Math.pow(a.thirst, 1.4) * 1.25 + (a.thirst > 0.85 ? 0.6 : 0));
     if (a.hunger > 0.22) consider(B.Forage, Math.pow(a.hunger, 1.15) * (0.55 + 0.45 * act));
     consider(sp.flies ? B.Roost : B.Rest, Math.pow(1 - a.energy, 1.4) * 1.1 + (1 - act) * 0.42);
     if (mt) consider(B.SeekMate, 0.5);
