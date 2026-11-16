@@ -1252,20 +1252,22 @@ export class Simulation {
     const dx = a.tx - a.x;
     const dz = a.tz - a.z;
     const dist = Math.hypot(dx, dz);
-    if (sp.flies) {
-      // climb when travelling, descend on approach
-      const want = a.speed > sp.walk * 1.5 && dist > 9 ? Math.max(a.tAlt, 7 + (a.id % 9)) : dist < 9 ? a.tAlt : a.alt;
-      a.alt += clamp(want - a.alt, -6 * dt, 5 * dt);
-      if (a.alt < 0.05) a.alt = 0;
-      // roofs are perches (tAlt > 0); nothing lands on the floor inside a ruin
-      if (a.alt < 2.5 && a.tAlt < 1 && this.insideBuilding(a.x, a.z)) a.alt = 2.5;
-    }
     // ---- speed: approach what the behaviour wants within acceleration limits; brake for the destination ----
     const loco = locomotion(sp);
     const rate = a.want > a.speed ? loco.accel : loco.decel;
     a.speed += clamp(a.want - a.speed, -rate * dt, rate * dt);
     if (!sp.flies && a.want > 0) a.speed = Math.min(a.speed, Math.sqrt(2 * loco.decel * Math.max(0, dist - 0.4)) + 0.25);
     if (a.speed < 0.02 && a.want <= 0) a.speed = 0;
+    if (sp.flies) {
+      // climb when travelling, descend on approach. Decided from this tick's speed: using the previous tick's speed
+      // left a bird that was blocked on the ground (speed reset to 0) unable ever to take off, which at large ticks
+      // pinned birds on river banks until they died of thirst (docs/ECOLOGICAL_STABILITY_REPORT.md, "Ground-pinned birds")
+      const want = a.speed > sp.walk * 1.5 && dist > 9 ? Math.max(a.tAlt, 7 + (a.id % 9)) : dist < 9 ? a.tAlt : a.alt;
+      a.alt += clamp(want - a.alt, -6 * dt, 5 * dt);
+      if (a.alt < 0.05) a.alt = 0;
+      // roofs are perches (tAlt > 0); nothing lands on the floor inside a ruin
+      if (a.alt < 2.5 && a.tAlt < 1 && this.insideBuilding(a.x, a.z)) a.alt = 2.5;
+    }
     // personal space: herd animals standing or ambling shuffle apart instead of occupying the same spot
     if (!sp.flies && sp.group > 1 && a.speed < sp.walk * 0.6 && a.want < sp.walk * 0.6 && !a.controlled && a.beh !== B.Drink && a.beh !== B.Flee && a.beh !== B.Follow && this.giveSpace(a, sp, dt, loco.agility, a.beh === B.Rest ? 0.5 : 1)) {
       a.chkT = 0;
