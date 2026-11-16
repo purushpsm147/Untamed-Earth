@@ -29,8 +29,8 @@ Reading the numbers honestly:
   climbed back to High at 100% in ~65 s on both GPUs (`recoveredToSettled: true`). Downgrade and recovery are therefore
   **verified on real hardware**.
 - **Finding:** the artificial load is main-thread CPU work, which lower graphics cannot fix, yet the governor went down to
-  Low. **Fixed in `c86a691`** (not yet re-measured on this laptop): every automatic downgrade is now a trial. The mean frame
-  time over 1.2 s before it is compared with 0.3–1.5 s after it, and a step that did not cut frame time by 5% while
+  Low. **Fixed in `c86a691`** (not yet re-measured on this laptop): every automatic downgrade is now a trial. The median frame
+  time over 1.2 s before it (at least 8 frames) is compared with 0.3–1.5 s after it (at least 8 frames), and a step that did not cut frame time by 5% while
   still overloaded is undone exactly. Further downgrades are then held for 30 s, doubling to 8 min, unless frame time gets
   30% worse. This measures whether settings helped; it does not classify the device as CPU- or GPU-bound. The
   `?profile=1` report now includes `auto.keptQualityUnderLoad` and `auto.governor` (trials, helped, undone, last trial

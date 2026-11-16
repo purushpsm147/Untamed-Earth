@@ -13,8 +13,9 @@ export type FpsTarget = 30 | 60;
  *   draw distance (see quality.ts); the governor itself only decides when.
  * - With sustained headroom it restores resolution, then presets, up to the ceiling. An upgrade that
  *   immediately fails doubles the wait before the next attempt; one that holds halves it again.
- * - Every automatic downgrade is a measured trial. The mean frame time over the 1.2 s before the change is compared
- *   with the mean over 0.3-1.5 s after it. A downgrade that did not cut frame time by at least 5% while the device is
+ * - Every automatic downgrade is a measured trial. The median frame time over the 1.2 s before the change is compared
+ *   with the median over 0.3-1.5 s after it (each window at least 8 frames, so a device at a few fps is not judged on
+ *   noise). A downgrade that did not cut frame time by at least 5% while the device is
  *   still overloaded is undone exactly, and further downgrades are held off (30 s, doubling to 8 min on repeats)
  *   unless frame time then gets materially worse. This is what keeps Auto from throwing away quality when the
  *   slowdown is somewhere rendering settings cannot reach (for example main-thread work). It is a measurement of
@@ -42,12 +43,20 @@ export interface GovernorStats {
 }
 
 const BASE_WINDOW_S = 1.2;
+/** Each comparison window holds at least this many frames, so slow devices (a few fps) do not decide on noise. */
+const MIN_FRAMES = 8;
 const TRIAL_SETTLE_S = 0.3;
 const TRIAL_EVAL_S = 1.2;
 const MIN_GAIN = 0.05;
 const HOLD_MIN_S = 30;
 const HOLD_MAX_S = 480;
 const WORSE_FACTOR = 1.3;
+
+function median(v: readonly number[]): number {
+  const s = [...v].sort((a, b) => a - b);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
+}
 
 export class QualityGovernor {
   quality: QualityName;
@@ -66,7 +75,7 @@ export class QualityGovernor {
   private readonly recent: number[] = [];
   private recentSum = 0;
   // the downgrade under evaluation
-  private trial: { kind: 'resolution' | 'preset'; prevQuality: QualityName; prevScale: number; baseMs: number; t: number; sum: number; n: number } | null = null;
+  private trial: { kind: 'resolution' | 'preset'; prevQuality: QualityName; prevScale: number; baseMs: number; t: number; samples: number[] } | null = null;
   private holdLeft = 0;
   private holdDelay = HOLD_MIN_S;
   private holdRefMs = 0;
@@ -176,7 +185,7 @@ export class QualityGovernor {
     this.frameMs += (dt * 1000 - this.frameMs) * 0.06;
     this.recent.push(raw);
     this.recentSum += raw;
-    while (this.recent.length > 1 && this.recentSum - this.recent[0]! >= BASE_WINDOW_S) this.recentSum -= this.recent.shift()!;
+    while (this.recent.length > MIN_FRAMES && this.recentSum - this.recent[0]! >= BASE_WINDOW_S) this.recentSum -= this.recent.shift()!;
     if (!this.auto) return 'none';
 
     if (this.calLeft > 0) {
@@ -202,20 +211,17 @@ export class QualityGovernor {
 
     // ---- evaluate the downgrade on trial (counters below keep running, so a helpful step costs no extra time) ----
     let trialRunning = false;
-    if (this.trial && this.trial.t + dt < TRIAL_SETTLE_S + TRIAL_EVAL_S) {
+    if (this.trial) {
       const tr = this.trial;
       tr.t += dt;
-      if (tr.t > TRIAL_SETTLE_S) {
-        tr.sum += raw * 1000;
-        tr.n++;
-      }
-      trialRunning = true;
-    } else if (this.trial) {
+      if (tr.t > TRIAL_SETTLE_S) tr.samples.push(raw * 1000);
+      trialRunning = tr.t < TRIAL_SETTLE_S + TRIAL_EVAL_S || tr.samples.length < MIN_FRAMES;
+    }
+    if (this.trial && !trialRunning) {
       const tr = this.trial;
-      tr.sum += raw * 1000;
-      tr.n++;
       this.trial = null;
-      const after = tr.sum / Math.max(1, tr.n);
+      // medians: one hitch in either window must not decide the verdict
+      const after = median(tr.samples);
       const helped = after <= tr.baseMs * (1 - MIN_GAIN) || after < this.overloadMs();
       const rec: DowngradeTrial = {
         kind: tr.kind, from: `${tr.prevQuality}@${tr.prevScale}`, to: `${this.quality}@${this.scale}`,
@@ -284,7 +290,7 @@ export class QualityGovernor {
       }
       this.holdLeft = 0;
       this.stat.trials++;
-      this.trial = { kind, prevQuality, prevScale, baseMs: (this.recentSum / this.recent.length) * 1000, t: 0, sum: 0, n: 0 };
+      this.trial = { kind, prevQuality, prevScale, baseMs: median(this.recent) * 1000, t: 0, samples: [] };
       return kind;
     }
 

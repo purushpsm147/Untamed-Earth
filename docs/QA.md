@@ -9,7 +9,7 @@ performance claims; see PERFORMANCE.md for the profiling procedure to run on rea
 | Check | Where | Result |
 |---|---|---|
 | Typecheck, build | local | Pass. JS 710 kB (194 kB gzip) + 11 kB worker + lazily loaded profiler (4 kB) |
-| Unit + headless simulation (15 files) | local | **92/92 pass** (80 at `3d53c14` + 6 governor trial tests + 5 pose tests + 1 dry-resting test); 100-day headless run: all six species persist |
+| Unit + headless simulation (15 files) | local | **93/93 pass** (80 at `3d53c14` + 7 governor trial tests + 5 pose tests + 1 dry-resting test); 100-day headless run: all six species persist |
 | Browser suites (smoke, reliability, gameplay, documentary; 19 tests) | local | **19/19 on `acecba0`**. Then two CI-only flakes fixed (below), each 3/3 locally. Earlier pass: 18/19. Chunk traversal sampled geometry while terrain was still streaming (76, 81, 75, 87: no growth trend, but last − first 11 > 10); now samples once streaming is idle, threshold unchanged, 3/3 repeats. Earlier run: wildlife run-speed averaged in the new acceleration phase; now measured after the speed plateaus, threshold unchanged, 3/3 repeats |
 | GitHub Actions | CI | **Run 78 on `e1303f9`: success**; run 70 on `9b64860` (after merging PR #10): success. Earlier failures diagnosed and fixed below |
 
@@ -28,6 +28,7 @@ performance claims; see PERFORMANCE.md for the profiling procedure to run on rea
 | **78** | **`e1303f9`** | **Success** | Observation contracts | [run](https://github.com/purushpsm147/Untamed-Earth/actions/runs/43752123947) |
 | **85** | **`3d53c14`** | **Success** | Navigation, herds, documentary scenario | [run](https://github.com/purushpsm147/Untamed-Earth/actions/runs/43758379766) |
 | 115 | `c86a691` | Fail (1) | Chunk traversal: renderer geometry count 54, 70, 77, 67. That counter only includes geometry drawn at least once, so it depends on which chunks the 420 m/s path sampled (frame rate) | Exact terrain accounting (created − disposed = tracked meshes, no orphans); original 14/10 bounds kept as growth bounds on non-terrain geometry |
+| 129 | `3a9d068` | Fail (1) | Traversal and observer fixes held. New assertion from this pass ("SwiftShader's downgrade trial measures a gain") failed: on the CI runner the trial never registered a gain in 90 s. Root cause in the governor: 1.2 s windows at ~4 fps hold ~5 frames, and means are hitch-sensitive | Each window now needs >= 8 frames and compares medians (new unit test: slow hitchy device keeps helpful downgrades); browser test checks the verdict is measured and applied consistently, not which verdict a given machine produces |
 | 124 | `49ac48c` | Fail (2) | Same traversal flake; observer camera Space rose 0.93 m in a fixed 700 ms hold on a saturated runner | Hold until the camera moves (bounded 20 s), > 1 m threshold unchanged |
 
 ## What the tests cover

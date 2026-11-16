@@ -268,6 +268,20 @@ describe('adaptive quality: downgrades must measurably help (render-insensitive 
     expect(m.stats.trials).toBe(0);
   });
 
+  it('a slow, hitchy device keeps downgrades that genuinely help (no verdicts from a handful of noisy frames)', () => {
+    // ~4 fps render-bound device; every 5th frame is a 3x hitch (GC, compositor)
+    const g = new QualityGovernor('high');
+    let i = 0;
+    for (let t = 0; t < 60;) {
+      const ms = renderMs(g, 260) * (++i % 5 === 0 ? 3 : 1);
+      g.sample(ms / 1000, false);
+      t += ms / 1000;
+    }
+    expect(g.stats.helped).toBeGreaterThan(0);
+    expect(g.stats.rolledBack).toBe(0);
+    expect(g.quality === 'high' && g.scale === 1).toBe(false);
+  });
+
   it('is deterministic for the same frame trace', () => {
     const run = (): string => {
       const g = new QualityGovernor('high');
