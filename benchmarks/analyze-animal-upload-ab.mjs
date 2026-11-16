@@ -123,12 +123,12 @@ for (const [key, entries] of groups) {
         .map((x) => x.report.presets.high[keyName]));
       return keyName === 'fps' ? 100 * (b - a) / a : 100 * (a - b) / a;
     });
-    console.log(label + ':', JSON.stringify(uncertainty(improvements)));
+    const stats = uncertainty(improvements);
+    console.log(label + ':', JSON.stringify(stats));
     if (keyName === 'renderMs') {
       if (blocks.length < 8) {
         console.log('DECISION: collect at least 8 independent blocks; no inferential decision yet.');
       } else {
-        const stats = uncertainty(improvements);
         const [lo, hi] = stats.ci95Pct;
         if (stats.meanImprovementPct >= 5 && lo > 0 && stats.twoSidedSignFlipP < 0.05) {
           console.log('DECISION: evidence supports a practically meaningful CPU improvement (subject to no visual/secondary regression).');
