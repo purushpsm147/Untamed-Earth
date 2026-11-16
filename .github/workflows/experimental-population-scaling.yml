@@ -23,6 +23,8 @@ jobs:
         run: npm install --prefix experiments/population-ecs --no-audit --no-fund --package-lock=false
       - name: Run strict-state-parity bitECS versus arrays comparison
         run: node experiments/population-ecs/run.mjs --quick --out=docs/evidence/tech-experiments/bitecs-quick-ci.json
+      - name: Compare cached Miniplex queries with JS objects and lifecycle correctness
+        run: node experiments/population-ecs/miniplex.mjs --quick --out=docs/evidence/tech-experiments/miniplex-quick-ci.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -30,4 +32,5 @@ jobs:
           path: |
             docs/evidence/tech-experiments/population-baseline-ci.json
             docs/evidence/tech-experiments/bitecs-quick-ci.json
+            docs/evidence/tech-experiments/miniplex-quick-ci.json
           retention-days: 14
