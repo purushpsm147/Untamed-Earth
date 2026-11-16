@@ -14,7 +14,7 @@
  * occlusion, or geometric correctness of terrain LOD.
  */
 import * as THREE from 'three';
-import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
+import { MeshBVH, acceleratedRaycast, estimateMemoryInBytes } from 'three-mesh-bvh';
 import { Valley, CHUNK_SIZE, buildChunkMesh } from '@untamed/worlds';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -107,7 +107,7 @@ function oneCase(c) {
     const start = performance.now();
     for (const geo of owned) {
       geo.boundsTree = new MeshBVH(geo);
-      bvhBytes += geo.boundsTree.getSize();
+      bvhBytes += estimateMemoryInBytes(geo.boundsTree);
     }
     buildMs = performance.now() - start;
     // The BVH may reorder geometry indices, so both implementations are
