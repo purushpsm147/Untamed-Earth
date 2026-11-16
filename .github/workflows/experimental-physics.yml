@@ -1,0 +1,30 @@
+name: Experiment - physics feasibility (Rapier)
+
+on:
+  push:
+    branches: [experiment/tech-validation-physics]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  physics-quick:
+    name: Rapier vs existing navigation (quick, seed 1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Install the isolated experiment's own dependencies (not production)
+        run: cd experiments/physics-rapier && npm install --no-audit --no-fund
+      - name: Run harness (quick)
+        run: BENCH_LABEL=github-actions node --expose-gc --import tsx experiments/physics-rapier/run.ts --quick --out physics-feasibility-ci.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: physics-feasibility-ci
+          path: physics-feasibility-ci.json

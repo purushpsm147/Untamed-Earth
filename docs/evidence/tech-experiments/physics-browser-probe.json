@@ -1,0 +1,14 @@
+{
+ "env": {
+  "browser": "153.0.8010.12",
+  "note": "headless Chromium, CPU only; same container as the Node runs"
+ },
+ "importMs": 45.39999999990687,
+ "initMs": 46.10000000009313,
+ "kccMsPerDeerTick": {
+  "median": 0.02,
+  "p95": 0.056000000005587934,
+  "p99": 0.08200000000186264
+ },
+ "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36"
+}
