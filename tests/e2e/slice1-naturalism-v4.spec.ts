@@ -52,6 +52,36 @@ test.describe('V4 skinned chital — opt-in, isolated renderer experiment', () =
     }
   });
 
+  test('IK fore/aft targets agree with the actual Three.js limb rotation convention', () => {
+    const rig = new ChitalPrototypeV4(150, 'stag');
+    // Inspect the actual private articulation used by the rendered rig rather
+    // than rewriting its algorithm as a second "test-only" implementation.
+    const internal = rig as unknown as {
+      upperLimbs: THREE.Group[];
+      lowerLimbs: THREE.Group[];
+      solveTwoBoneLimbIK: (i: number, dy: number, dz: number, hind: boolean) => void;
+    };
+    try {
+      for (const limb of [0, 1, 2, 3]) {
+        const hind = limb >= 2;
+        const L1 = hind ? 0.42 : 0.39;
+        const L2 = hind ? 0.44 : 0.41;
+        for (const [dy, dz] of [[-0.70, -0.18], [-0.70, 0.18], [-0.72, 0.0]]) {
+          internal.solveTwoBoneLimbIK(limb, dy, dz, hind);
+          const upper = internal.upperLimbs[limb].rotation.x;
+          const lower = internal.lowerLimbs[limb].rotation.x;
+          // RotX(+theta) applied to initial (0,-L,0) yields negative Z.
+          const fkY = -L1 * Math.cos(upper) - L2 * Math.cos(upper + lower);
+          const fkZ = -L1 * Math.sin(upper) - L2 * Math.sin(upper + lower);
+          expect(Math.abs(fkY - dy), `limb ${limb} Y target`).toBeLessThan(1e-5);
+          expect(Math.abs(fkZ - dz), `limb ${limb} fore/aft target`).toBeLessThan(1e-5);
+        }
+      }
+    } finally {
+      rig.dispose();
+    }
+  });
+
   test('new GLSL source has no descending literal smoothstep edges', () => {
     const code = fs.readFileSync(
       path.resolve(process.cwd(), 'apps/web/src/experiments/naturalism/ChitalPrototypeV4.ts'),
