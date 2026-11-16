@@ -327,8 +327,11 @@ export class Environment {
   cellHasWater(c: number): boolean {
     return this.poolCell[c] === 1 || this.waterD[c]! + this.stage > 0.08;
   }
-  /** Nearest wet cell within `radius` metres, preferring clean water. Bounded scan, no global knowledge. */
-  findWater(x: number, z: number, radius: number): WaterSite | null {
+  /**
+   * Nearest wet cell within `radius` metres, preferring clean water. Bounded scan, no global knowledge.
+   * `accept` lets the caller reject water points an animal cannot stand at (inside a ruin, beyond the region margin).
+   */
+  findWater(x: number, z: number, radius: number, accept?: (x: number, z: number) => boolean): WaterSite | null {
     const r = Math.ceil(radius / CELL);
     const ci = clamp(Math.floor(x / CELL), 0, GRID - 1);
     const cj = clamp(Math.floor(z / CELL), 0, GRID - 1);
@@ -343,6 +346,7 @@ export class Environment {
         const d2 = dx * dx + dz * dz;
         if (d2 > radius * radius) continue;
         const score = d2 * (this.poolCell[c] ? 6 : 1);
+        if (score >= bestScore || (accept && !accept(this.waterX[c]!, this.waterZ[c]!))) continue;
         if (score < bestScore) {
           bestScore = score;
           best = c;

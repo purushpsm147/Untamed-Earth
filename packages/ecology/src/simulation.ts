@@ -530,7 +530,7 @@ export class Simulation {
     let wz = a.waterZ;
     if (Number.isNaN(wx) || this.rng.chance(0.15)) {
       // look for water within sensory range; otherwise fall back on the group's traditional knowledge
-      const site = env.findWater(a.x, a.z, Math.max(vis * 1.5, 140)) ?? (a.thirst > 0.55 ? env.findWater(a.x, a.z, sp.homeRange * 2.5 + 250) : null);
+      const site = env.findWater(a.x, a.z, Math.max(vis * 1.5, 140), this.drinkable) ?? (a.thirst > 0.55 ? env.findWater(a.x, a.z, sp.homeRange * 2.5 + 250, this.drinkable) : null);
       if (site) {
         wx = a.waterX = site.x;
         wz = a.waterZ = site.z;
@@ -1230,6 +1230,14 @@ export class Simulation {
   }
 
   // ------------------------------------------------------------------ movement
+  /**
+   * A water point an animal can stand at: not inside a ruin's walls (birds hover at roof height there and never reach
+   * the floor) and not beyond the region margin that `passable` enforces. Without this, an animal could remember an
+   * unreachable site, give up, and re-find the same site until it died of thirst (ECOLOGICAL_STABILITY_REPORT.md).
+   */
+  private readonly drinkable = (x: number, z: number): boolean =>
+    x >= 6 && z >= 6 && x <= REGION_SIZE - 6 && z <= REGION_SIZE - 6 && !this.insideBuilding(x, z);
+
   private insideBuilding(x: number, z: number, margin = 0.6): boolean {
     return this.bldCell[this.env.cellIndex(x, z)] === 1 && this.valley.blocked(x, z, margin);
   }
