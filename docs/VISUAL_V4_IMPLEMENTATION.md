@@ -17,11 +17,12 @@ The opt-in variant is visual only. This is still a staged fixed-seed showcase, n
 2. A new rig variant in the existing `Slice1NaturalismController`: retains original V3 exports/controller and the baseline renderer. Uses the staged herd identities and terrain-height callback. V4 maps the existing +X forward staging axis to its own +Z model axis.
 3. Per-rig actual world-space stance target error diagnostics in XZ as well as vertical pivot-versus-terrain error. **These are probes, not evidence of zero skating**.
 4. V3 experimental IK refinement against the **actual hoof-sole world marker** rather than just the ankle target. The original acceptance threshold of <5mm is preserved.
-5. Playwright test coverage for closed indexed torso edge topology, required `aBodyPos` shader attributes, valid `smoothstep` literals, same-context renderer A/B, 720p/1080p screenshots, WebGL error capture and diagnostic JSON.
+5. Playwright test coverage for closed indexed torso edge topology, required `aBodyPos` shader attributes, valid `smoothstep` literals, same-context baseline/V3/V4 riverbank and chital captures at 720p/1080p, WebGL error capture and diagnostic JSON.
+6. A V4-only deterministic instanced vegetation kit (two branching tree forms, grass, reeds, alluvial stones) sampled against the **existing valley** and controlled by the same V4 toggle. The existing V3 riparian kit remains unchanged for V3 comparison.
 
 ## Deliberately NOT imported from the Gemini proposal
 
-The submitted standalone V4 `NaturalRiverbankLab.ts` creates another complete scene and renderer architecture, removes exports required by the current slice mount, and contains a guaranteed GLSL compile error (`flowUv1.z` where `flowUv1` is a `vec2`). We did **not** replace the live V3 scene or its native water shader with it. Likewise, the full proposed vegetation kit is not yet accepted or integrated. These remain candidates after actual comparison.
+The submitted standalone V4 `NaturalRiverbankLab.ts` creates another complete scene and renderer architecture, removes exports required by the current slice mount, and contains a guaranteed GLSL compile error (`flowUv1.z` where `flowUv1` is a `vec2`). We did **not** replace the live V3 scene or its native water shader with it. The proposed kit was instead adapted as a separately opt-in V4 foliage layer against the real valley's heightfield. It is still subject to shader checks, image review, ecological placement review, and performance measurements; no species-accurate vegetation claim is accepted.
 
 ## Known limitations / open acceptance blockers
 
@@ -31,7 +32,7 @@ The submitted standalone V4 `NaturalRiverbankLab.ts` creates another complete sc
 - V4 foot errors refer to a pivot marker, not yet a separately evaluated shaped hoof sole; horizontal lock must be sampled over 300+ true movement frames.
 - The staged showcase has mostly fixed world coordinates, so displacement-based gait phase does not substitute for true driven locomotion.
 - No claim of a visual breakthrough, watertight all-mesh animal (only loft topology is tested), 2.5mm grounding, zero skating, photorealism, measured V4 GPU FPS, or hardware readiness is made.
-- No field audio, grass/tree rendering overhaul, extra V4 water shader, or production change is part of this initial safe pilot.
+- V4 instanced grass/tree forms are experimental and not visually validated. No field audio, replacement V4 water shader, or production change is part of this initial safe pilot.
 
 ## How to test
 
