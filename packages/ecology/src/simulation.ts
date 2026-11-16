@@ -563,20 +563,10 @@ export class Simulation {
       // a bird lands at the water's edge (no deeper than it can stand in), never in the channel: walk back from the
       // water point toward the bird to the first point shallow enough (bounded: at most 60 one-metre samples)
       if (sp.flies) {
-        const d0 = Math.hypot(a.x - wx, a.z - wz);
-        if (d0 > 0.5) {
-          const ux = (a.x - wx) / d0;
-          const uz = (a.z - wz) / d0;
-          for (let s = 0; s <= Math.min(60, d0); s += 1) {
-            const x = wx + ux * s;
-            const z = wz + uz * s;
-            // the first point no deeper than the bird can stand in (shallows or the dry bank)
-            if (this.valley.waterDepth(x, z, env.stage) <= sp.locomotion.wadeDepth && !this.insideBuilding(x, z)) {
-              a.tx = x;
-              a.tz = z;
-              break;
-            }
-          }
+        const p = this.nearestStandable(sp, wx, wz, a.x - wx, a.z - wz);
+        if (p) {
+          a.tx = p.x;
+          a.tz = p.z;
         }
       }
     }
@@ -1300,28 +1290,52 @@ export class Simulation {
     return this.bldCell[this.env.cellIndex(x, z)] === 1 && this.valley.blocked(x, z, margin);
   }
 
-  /** Move a flyer's ground landing point out of water deeper than its wade depth (toward the bird, at most 60 m). */
+  /**
+   * The nearest point a species can stand at (water no deeper than its wade depth, not inside walls, in bounds) to
+   * (x, z): first along the preferred direction (dx, dz) up to 60 m, then 8 directions out to 60 m. Bounded: at most
+   * 108 terrain samples; called on decisions and landings only.
+   */
+  private nearestStandable(sp: SpeciesDef, x: number, z: number, dx: number, dz: number): { x: number; z: number } | null {
+    const stage = this.env.stage;
+    const wade = sp.locomotion.wadeDepth;
+    const ok = (px: number, pz: number): boolean => this.valley.waterDepth(px, pz, stage) <= wade && !this.insideBuilding(px, pz) && this.valley.inBounds(px, pz, 6);
+    if (ok(x, z)) return { x, z };
+    const dl = Math.hypot(dx, dz);
+    if (dl > 0.5) {
+      const ux = dx / dl;
+      const uz = dz / dl;
+      for (let s = 1; s <= Math.min(60, dl + 1); s += 1) if (ok(x + ux * s, z + uz * s)) return { x: x + ux * s, z: z + uz * s };
+    }
+    for (const r of [2, 4, 8, 16, 32, 60]) {
+      for (let k = 0; k < 8; k++) {
+        const px = x + Math.sin((k * Math.PI) / 4) * r;
+        const pz = z + Math.cos((k * Math.PI) / 4) * r;
+        if (ok(px, pz)) return { x: px, z: pz };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * A flyer low over water it cannot stand in, or about to land in it, gets a standable landing point and the intent
+   * to reach it (a bird never hovers over the water with nowhere to go).
+   */
   private safeLanding(a: Animal, sp: SpeciesDef): void {
     const stage = this.env.stage;
     const wade = sp.locomotion.wadeDepth;
-    if (this.valley.waterDepth(a.tx, a.tz, stage) <= wade) return;
-    const d0 = Math.hypot(a.x - a.tx, a.z - a.tz);
-    const ux = d0 > 1e-3 ? (a.x - a.tx) / d0 : 1;
-    const uz = d0 > 1e-3 ? (a.z - a.tz) / d0 : 0;
-    for (let s = 1; s <= 60; s += 1) {
-      const x = a.tx + ux * s;
-      const z = a.tz + uz * s;
-      if (this.valley.waterDepth(x, z, stage) <= wade && !this.insideBuilding(x, z) && this.valley.inBounds(x, z, 6)) {
-        a.tx = x;
-        a.tz = z;
-        return;
+    const overWater = a.alt < 1.5 && this.valley.waterDepth(a.x, a.z, stage) > wade;
+    const targetWet = this.valley.waterDepth(a.tx, a.tz, stage) > wade;
+    if (!targetWet && !overWater) return;
+    if (targetWet) {
+      const p = this.nearestStandable(sp, a.tx, a.tz, a.x - a.tx, a.z - a.tz);
+      if (p) {
+        a.tx = p.x;
+        a.tz = p.z;
+      } else {
+        a.tAlt = Math.max(a.tAlt, 3); // nothing to stand on nearby: stay airborne
       }
     }
-    // nowhere to stand within reach: give the destination up rather than hover over the water
-    if (a.beh === B.SeekWater) a.waterX = a.waterZ = NaN;
-    a.beh = B.Idle;
-    a.want = 0;
-    a.timer = 0;
+    if (overWater) a.want = Math.max(a.want, sp.walk * 2);
   }
 
   /** The movement mode renderers and diagnostics read: what the animal is physically doing this tick. */
@@ -1351,7 +1365,7 @@ export class Simulation {
     a.palt = a.alt;
     // a flyer about to land on the ground never lands in water deeper than it can stand in, whatever the behaviour
     // chose: the landing point moves back along the approach to the first standable spot (bounded scan)
-    if (sp.flies && a.alt > 0.3 && a.tAlt < 1 && a.beh !== B.Drink && Math.hypot(a.tx - a.x, a.tz - a.z) < 12) this.safeLanding(a, sp);
+    if (sp.flies && a.alt > 0.3 && a.beh !== B.Drink && ((a.tAlt < 1 && Math.hypot(a.tx - a.x, a.tz - a.z) < 12) || a.alt < 1.5)) this.safeLanding(a, sp);
     const dx = a.tx - a.x;
     const dz = a.tz - a.z;
     const dist = Math.hypot(dx, dz);
