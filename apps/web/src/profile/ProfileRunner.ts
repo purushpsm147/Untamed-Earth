@@ -51,7 +51,8 @@ export async function runProfile(h: ProfileHooks, short: boolean, log: (line: st
       deviceMemoryGB: (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? null,
       heapApi: heapMB() !== null ? 'performance.memory (Chromium only, JS heap only; not GPU memory)' : 'unavailable in this browser',
     },
-    notes: 'Frame times are requestAnimationFrame intervals with the frame-rate target set to uncapped. GPU memory cannot be measured from a web page.',
+    notes: 'Frame times are requestAnimationFrame intervals with the frame-rate target set to uncapped. GPU memory cannot be measured from a web page. Animal attribute bytes are requested updates, not measured GPU traffic.',
+    animalUploadExperiment: g.engine.animals.uploadMode,
   };
   g.setFps(0); // uncapped, so frame times show what the device can do rather than the pacing target
   g.setSpeed(1);
@@ -63,10 +64,12 @@ export async function runProfile(h: ProfileHooks, short: boolean, log: (line: st
     g.engine.setQuality(q, false);
     await sleep(sec(4)); // let streaming and shader compilation settle
     g.debugPerfStart();
+    g.engine.animals.beginUploadSample();
     await g.debugPath(ROUTE, short ? 160 : 60, 14);
     const st = summarize(g.debugPerfStop());
+    const animalUploads = g.engine.animals.endUploadSample();
     const gfx = g.debugGfx();
-    presets[q] = { ...st, drawCalls: gfx.calls, triangles: gfx.triangles, geometries: gfx.geometries, heapMB: heapMB() };
+    presets[q] = { ...st, drawCalls: gfx.calls, triangles: gfx.triangles, geometries: gfx.geometries, heapMB: heapMB(), animalUploads };
     log(`  ${q}: p50 ${st.p50} ms, p95 ${st.p95} ms, ${st.fps} fps`);
   }
   report.presets = presets;
