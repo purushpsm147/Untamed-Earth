@@ -131,12 +131,9 @@ function buildContinuousBodyGeometry(radialSegments = 24): THREE.BufferGeometry 
   }
 
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geo.setAttribute('aBodyPos', new THREE.Float32BufferAttribute(bodyPos, 3));
-  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-  geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndices, 4));
-  geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeights, 4));
-  // Cap both nonzero-radius terminal rings; an uncapped loft is NOT watertight.
+  // Cap both nonzero-radius terminal rings BEFORE creating GPU attributes.
+  // Otherwise the indices reference non-existent cap vertices despite a
+  // passing topological edge-count check.
   const addCapCenter = (st: SpineCrossSection): number => {
     const centerIndex = positions.length / 3;
     positions.push(0, st.y, st.z);
@@ -157,6 +154,11 @@ function buildContinuousBodyGeometry(radialSegments = 24): THREE.BufferGeometry 
     indices.push(noseCenter, endNext, end);
   }
 
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('aBodyPos', new THREE.Float32BufferAttribute(bodyPos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndices, 4));
+  geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeights, 4));
   geo.setIndex(indices);
   geo.computeVertexNormals();
   return geo;
