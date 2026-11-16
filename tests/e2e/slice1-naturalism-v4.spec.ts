@@ -90,6 +90,54 @@ test.describe('V4 skinned chital — opt-in, isolated renderer experiment', () =
     }
   });
 
+  test('300-frame displacement-driven walk measures actual stance pivot errors', () => {
+    const rig = new ChitalPrototypeV4(150, 'stag');
+    const vertical: number[] = [];
+    const horizontal: number[] = [];
+    const dt = 1 / 60;
+    const speed = 0.65;
+    try {
+      for (let frame = 0; frame < 300; frame++) {
+        const t = frame * dt;
+        const diagnostic = rig.update(
+          {
+            id: 1, x: 0, z: t * speed, heading: 0, speed,
+            state: 'walk', sex: 'stag', seed: 150,
+          },
+          dt,
+          { getHeightAt: () => 0 },
+          t,
+        );
+        vertical.push(diagnostic.maxStanceFootErrorMeters);
+        horizontal.push(diagnostic.maxStanceFootHorizontalErrorMeters);
+        expect(diagnostic.footHeightsWorld.every(Number.isFinite)).toBe(true);
+        expect(diagnostic.terrainHeightsWorld.every(Number.isFinite)).toBe(true);
+      }
+      const sort = (values: number[]) => [...values].sort((a, b) => a - b);
+      const sortedVertical = sort(vertical);
+      const sortedHorizontal = sort(horizontal);
+      const summary = {
+        type: 'flat-terrain synthetic animal motion',
+        frames: 300,
+        simulatedSeconds: 5,
+        speedMetersPerSecond: speed,
+        metric: 'hoof pivot (not geometry outsole)',
+        verticalMaxMeters: sortedVertical.at(-1),
+        verticalP95Meters: sortedVertical[Math.floor(sortedVertical.length * 0.95)],
+        horizontalMaxMeters: sortedHorizontal.at(-1),
+        horizontalP95Meters: sortedHorizontal[Math.floor(sortedHorizontal.length * 0.95)],
+        caveat: 'Not a hill test, visual motion assessment, or real world autonomous-ecology sample.',
+      };
+      fs.writeFileSync(path.join(EVIDENCE, 'synthetic-300-frame-contact.json'), JSON.stringify(summary, null, 2));
+      // The existing V3 5mm threshold is NOT relaxed. This V4 synthetic test
+      // separately demands the same bound for the pivot on a flat plane.
+      expect(summary.verticalMaxMeters).toBeLessThan(0.005);
+      expect(summary.horizontalMaxMeters).toBeLessThan(0.005);
+    } finally {
+      rig.dispose();
+    }
+  });
+
   test('new GLSL source has no descending literal smoothstep edges', () => {
     const code = fs.readFileSync(
       path.resolve(process.cwd(), 'apps/web/src/experiments/naturalism/ChitalPrototypeV4.ts'),
