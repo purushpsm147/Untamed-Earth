@@ -46,17 +46,29 @@ PR #8 was closed with an explanatory comment (its code is in `e6310ce`); #6 show
 Gemini PRs #11 (soundscape) and #12 (riverbank/chital) were reviewed with specific feedback and **not merged**; both
 should move to the contracts in `observe.ts` (events via `onAudioEvents`, pose from `behavior`/`gait`).
 
+## Living Valley V1 next pass (2026-11-16)
+| Commit | Change | Evidence |
+|---|---|---|
+| `c86a691` | Auto quality keeps only downgrades that measurably help; ineffective ones undone and held with back-off; preset step no longer raises resolution | `tests/unit/quality-governor.test.ts` (6 new), reliability browser test (constant feed undone on the real renderer; real SwiftShader trial measured a gain) |
+| `46e5e80` | Folded-leg lying pose and pose blending (presentation only, via the contract); personal-space steps turn then walk; resting on dry ground; weather RNG decoupled; documentary seed 3 → 2 | `tests/unit/animal-pose.test.ts`, `navigation.test.ts`, `npm run movement` |
+| `acecba0` | Documentary camera by drawn subject size and terrain + object line of sight | `docs/evidence/documentary-camera-before-after.jpg`, walkthrough stills |
+| docs commit | `AUDIO_INTEGRATION.md` (PR #11 reviewed, not merged); QA/ROADMAP/SIMULATION/PERFORMANCE | PR #11 comment |
+
+PRs #11, #12 and #13 are untouched and unmerged. GPT-6's V4 graphics experiment (PR #13) was not edited or duplicated.
+
 ## Known defects and unsupported claims
 - **No physical GPU or phone has been profiled** (none attached to the session). Run `/?profile=1` on real hardware.
-- Auto quality recovery is verified on one laptop (two GPUs); the governor still downgrades under CPU-only load it cannot fix.
+- Auto quality recovery is verified on one laptop (two GPUs). The fix for downgrading under CPU-only load (`c86a691`) is
+  unit- and SwiftShader-tested only; the hardware re-run is pending.
+- Simulation determinism is per JS engine (Node and Chromium differ in the last bit of transcendental Math functions).
 - No phone profiled. Ultra, full-screen 1080p and true GPU time not measured.
 - At the 3.5 m safety minimum a myna is ~6% of frame height; midday grass reads pale.
 - Audio never listened to; touch and gamepad never used on a device; no Firefox/WebKit runs.
 - Social Lens history is session-only.
 
 ## Next engineering task
-1. Governor: detect a downgrade that did not reduce frame time (CPU-bound) and undo it; unit test with a synthetic
-   CPU-bound frame-time trace; re-run `/?profile=1` on the Victus to confirm the recovery phase no longer drops to Low.
-2. Integrate one Gemini component through the contracts (lying pose from `behavior: 'rest'`), measured with the
-   documentary scenario screenshots and the restart WebGL-object test.
-3. Profile a midrange phone with `/?profile=1`.
+1. Owner: re-run `/?profile=1` on the Victus (both GPUs) and commit the JSON; check `auto.keptQualityUnderLoad` and
+   `auto.governor` (expected: one or a few undone probes, quality kept at the settled preset under the artificial load).
+2. Implement the audio `CallRouter` described in `docs/AUDIO_INTEGRATION.md` with its unit and browser gates.
+3. Decide whether cross-browser replay matters; if so, a deterministic math module for the simulation.
+4. Profile a midrange phone with `/?profile=1`.

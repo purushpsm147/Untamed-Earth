@@ -36,7 +36,9 @@ Status key: **Done** = implemented and verified in software-rendered Chromium (s
 | Social Lens (group, mother, offspring, pressures) | Partial | Shows only simulation state; no persistent social history beyond the session |
 | World Library registry | Partial | Data-driven registry with one world; no other worlds exist |
 | Animal navigation and herd behaviour (Living Valley V1) | Done (headless + software-rendered review) | Acceleration, speed-dependent turning, look-ahead steering with wall following, give-up on unreachable goals, many-eyes vigilance, coordinated flight, regroup, personal space. Measured by `npm run movement`; no path-finding |
-| Documentary scenario | Done (software-rendered) | `/?scenario=documentary`; fixed seed/time/camera, nothing scripted after; browser walk-through with video |
+| Documentary scenario | Done (software-rendered) | `/?scenario=documentary` (seed 2); camera chosen by drawn subject size and terrain + object line of sight; nothing scripted after; browser walk-through with video |
+| Resting and pose transitions | Done (software-rendered review) | Folded-leg lying pose, blended graze/drink/walk/run/alert/lying from the observation contract; personal-space steps face their direction; resting on dry ground |
+| Ecological audio events | Design only | Path documented in `AUDIO_INTEGRATION.md`; PR #11 reviewed, not merged |
 | Visual quality improvements | Not started | Visual Lab (PR #7) reviewed, not merged: see VISUAL_LAB_REVIEW.md |
 
 ## Next
@@ -44,8 +46,9 @@ Status key: **Done** = implemented and verified in software-rendered Chromium (s
 1. Measure on a real desktop GPU and a midrange phone: frame times, governor upgrade path, memory, download.
 2. Social Lens history that survives save/load.
 3. Midday grass tone (reads pale).
-4. Governor: undo a downgrade that does not reduce frame time (CPU-bound load; found on real hardware).
-5. Lying/resting pose and gait blending from `AnimalMotionView` (Gemini, via the contracts); render the river edge at the simulated waterline.
+4. Re-run `/?profile=1` on the Victus to confirm Auto keeps High under CPU-only load (fix in `c86a691`); profile a phone.
+5. Call router for real ecological audio events through the single AudioContext (`AUDIO_INTEGRATION.md`).
+5a. Deterministic math for the simulation if cross-browser replay becomes a requirement (see SIMULATION.md).
 6. Path-finding for long detours (river bends, ruin courtyards); tree collision for the camera.
 7. Ecological tuning: jackal food limitation, hare refugia, seasonal deer breeding.
 

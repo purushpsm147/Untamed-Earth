@@ -45,8 +45,15 @@ seekers forget the unreachable site, others go idle).
 number of herd mates nearby. When an alarm sends them running, each blends its own escape direction with the herd's
 centre (unless the centre lies toward the threat), so the herd tends to flee together. After a flight, and whenever an
 animal has drifted more than 30 m from its herd, it *regroups*, trotting back to the herd's near side; a rejoined animal
-resumes ordinary behaviour. Herd animals that are standing or ambling keep about one body length apart, shuffling at
-up to 0.25 m/s (chital standing within 0.5 m of a herd mate: 15.4% of samples before, 0.2% after; seed 1, one day).
+resumes ordinary behaviour. Regrouping animals each aim at their own spot along the herd's near edge. Herd animals that
+are standing or grazing keep about one body length apart: an animal turns toward the open side at its normal turning rate
+and then steps forward slowly (0.25 m/s), so it never slides sideways (sideways/backward moves per 1000 moving chital
+ticks: 22–30 with the first version, 0.1–0.2 now). Resting animals react only when badly crowded. A personal-space step
+never ends in deeper water.
+
+**Resting** happens on dry ground: an animal that decides to rest while standing in water (typically after drinking)
+first walks 3–10 m to dry, open ground. Animals idling, resting or foraging in more than 0.2 m of water: 3.2–5.9% of
+samples before, 0–0.4% after (seeds 1, 3, 4; one day); the remainder is mostly the river rising under them.
 
 **Food web**: grazers remove forage from their cell (with a functional response, so sparse forage feeds slowly); omnivores also draw on invertebrate and small-fauna pools; jackals stalk, chase and kill hares, fawns, weak deer and piglets, limited by sprint stamina and by adults defending young; kills and other deaths leave carcasses that jackals, boar and crows eat and that otherwise rot into detritus.
 
@@ -66,6 +73,15 @@ up to 0.25 m/s (chital standing within 0.5 m of a herd mate: 15.4% of samples be
 Simplifications: bird "gestation" stands for incubation plus nestling period and "litter" for fledged young; running speeds are scaled down from true top speeds so chases are watchable; tigers and other large predators are absent because the valley is far smaller than their territories.
 
 ## Determinism
+Weather has its own random stream (seeded from the world seed, saved, part of the state hash), so a seed's weather
+depends only on seed and time, never on animal behaviour. Saves made before this get a deterministic fallback stream.
+
+**Per engine, not across engines.** Results are bit-identical for the same seed and inputs on the same JavaScript engine
+(save/reload, replays, the test suites). The JavaScript specification leaves `Math.sin`, `cos`, `atan2`, `pow`, `exp`,
+`log`, `cbrt` and similar implementation-approximated: measured on 20,000 inputs each, Node 22 (V8 12.4) and the
+Chromium used for browser tests disagree in the last bit for 0.05–18% of inputs (`sqrt` and `hypot` agree), and seed 2
+diverges between them at tick 452. A save moved between browsers therefore stays valid but its future is not
+guaranteed identical. Fix if cross-engine replay becomes a requirement: a deterministic math library for the simulation.
 
 One seeded generator drives all stochastic choices, in a fixed iteration order. Given the same seed, the same sequence of `step(dt)` calls and the same inputs (focus, control, experiment levers), the state is bit-identical; this is tested, including across a save/load round trip. Different time multipliers use different step sizes and therefore produce different (equally valid) histories.
 
@@ -76,5 +92,4 @@ One seeded generator drives all stochastic choices, in a fixed iteration order. 
 - Steering is local with wall-following, not path-finding: an animal can still give up on a destination behind a long
   river bend or inside a courtyard of ruins, and choose another. `npm run movement` reports pinned animals (≈1–5 twenty-second
   windows per seed-day across ~200 animals).
-- Herd cohesion uses the group centre only: there is no leader and no lying-down vigilance rota. The personal-space
-  shuffle moves the body without turning it (the renderer shows a short sideways slide).
+- Herd cohesion uses the group centre only: there is no leader and no lying-down vigilance rota.
