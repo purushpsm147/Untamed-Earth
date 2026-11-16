@@ -142,6 +142,8 @@ export const ECO_EXPERIMENT = {
   movingGoalGiveUp: true,
   /** CANDIDATE FIX (off = production): an animal heading for a drinking site is not repelled by deep water there */
   drinkApproachIgnoresDeepWater: false,
+  /** PROPOSAL (off = production): hungry animals search farther for forage and feel less home-range pull */
+  hungerScaledForageSearch: false,
 };
 
 /** Candidate steering offsets from the goal direction (radians), in tie-break order: straight first, then alternating. */
@@ -750,7 +752,9 @@ export class Simulation {
       case B.Forage: {
         // compare a handful of patches within sensory range; no global knowledge of the map
         const g = this.groups.get(a.group);
-        const reach = Math.min(Math.max(vis, 25), 70);
+        // proposal under test: a hungry animal widens its search (up to 3x at hunger 1) instead of grazing out one spot
+        const need = ECO_EXPERIMENT.hungerScaledForageSearch ? Math.max(0, a.hunger - 0.45) / 0.55 : 0;
+        const reach = Math.min(Math.max(vis, 25), 70) * (1 + 2 * need);
         // a bird perched on a roof must not choose to "forage right here": that would land it inside the walls
         const onRoof = this.insideBuilding(a.x, a.z, 1);
         let bs = onRoof ? -1e9 : this.foodScore(sp, a.x, a.z) * 1.1;
@@ -764,7 +768,7 @@ export class Simulation {
             z = lerp(z, g.z, 0.5);
           }
           if (!this.valley.inBounds(x, z, 12) || this.valley.waterDepth(x, z, env.stage) > 0.15 || this.insideBuilding(x, z, 1)) continue;
-          const homePull = Math.hypot(x - a.homeX, z - a.homeZ) / (sp.homeRange * 3);
+          const homePull = Math.hypot(x - a.homeX, z - a.homeZ) / (sp.homeRange * 3 * (1 + 2 * need));
           const s = this.foodScore(sp, x, z) - Math.hypot(x - a.x, z - a.z) * 0.0015 - homePull * homePull * 0.4;
           if (s > bs) {
             bs = s;
