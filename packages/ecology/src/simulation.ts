@@ -570,7 +570,7 @@ export class Simulation {
           for (let s = 0; s <= Math.min(60, d0); s += 1) {
             const x = wx + ux * s;
             const z = wz + uz * s;
-            if (env.waterHere(x, z) === 0) break; // dry before any standable shallows: keep the water point
+            // the first point no deeper than the bird can stand in (shallows or the dry bank)
             if (this.valley.waterDepth(x, z, env.stage) <= sp.locomotion.wadeDepth && !this.insideBuilding(x, z)) {
               a.tx = x;
               a.tz = z;
@@ -768,9 +768,11 @@ export class Simulation {
     if (sp.diet.carrion > 0 && a.hunger > 0.25 && this.carcasses.length > 0) {
       const reach = sp.smell * (a.alt > 2 || !sp.flies ? 1 : 0.5);
       let bd = reach * reach;
+      const reachDepth = maySwim(sp, false) ? Infinity : sp.locomotion.wadeDepth;
       for (const c of this.carcasses) {
         const d2 = (c.x - a.x) ** 2 + (c.z - a.z) ** 2;
-        if (d2 < bd && c.kg > 0.05) {
+        // food lying in water the animal may not enter is out of reach, not a target
+        if (d2 < bd && c.kg > 0.05 && this.valley.waterDepth(c.x, c.z, env.stage) <= reachDepth) {
           bd = d2;
           carc = c;
         }
@@ -1315,6 +1317,11 @@ export class Simulation {
         return;
       }
     }
+    // nowhere to stand within reach: give the destination up rather than hover over the water
+    if (a.beh === B.SeekWater) a.waterX = a.waterZ = NaN;
+    a.beh = B.Idle;
+    a.want = 0;
+    a.timer = 0;
   }
 
   /** The movement mode renderers and diagnostics read: what the animal is physically doing this tick. */
@@ -1403,7 +1410,7 @@ export class Simulation {
     }
     // ---- steering: look ahead along a fixed set of headings and take the cheapest; turn toward it smoothly ----
     const look = clamp(a.speed * 1.2, a.steer !== 0 ? 4 : 2.5, 12) + step;
-    const steered = this.steer(a, sp, goal, look);
+    const steered = this.steer(a, sp, goal, look, dist);
     const desired = Number.isNaN(steered) ? a.heading + Math.PI : steered; // everything blocked: turn around
     // turning rate falls with speed (a sprinting deer arcs; a walking one can pivot) and with body size
     const maxTurn = (loco.agility * 4.5 * dt) / (1 + a.speed / 6);
@@ -1536,7 +1543,7 @@ export class Simulation {
   }
 
   /** Bounded look-ahead steering with deterministic tie-breaking and side hysteresis. Returns NaN if fully blocked. */
-  private steer(a: Animal, sp: SpeciesDef, goal: number, look: number): number {
+  private steer(a: Animal, sp: SpeciesDef, goal: number, look: number, goalDist = Infinity): number {
     const h0 = this.valley.heightFast(a.x, a.z);
     let best = NaN;
     let bestCost = Infinity;
@@ -1549,7 +1556,10 @@ export class Simulation {
       const sx = Math.sin(h);
       const sz = Math.cos(h);
       // a near sample (just beyond this tick's step) stops far samples skipping over a building corner
-      for (const d of [1.2, look * 0.5, look]) {
+      // never judge a heading by ground beyond the destination itself (a target at the water's edge must not look
+      // blocked by the water behind it)
+      for (const d0 of [1.2, look * 0.5, look]) {
+        const d = Math.max(0.3, Math.min(d0, goalDist));
         const c = this.terrainCost(sp, a, a.x + sx * d, a.z + sz * d, h0, d);
         cost += c;
         if (cost === Infinity) break;
