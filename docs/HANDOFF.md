@@ -52,7 +52,9 @@ should move to the contracts in `observe.ts` (events via `onAudioEvents`, pose f
 | `c86a691` | Auto quality keeps only downgrades that measurably help; ineffective ones undone and held with back-off; preset step no longer raises resolution | `tests/unit/quality-governor.test.ts` (6 new), reliability browser test (constant feed undone on the real renderer; real SwiftShader trial measured a gain) |
 | `46e5e80` | Folded-leg lying pose and pose blending (presentation only, via the contract); personal-space steps turn then walk; resting on dry ground; weather RNG decoupled; documentary seed 3 → 2 | `tests/unit/animal-pose.test.ts`, `navigation.test.ts`, `npm run movement` |
 | `acecba0` | Documentary camera by drawn subject size and terrain + object line of sight | `docs/evidence/documentary-camera-before-after.jpg`, walkthrough stills |
-| docs commit | `AUDIO_INTEGRATION.md` (PR #11 reviewed, not merged); QA/ROADMAP/SIMULATION/PERFORMANCE | PR #11 comment |
+| `49ac48c` | `AUDIO_INTEGRATION.md` (PR #11 reviewed, not merged); QA/ROADMAP/SIMULATION/PERFORMANCE | PR #11 comment |
+| `3a9d068` | Traversal leak check by exact terrain accounting; observer hold waits for movement (CI flakes 115/124) | QA.md CI record |
+| `263e584` | Governor trial windows >= 8 frames, medians (CI 129 exposed noisy verdicts on slow devices) | **CI run 130 success** |
 
 PRs #11, #12 and #13 are untouched and unmerged. GPT-6's V4 graphics experiment (PR #13) was not edited or duplicated.
 
