@@ -159,7 +159,6 @@ test('Observer has independent yaw, pitch, bank/roll and optical zoom without to
   } finally {
     await page.keyboard.up('KeyI');
   }
-  const pitched = await read();
   await page.keyboard.down('KeyU');
   try {
     await expect.poll(async () => (await read()).roll, { timeout: 20_000 }).toBeGreaterThan(0.08);
