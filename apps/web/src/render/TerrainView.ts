@@ -30,6 +30,9 @@ export class TerrainView {
   private nextRequestId = 1;
   /** Diagnostics: how many worker results were applied, dropped as stale, or dropped because the wanted LOD moved on. */
   readonly counters = { applied: 0, stale: 0, superseded: 0, workerFailures: 0 };
+  /** QA accounting: terrain geometries created and disposed (created - disposed must equal live chunk meshes). */
+  private geoCreated = 0;
+  private geoDisposed = 0;
   private queue: Chunk[] = [];
   viewDist = 800;
   /** Number of chunks currently holding a mesh / expected in range (for the loading bar). */
@@ -112,6 +115,7 @@ export class TerrainView {
     }
     this.counters.applied++;
     const g = new THREE.BufferGeometry();
+    this.geoCreated++;
     g.setAttribute('position', new THREE.BufferAttribute(r.positions, 3));
     g.setAttribute('normal', new THREE.BufferAttribute(r.normals, 3));
     g.setAttribute('color', new THREE.BufferAttribute(r.colors, 4));
@@ -119,6 +123,7 @@ export class TerrainView {
     g.computeBoundingSphere();
     if (c.mesh) {
       c.mesh.geometry.dispose();
+      this.geoDisposed++;
       c.mesh.geometry = g;
     } else {
       c.mesh = new THREE.Mesh(g, this.material);
@@ -148,6 +153,7 @@ export class TerrainView {
             if (c.mesh) {
               this.group.remove(c.mesh);
               c.mesh.geometry.dispose();
+              this.geoDisposed++;
             }
             this.chunks.delete(key);
           }
@@ -198,7 +204,7 @@ export class TerrainView {
   }
 
   /** QA: streaming health. `mismatched` counts in-range chunks whose mesh is missing or not at the wanted LOD. */
-  debugState(): { chunks: number; meshes: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; applied: number; stale: number; superseded: number; workerFailures: number } {
+  debugState(): { chunks: number; meshes: number; inGroup: number; liveGeometries: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; applied: number; stale: number; superseded: number; workerFailures: number } {
     let meshes = 0;
     let mismatched = 0;
     let pending = 0;
@@ -207,7 +213,7 @@ export class TerrainView {
       if (c.live && (!c.mesh || c.res !== c.want)) mismatched++;
       if (c.pending) pending++;
     }
-    return { chunks: this.chunks.size, meshes, mismatched, pending, inFlight: this.inFlight, queued: this.queue.length, worker: this.worker !== null, ...this.counters };
+    return { chunks: this.chunks.size, meshes, inGroup: this.group.children.length, liveGeometries: this.geoCreated - this.geoDisposed, mismatched, pending, inFlight: this.inFlight, queued: this.queue.length, worker: this.worker !== null, ...this.counters };
   }
 
   dispose(): void {

@@ -10,7 +10,16 @@ test.describe('gameplay scenarios', () => {
     const moved = async (keys: string[]): Promise<{ dx: number; dy: number; dz: number }> => {
       await frames(page); // start from a settled frame
       const a = await pos();
-      await hold(page, keys, 700);
+      // Hold for at least 700 ms and until the camera has moved 1.5 m in any direction (bounded at 20 s): on a
+      // saturated runner a fixed 700 ms hold can see too few frames (CI run 124: Space rose 0.93 m). Direction and
+      // the > 1 m thresholds below are unchanged, and broken input still fails (the hold times out with no movement).
+      for (const k of keys) await page.keyboard.down(k);
+      try {
+        await page.waitForTimeout(700);
+        await expect.poll(async () => { const c = await pos(); return Math.hypot(c.x - a.x, c.y - a.y, c.z - a.z); }, { timeout: 20_000 }).toBeGreaterThan(1.5).catch(() => undefined);
+      } finally {
+        for (const k of [...keys].reverse()) await page.keyboard.up(k);
+      }
       // the game reads input on its next rendered frame (taps are latched), which on a software renderer can come
       // well after the key is released: read only once two more frames have rendered
       await frames(page);
@@ -389,18 +398,28 @@ test.describe('gameplay scenarios', () => {
     const p = watch(page);
     await enter(page, { qa: true });
     const counts: number[] = [];
+    const totals: number[] = [];
     for (let i = 0; i < 4; i++) {
       await g(page, (G) => G.debugPath([[200, 200], [1250, 300], [1250, 1250], [200, 1250], [200, 200]], 420, 15));
       // sample once streaming is idle, so counts reflect settled terrain rather than chunks still in flight
       await expect.poll(() => g(page, (G) => { const t = G.debugTerrain(); return t.pending + t.inFlight + t.queued + t.mismatched; }), { timeout: 60_000 }).toBe(0);
       await page.waitForTimeout(500);
-      const s = await g(page, (G) => G.debugGfx());
-      counts.push(s.geometries);
-      expect(s.chunks).toBeGreaterThan(8);
+      const s = await g(page, (G) => ({ gfx: G.debugGfx(), t: G.debugTerrain() }));
+      // exact terrain accounting: every geometry the terrain created and has not disposed is a tracked chunk mesh,
+      // and every terrain mesh in the scene belongs to a tracked chunk (an orphan or undisposed geometry is a leak)
+      expect(s.t.liveGeometries).toBe(s.t.meshes);
+      expect(s.t.inGroup).toBe(s.t.meshes);
+      // Renderer-wide geometry counts only geometry drawn at least once, so it depends on which chunks were in view and
+      // which the 420 m/s path happened to sample (frame-rate dependent; CI run 115: 54, 70, 77, 67). The original
+      // thresholds therefore apply to geometry that is not terrain: renderer count minus live terrain meshes.
+      counts.push(s.gfx.geometries - s.t.meshes);
+      totals.push(s.gfx.geometries);
+      expect(s.gfx.chunks).toBeGreaterThan(8);
     }
-    // counts wobble by a few chunks depending on where the last frame landed; a leak would grow every lap
-    expect(Math.max(...counts) - Math.min(...counts), String(counts)).toBeLessThanOrEqual(14);
-    expect(counts[3]! - counts[0]!, String(counts)).toBeLessThanOrEqual(10);
+    // A leak can only make this grow (undrawn terrain only lowers it), so the original bounds apply to growth:
+    // no lap more than 14 above the first, and the last lap at most 10 above the first.
+    expect(Math.max(...counts) - counts[0]!, `${counts} (totals ${totals})`).toBeLessThanOrEqual(14);
+    expect(counts[3]! - counts[0]!, `${counts} (totals ${totals})`).toBeLessThanOrEqual(10);
     expect(p.errors).toEqual([]);
   });
 

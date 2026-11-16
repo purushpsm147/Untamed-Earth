@@ -15,7 +15,7 @@ export interface G {
   debugStepTo(tick: number): number;
   engine: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean };
-  debugTerrain(): { chunks: number; meshes: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; applied: number; stale: number; superseded: number; workerFailures: number };
+  debugTerrain(): { chunks: number; meshes: number; inGroup: number; liveGeometries: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; applied: number; stale: number; superseded: number; workerFailures: number };
   debugFreeze(t: number | null): void; debugLuma(): { mean: number; std: number }; debugGrounding(): { max: number; n: number };
   debugPath(points: [number, number][], speed: number, above?: number): Promise<void>;
   debugPerfStart(): void; debugPerfStop(): { frame: number[]; sim: number[]; render: number[] };
