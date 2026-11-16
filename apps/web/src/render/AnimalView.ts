@@ -1,19 +1,21 @@
 import * as THREE from 'three';
 import { angleDiff } from '@untamed/core';
-import { Animal, B, SPECIES, Simulation, maturityDays } from '@untamed/ecology';
+import { Animal, SPECIES, Simulation, behaviorFamily, maturityDays } from '@untamed/ecology';
 import { AnimalModel, buildAnimalModels } from './animalGeo';
 import { blob } from './geo';
+import { PoseState, newPose, stepPose } from './animalPose';
 
 interface Batch {
   mesh: THREE.InstancedMesh;
   anim: THREE.InstancedBufferAttribute;
+  /** x: lie (0 standing .. 1 lying, legs folded). */
+  pose: THREE.InstancedBufferAttribute;
   model: AnimalModel;
   n: number;
 }
-interface Vis {
+interface Vis extends PoseState {
   phase: number;
   yaw: number;
-  lie: number;
   seen: number;
   /** Feet height above exact terrain at last draw (NaN when flying, swimming or lying). */
   off: number;
@@ -25,12 +27,13 @@ function animatedMaterial(): THREE.MeshStandardMaterial {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0 });
   mat.onBeforeCompile = (sh) => {
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec3 aPart; attribute vec2 aPivot; attribute vec4 iAnim;')
+      .replace('#include <common>', '#include <common>\nattribute vec3 aPart; attribute vec2 aPivot; attribute float aFold; attribute vec4 iAnim; attribute vec4 iPose;')
       .replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
         float ang = 0.0;
-        if (aPart.x != 0.0) ang = aPart.x * sin(iAnim.x) * iAnim.y;
+        // legs swing while walking and fold under the body when lying (front legs back, hind legs forward)
+        if (aPart.x != 0.0) ang = aPart.x * sin(iAnim.x) * iAnim.y * (1.0 - iPose.x) + aFold * iPose.x * 1.45;
         else if (aPart.y > 0.0) ang = iAnim.z * aPart.y;
         if (ang != 0.0) {
           vec2 q = transformed.yz - aPivot; float c = cos(ang), s = sin(ang);
@@ -69,13 +72,16 @@ export class AnimalView {
       const anim = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 4), 4);
       anim.setUsage(THREE.DynamicDrawUsage);
       model.geo.setAttribute('iAnim', anim);
+      const pose = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 4), 4);
+      pose.setUsage(THREE.DynamicDrawUsage);
+      model.geo.setAttribute('iPose', pose);
       const mesh = new THREE.InstancedMesh(model.geo, mat, MAX);
       mesh.frustumCulled = false;
       mesh.castShadow = true;
       mesh.count = 0;
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       this.group.add(mesh);
-      this.batches[name] = { mesh, anim, model, n: 0 };
+      this.batches[name] = { mesh, anim, pose, model, n: 0 };
     }
     this.carcass = new THREE.InstancedMesh(blob(0.5, 1, 3, 0.5), new THREE.MeshStandardMaterial({ color: 0x3a1f18, roughness: 1 }), 200);
     this.carcass.frustumCulled = false;
@@ -114,7 +120,7 @@ export class AnimalView {
       const b = this.batches[sp.id === 'chital' && adult && a.sex === 1 ? 'stag' : sp.id]!;
       if (b.n >= MAX) continue;
       let v = this.vis.get(a.id);
-      if (!v) this.vis.set(a.id, (v = { phase: (a.id * 1.7) % 6.28, yaw: a.heading, lie: 0, seen: 0, off: NaN }));
+      if (!v) this.vis.set(a.id, (v = { ...newPose(), phase: (a.id * 1.7) % 6.28, yaw: a.heading, seen: 0, off: NaN }));
       v.seen = this.frame;
       const alt = a.palt + (a.alt - a.palt) * alpha;
       const ground = d2 < 300 * 300 ? valley.height(x, z) : valley.heightFast(x, z);
@@ -126,15 +132,15 @@ export class AnimalView {
       v.yaw += angleDiff(v.yaw, a.heading) * Math.min(1, dt * 8);
       const stride = (sp.mass > 20 ? 3.2 : sp.mass > 4 ? 6 : 11) * (a.speed > sp.walk * 2 ? 0.55 : 1);
       if (moving && !flying) v.phase += a.speed * dt * stride;
-      const resting = a.beh === B.Rest && !flying && !sp.flies;
-      v.lie += ((resting ? 1 : 0) - v.lie) * Math.min(1, dt * 2.5);
+      // pose from the read-only contract: behaviour family plus whether the animal is actually moving
+      const run = a.speed > sp.walk * 2;
+      const lie = stepPose(v, { family: behaviorFamily(a), moving, running: run, flying, flier: sp.flies, fear: a.fear, time, seed: a.id }, dt);
       const g = sim.growth(a, sp);
       const sc = (0.42 + 0.58 * g) * (sp.id === 'chital' && a.sex === 1 && adult ? 1.12 : 1) * (0.94 + ((a.id * 37) % 13) / 100);
       // swimming animals ride at the surface with only head and back showing
-      let y = ground + alt - v.lie * b.model.lie * sc;
+      let y = ground + alt - lie * b.model.lie * sc;
       if (!flying && wd > 0.45 * sc) y = ground + wd - b.model.height * sc * 0.72;
       v.off = flying || wd > 0.45 * sc || v.lie > 0.02 || d2 >= 300 * 300 ? NaN : y - ground;
-      const run = a.speed > sp.walk * 2;
       const pitch = flying ? -0.15 : run ? Math.sin(v.phase) * 0.05 : 0;
       this.e.set(pitch, v.yaw, 0);
       this.p.set(x, y + (run && !flying ? Math.abs(Math.sin(v.phase)) * 0.06 * sc : 0), z);
@@ -143,10 +149,9 @@ export class AnimalView {
       const an = b.anim.array as Float32Array;
       const o = b.n * 4;
       an[o] = v.phase;
-      an[o + 1] = moving && !flying ? (run ? 0.75 : 0.42) : 0;
-      const eating = a.beh === B.Forage || a.beh === B.Drink || a.beh === B.Feed;
-      const head = eating && !moving ? (sp.flies ? 0.9 : 1.55 + Math.sin(time * 2.2 + a.id) * 0.08) : resting ? 0.35 : a.fear > 0.3 ? -0.25 : run ? 0.35 : Math.sin(time * 0.4 + a.id) * 0.06;
-      an[o + 2] = head * (sp.id === 'boar' ? 0.35 : sp.id === 'hare' ? 0.5 : 1);
+      an[o + 1] = v.amp;
+      an[o + 2] = v.head * (sp.id === 'boar' ? 0.35 : sp.id === 'hare' ? 0.5 : 1);
+      (b.pose.array as Float32Array)[o] = lie;
       an[o + 3] = flying ? Math.sin(time * (sp.mass > 0.2 ? 15 : 22) + a.id) * 0.95 + 0.1 : -1.42;
       b.n++;
       let pv = this.pos.get(a.id);
@@ -155,14 +160,14 @@ export class AnimalView {
       if (highlightGroup && a.group === highlightGroup && a.id !== selected && rings < 80) {
         const r = sp.mass > 20 ? 0.8 : sp.mass > 4 ? 0.5 : 0.3;
         this.e.set(0, 0, 0);
-        this.m.compose(this.p.set(x, y + 0.1 + v.lie * b.model.lie * sc, z), this.q.setFromEuler(this.e), this.s.setScalar(r));
+        this.m.compose(this.p.set(x, y + 0.1 + lie * b.model.lie * sc, z), this.q.setFromEuler(this.e), this.s.setScalar(r));
         this.groupRings.setMatrixAt(rings++, this.m);
       }
       if (a.id === selected) {
         this.marker.visible = true;
         const r = Math.max(0.35, sp.mass > 20 ? 1 : sp.mass > 4 ? 0.6 : 0.35);
         this.marker.scale.setScalar(r * (1 + Math.sin(time * 4) * 0.06));
-        this.marker.position.set(x, y + 0.08 + (flying ? -0.1 : v.lie * b.model.lie * sc), z);
+        this.marker.position.set(x, y + 0.08 + (flying ? -0.1 : lie * b.model.lie * sc), z);
       }
     }
     this.groupRings.count = rings;
@@ -171,6 +176,7 @@ export class AnimalView {
       b.mesh.count = b.n;
       b.mesh.instanceMatrix.needsUpdate = true;
       b.anim.needsUpdate = true;
+      b.pose.needsUpdate = true;
     }
     // carcasses shrink as they are eaten and decompose
     let cn = 0;
@@ -192,6 +198,12 @@ export class AnimalView {
         }
       }
     }
+  }
+
+  /** QA: the drawn pose of one animal this frame (presentation state only), or null if not drawn. */
+  debugPose(id: number): { lie: number; head: number; amp: number; yaw: number } | null {
+    const v = this.vis.get(id);
+    return v && v.seen === this.frame ? { lie: v.lie, head: v.head, amp: v.amp, yaw: v.yaw } : null;
   }
 
   /** QA: largest gap between drawn feet and exact terrain among standing ground animals this frame. */

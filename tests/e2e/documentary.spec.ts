@@ -13,7 +13,7 @@ test('documentary scenario: observe, Curiosity, interrupt, inspect, save and rel
   const p = watch(page);
   await page.goto('/?scenario=documentary&qa=1');
   await expect(page.locator('#startNote')).toContainText('Documentary scenario');
-  await expect(page.locator('#seed')).toHaveValue('3');
+  await expect(page.locator('#seed')).toHaveValue('2');
   await page.selectOption('#startQuality', 'low');
   await page.click('#btnNew');
   await expect(page.locator('#hud')).toBeVisible({ timeout: 180_000 });
@@ -89,7 +89,7 @@ test('documentary scenario: observe, Curiosity, interrupt, inspect, save and rel
   const page2 = await context.newPage();
   const p2 = watch(page2);
   await page2.goto('/?qa=1');
-  await expect(page2.locator('#btnContinue')).toContainText('seed 3', { timeout: 15_000 });
+  await expect(page2.locator('#btnContinue')).toContainText('seed 2', { timeout: 15_000 });
   await page2.click('#btnContinue');
   await expect(page2.locator('#hud')).toBeVisible({ timeout: 180_000 });
   const after = await g(page2, (G) => ({ hash: G.sim.stateHash() as number }));

@@ -129,6 +129,23 @@ describe('navigation: steering, termination, obstacles', () => {
 });
 
 describe('chital herd threat response', () => {
+  it('making room never walks animals into the river: resting, grazing and idle animals stay dry', () => {
+    const sim = new Simulation(4);
+    let n = 0;
+    let wet = 0;
+    for (let t = 0; t < 7200; t++) {
+      sim.step(0.1);
+      if (t % 50) continue;
+      for (const a of sim.animals) {
+        if (!a.alive || SPECIES[a.sp]!.flies || (a.beh !== B.Rest && a.beh !== B.Forage && a.beh !== B.Idle)) continue;
+        n++;
+        if (sim.valley.waterDepth(a.x, a.z, sim.env.stage) > 0.2) wet++;
+      }
+    }
+    expect(wet / n).toBeLessThan(0.015); // 5.9% on this seed with the first personal-space version
+  });
+
+
   it('herd mates keep personal space instead of standing inside each other', () => {
     const sim = new Simulation(1);
     let n = 0;

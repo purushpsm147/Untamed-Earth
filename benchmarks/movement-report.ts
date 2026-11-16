@@ -7,6 +7,8 @@
  *  - steep: ticks spent moving up a grade steeper than 0.95 (~44 degrees)
  *  - wading: share of ticks a jackal spends in water deeper than 0.45 m
  *  - pinned: animals that wanted to move but covered < 0.5 m over 20 s
+ *  - sideways: moves more than ~35 degrees off the body's facing (sliding)
+ *  - overlap: chital standing within 0.5 m of another chital
  * and herd spread (mean distance of chital to their group centroid).
  */
 import { SPECIES, Simulation } from '@untamed/ecology';
@@ -20,6 +22,9 @@ for (const seed of seeds.length ? seeds : [1, 4, 9]) {
   const snaps: number[] = SPECIES.map(() => 0);
   const jolts: number[] = SPECIES.map(() => 0);
   const steep: number[] = SPECIES.map(() => 0);
+  const slide: number[] = SPECIES.map(() => 0);
+  let overlapN = 0;
+  let overlap = 0;
   const moveTicks: number[] = SPECIES.map(() => 0);
   let jackalTicks = 0;
   let jackalWet = 0;
@@ -42,6 +47,9 @@ for (const seed of seeds.length ? seeds : [1, 4, 9]) {
         const d = Math.hypot(a.x - p.x, a.z - p.z);
         if (d > 0.01) {
           moveTicks[a.sp]!++;
+          // moved more than ~35 degrees off the way the body faces (sliding sideways or backwards)
+          const dirOff = Math.abs(Math.atan2(Math.sin(Math.atan2(a.x - p.x, a.z - p.z) - a.heading), Math.cos(Math.atan2(a.x - p.x, a.z - p.z) - a.heading)));
+          if (dirOff > 0.6) slide[a.sp]!++;
           const grade = (sim.valley.heightFast(a.x, a.z) - sim.valley.heightFast(p.x, p.z)) / d;
           if (grade > 0.95) steep[a.sp]!++;
         }
@@ -65,6 +73,13 @@ for (const seed of seeds.length ? seeds : [1, 4, 9]) {
         if (sim.valley.waterDepth(a.x, a.z, sim.env.stage) > 0.45) jackalWet++;
       }
     }
+    if (t % 50 === 0) {
+      const deer = sim.animals.filter((a) => a.sp === 0 && a.alive);
+      for (const a of deer) {
+        overlapN++;
+        if (deer.some((b) => b !== a && Math.hypot(a.x - b.x, a.z - b.z) < 0.5)) overlap++;
+      }
+    }
     if (t % 600 === 0) {
       const groups = new Map<number, { x: number; z: number; n: number; m: { x: number; z: number }[] }>();
       for (const a of sim.animals) {
@@ -86,7 +101,9 @@ for (const seed of seeds.length ? seeds : [1, 4, 9]) {
     add(`${id} snaps per 1000 moving ticks`, (snaps[i]! / Math.max(1, moveTicks[i]!)) * 1000);
     add(`${id} jolts per 1000 moving ticks`, (jolts[i]! / Math.max(1, moveTicks[i]!)) * 1000);
     add(`${id} steep climbs per 1000 moving ticks`, (steep[i]! / Math.max(1, moveTicks[i]!)) * 1000);
+    add(`${id} sideways/backward moves per 1000 moving ticks`, (slide[i]! / Math.max(1, moveTicks[i]!)) * 1000);
   }
+  add('chital within 0.5 m of another chital %', (overlap / Math.max(1, overlapN)) * 100);
   add('jackal share of time in deep water %', (jackalWet / Math.max(1, jackalTicks)) * 100);
   add('pinned 20 s windows (all ground animals)', pinned);
   add('chital mean distance to herd centroid m', spreadSum / Math.max(1, spreadN));

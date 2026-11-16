@@ -2,8 +2,11 @@ import * as THREE from 'three';
 import { hash3f } from '@untamed/core';
 import { GeoBuilder, RGB, box, cyl } from './geo';
 
-/** Vertex attributes consumed by the animation shader: aPart = (leg phase sign, head weight, wing side), aPivot = (y, z). */
-const ATTRS = { aPart: 3, aPivot: 2 };
+/**
+ * Vertex attributes consumed by the animation shader: aPart = (leg phase sign, head weight, wing side), aPivot = (y, z),
+ * aFold = leg fold direction when lying (+1 front legs tuck backward, -1 hind legs tuck forward, 0 not a leg).
+ */
+const ATTRS = { aPart: 3, aPivot: 2, aFold: 1 };
 const sph = (ws = 10, hs = 7): THREE.BufferGeometry => new THREE.SphereGeometry(1, ws, hs);
 
 export interface QuadSpec {
@@ -17,7 +20,7 @@ export interface QuadSpec {
 
 export interface AnimalModel {
   geo: THREE.BufferGeometry;
-  /** Vertical drop applied when lying down. */
+  /** Vertical drop applied when lying down (legs fold under the body; the belly ends just above the ground). */
   lie: number;
   /** Selection / follow-camera reference height. */
   height: number;
@@ -38,7 +41,7 @@ export function quadruped(s: QuadSpec): AnimalModel {
     for (const sz of [-1, 1]) {
       const z = sz * s.bodyLen * 0.34;
       b.add(cyl(s.legR, s.legR * 0.6, s.legLen + s.bodyR * 0.5, 5), s.leg, [sx * s.bodyW * 0.62, (s.legLen + s.bodyR * 0.5) / 2, z], [0, 0, 0], 1, 0.25, 0,
-        { aPart: [sx * sz, 0, 0], aPivot: [s.legLen + s.bodyR * 0.4, z] });
+        { aPart: [sx * sz, 0, 0], aPivot: [s.legLen + s.bodyR * 0.4, z], aFold: [sz] });
     }
   }
   // neck + head rotate as one unit about the shoulder
@@ -66,7 +69,7 @@ export function quadruped(s: QuadSpec): AnimalModel {
   if (s.mane) b.add(box(0.05, 0.1, s.bodyLen * 0.8), [0.1, 0.09, 0.08], [0, by + s.bodyR * 0.98, 0.05]);
   const ta = s.tailAngle;
   b.add(cyl(s.tailR, s.tailR * 0.5, s.tailLen, 5), s.tail, [0, by + s.bodyR * 0.3 - (Math.cos(ta) * s.tailLen) / 2, -s.bodyLen / 2 - (Math.sin(ta) * s.tailLen) / 2 + 0.03], [ta, 0, 0]);
-  return { geo: b.build(ATTRS), lie: s.legLen * 0.78, height: hy + s.headR };
+  return { geo: b.build(ATTRS), lie: s.legLen * 0.95, height: hy + s.headR };
 }
 
 export function bird(len: number, body: RGB, head: RGB, wing: RGB, beak: RGB, leg: RGB, collar?: RGB, patch?: RGB): AnimalModel {

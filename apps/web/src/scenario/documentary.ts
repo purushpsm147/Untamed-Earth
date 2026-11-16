@@ -11,8 +11,12 @@
 import { SPECIES_INDEX, type Simulation } from '@untamed/ecology';
 
 export const DOCUMENTARY = {
-  /** Seed 3: clear late-monsoon afternoon with a 12-deer herd on day 34 (seeds 1, 2, 5-7 are raining then). */
-  seed: 3,
+  /**
+   * Seed 2: clear late-monsoon afternoon with a 13-deer herd on day 34. (Seed 3 was used until weather got its own
+   * random stream; since then a seed's weather no longer changes when animal behaviour changes, and seed 3 is stormy
+   * at this hour.)
+   */
+  seed: 2,
   /** Game hour to fast-forward to on day 0 (the valley starts at 07:00). Late afternoon: chital are crepuscular. */
   hour: 16.5,
   /** Fixed step used for the fast-forward, seconds (one game minute). */

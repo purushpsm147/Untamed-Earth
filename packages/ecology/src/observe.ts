@@ -27,6 +27,11 @@ const FAMILY: Record<number, BehaviorFamily> = {
   [B.SeekCarrion]: 'travel-to-carrion', [B.Feed]: 'feed', [B.Roost]: 'roost', [B.Follow]: 'follow-mother', [B.Regroup]: 'regroup',
 };
 
+/** Behaviour family of one animal without building a full view (per-frame use by renderers). */
+export function behaviorFamily(a: Animal): BehaviorFamily {
+  return FAMILY[a.beh] ?? 'idle';
+}
+
 /** Locomotion mode derived from speed relative to the species' own walk/run speeds. */
 export type Gait = 'still' | 'walk' | 'trot' | 'run' | 'fly' | 'swim';
 

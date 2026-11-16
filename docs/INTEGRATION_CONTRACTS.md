@@ -21,7 +21,9 @@ tests: `tests/unit/observe-contracts.test.ts`.
    idempotent `dispose()`; restarts are covered by `tests/e2e/reliability.spec.ts` (live WebGL object counts).
 
 ## 1. Animal motion and animation: `AnimalMotionView`
-`motionView(sim, animal)`, `animalsNear(sim, x, z, radius, out?)`
+`motionView(sim, animal)`, `animalsNear(sim, x, z, radius, out?)`; for per-frame renderers that must not allocate,
+`behaviorFamily(animal)` and `gaitOf(sim, animal)` give the same values without building a view (the production
+`AnimalView` uses these; pose blending lives in `apps/web/src/render/animalPose.ts`).
 
 | Field | Meaning |
 |---|---|
@@ -35,7 +37,10 @@ tests: `tests/unit/observe-contracts.test.ts`.
 | `controlledByPlayer` | Wildlife Mode |
 
 Animation guidance: drive leg phase by **distance travelled**, not time, so feet don't skate. Blend between poses over
-0.2–0.4 s. `rest` needs a lying pose (deer spend a large share of the day resting).
+0.2–0.4 s. `rest` needs a lying pose (deer spend a large share of the day resting). Reference implementation:
+`animalPose.ts` (lie down ~1.5 s, get up ~0.45 s, lie only while `rest` and not moving; head and leg swing smoothed).
+Since Living Valley V1 the simulation never moves an animal sideways: personal-space steps turn first, then walk forward
+with a real (slow) speed, so legs can animate from `speed` and distance.
 
 ## 2. Ecological audio events: `EcoAudioEvent`
 `onAudioEvents(sim, fn) → unsubscribe`

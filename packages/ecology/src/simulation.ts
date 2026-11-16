@@ -104,6 +104,8 @@ export interface SimSnapshot {
   seed: number;
   tick: number;
   rng: number;
+  /** Weather's own random stream (absent in saves made before it existed). */
+  envRng?: number;
   nextId: number;
   env: EnvSnapshot;
   animals: Animal[];
@@ -143,6 +145,11 @@ export class Simulation {
   readonly valley: Valley;
   readonly env: Environment;
   readonly rng: Rng;
+  /**
+   * Weather has its own random stream, so the weather of a seed depends only on the seed and time, never on what the
+   * animals happened to do (a change to animal behaviour must not turn a clear afternoon into a storm).
+   */
+  readonly envRng: Rng;
   readonly events = new EventBus<SimEvent>();
   animals: Animal[] = [];
   carcasses: Carcass[] = [];
@@ -172,6 +179,7 @@ export class Simulation {
     this.valley = new Valley(seed);
     this.env = new Environment(this.valley);
     this.rng = new Rng(hash3(seed, 99, 1));
+    this.envRng = new Rng(hash3(seed, 99, 2));
     this.bldCell = new Uint8Array(this.env.veg.length);
     for (const b of this.valley.buildings) {
       const r = (b.w + b.d) * 0.5 + 2;
@@ -302,7 +310,7 @@ export class Simulation {
   step(dt: number): void {
     const dtH = (dt * TIME_SCALE) / 3600;
     this.tick++;
-    this.env.step(dtH, this.rng);
+    this.env.step(dtH, this.envRng);
     this.rainAcc += this.env.rain * dtH;
     this.hash.clear();
     const list = this.animals;
@@ -753,12 +761,29 @@ export class Simulation {
         a.tAlt = 0;
         break;
       }
-      case B.Rest:
+      case B.Rest: {
         a.beh = B.Rest;
         a.want = 0;
         a.tx = a.x;
         a.tz = a.z;
+        // ground animals do not lie down in water: from a wet spot (e.g. after drinking) walk a few metres to dry,
+        // open ground first. Directions are tried in a fixed order, so the choice is deterministic.
+        if (!sp.flies && this.valley.waterDepth(a.x, a.z, this.env.stage) > -0.1) {
+          search: for (const r of [3, 6, 10]) {
+            for (let k = 0; k < 8; k++) {
+              const ang = a.heading + Math.PI + (k * Math.PI) / 4;
+              const x = a.x + Math.sin(ang) * r;
+              const z = a.z + Math.cos(ang) * r;
+              if (this.valley.waterDepth(x, z, this.env.stage) < -0.2 && !this.insideBuilding(x, z, 1) && this.valley.inBounds(x, z, 8)) {
+                a.tx = x;
+                a.tz = z;
+                break search;
+              }
+            }
+          }
+        }
         break;
+      }
       case B.Roost: {
         const p = this.valley.findPerch(a.x, a.z, rng.next());
         a.beh = B.Roost;
@@ -963,7 +988,8 @@ export class Simulation {
         break;
       }
       case B.Rest:
-        a.want = 0;
+        // walk to the chosen dry spot (if any), then settle
+        a.want = Math.hypot(a.tx - a.x, a.tz - a.z) > 0.6 ? sp.walk : 0;
         break;
       case B.Roost:
         a.want = dist > 1 ? sp.run * 0.8 : 0;
@@ -996,8 +1022,11 @@ export class Simulation {
         const dgx = g.x - a.x;
         const dgz = g.z - a.z;
         const dg = Math.hypot(dgx, dgz) || 1;
-        a.tx = g.x - (dgx / dg) * 5;
-        a.tz = g.z - (dgz / dg) * 5;
+        // each individual aims at its own spot along the herd's near edge (up to 4 m to either side, fixed by its
+        // id), so animals coming from the same direction do not converge on a single point
+        const side = (((a.id * 0.618034) % 1) - 0.5) * 8;
+        a.tx = g.x - (dgx / dg) * 5 + (dgz / dg) * side;
+        a.tz = g.z - (dgz / dg) * 5 - (dgx / dg) * side;
         a.want = dg > 45 ? sp.walk * 2.4 : sp.walk * 1.4;
         if (dg < 12) {
           a.beh = B.Idle;
@@ -1214,7 +1243,10 @@ export class Simulation {
     if (!sp.flies && a.want > 0) a.speed = Math.min(a.speed, Math.sqrt(2 * loco.decel * Math.max(0, dist - 0.4)) + 0.25);
     if (a.speed < 0.02 && a.want <= 0) a.speed = 0;
     // personal space: herd animals standing or ambling shuffle apart instead of occupying the same spot
-    if (!sp.flies && sp.group > 1 && a.speed < sp.walk * 0.6 && !a.controlled && a.beh !== B.Drink && a.beh !== B.Flee && a.beh !== B.Follow) this.giveSpace(a, sp, dt);
+    if (!sp.flies && sp.group > 1 && a.speed < sp.walk * 0.6 && a.want < sp.walk * 0.6 && !a.controlled && a.beh !== B.Drink && a.beh !== B.Flee && a.beh !== B.Follow && this.giveSpace(a, sp, dt, loco.agility, a.beh === B.Rest ? 0.5 : 1)) {
+      a.chkT = 0;
+      return;
+    }
     if (a.speed <= 0 || dist < 0.05) {
       a.chkT = 0;
       return;
@@ -1290,9 +1322,13 @@ export class Simulation {
     }
   }
 
-  /** Shuffle (at most 0.25 m/s) away from same-species neighbours closer than about one body length. */
-  private giveSpace(a: Animal, sp: SpeciesDef, dt: number): void {
-    const personal = Math.max(0.6, sp.length * 1.1);
+  /**
+   * Step away from same-species neighbours closer than about one body length: the animal turns toward the open side
+   * at its normal turning rate and walks forward slowly (0.25 m/s), so facing and movement agree. A resting animal
+   * reacts only when badly crowded (reach 0.5: it gets up, steps aside, and lies down again).
+   */
+  private giveSpace(a: Animal, sp: SpeciesDef, dt: number, agility: number, reach = 1): boolean {
+    const personal = Math.max(0.6, sp.length * 1.1) * reach;
     let px = 0;
     let pz = 0;
     this.hash.query(a.x, a.z, personal, (o, d2) => {
@@ -1305,15 +1341,26 @@ export class Simulation {
       pz += Math.cos(ang) * w;
     });
     const m = Math.hypot(px, pz);
-    if (m < 1e-6) return;
-    const step = Math.min(0.25 * dt, 0.25 * m * dt * 4);
-    const nx = a.x + (px / m) * step;
-    const nz = a.z + (pz / m) * step;
+    if (m < 1e-6) return false;
+    // turn toward the open side first; only step once roughly facing it (no sideways sliding)
+    const want = Math.atan2(px, pz);
+    const turn = angleDiff(a.heading, want);
+    const maxTurn = agility * 4.5 * dt;
+    a.heading += clamp(turn, -maxTurn, maxTurn);
+    if (Math.abs(angleDiff(a.heading, want)) > 0.5) return true; // turning on the spot this tick
+    const step = Math.min(0.25, 0.25 * m * 4) * dt;
+    const nx = a.x + Math.sin(a.heading) * step;
+    const nz = a.z + Math.cos(a.heading) * step;
     const depth = this.valley.waterDepth(a.x, a.z, this.env.stage);
-    if (this.passable(sp, nx, nz, depth) && this.terrainCost(sp, a, nx, nz, this.valley.heightFast(a.x, a.z), step + 1e-3) < 0.5) {
+    // making room never means wading in: the step may not end in water deeper than where the animal stands
+    const wet = this.valley.waterDepth(nx, nz, this.env.stage) > Math.max(-0.05, depth);
+    if (!wet && this.passable(sp, nx, nz, depth) && this.terrainCost(sp, a, nx, nz, this.valley.heightFast(a.x, a.z), step + 1e-3) < 0.5) {
       a.x = nx;
       a.z = nz;
+      a.speed = Math.max(a.speed, step / dt); // a real (slow) step: renderers animate legs from speed and distance
+      return true;
     }
+    return false;
   }
 
   /**
@@ -1368,7 +1415,7 @@ export class Simulation {
   // ------------------------------------------------------------------ persistence & verification
   snapshot(): SimSnapshot {
     return {
-      version: SAVE_VERSION, seed: this.seed, tick: this.tick, rng: this.rng.state, nextId: this.nextId, env: this.env.snapshot(),
+      version: SAVE_VERSION, seed: this.seed, tick: this.tick, rng: this.rng.state, envRng: this.envRng.state, nextId: this.nextId, env: this.env.snapshot(),
       animals: this.animals.filter((a) => a.alive).map((a) => ({ ...a })), carcasses: this.carcasses.map((c) => ({ ...c })),
       fertility: [...this.fertility], births: [...this.births], deaths: this.deaths.map((r) => [...r]),
       history: this.history.map((h) => ({ ...h, pops: [...h.pops] })), statAcc: this.statAcc, groupAcc: this.groupAcc, rainAcc: this.rainAcc,
@@ -1379,6 +1426,9 @@ export class Simulation {
   private restore(s: SimSnapshot): void {
     this.tick = s.tick;
     this.rng.state = s.rng;
+    // older saves: a deterministic stream derived from seed and tick (their future weather differs from what the old
+    // shared stream would have produced, but loads stay reproducible)
+    this.envRng.state = s.envRng ?? hash3(this.seed, s.tick, 2);
     this.nextId = s.nextId;
     this.env.restore(s.env);
     // fields added after save v1 was defined default sensibly, so older saves load unchanged
@@ -1416,6 +1466,7 @@ export class Simulation {
     for (let c = 0; c < this.env.veg.length; c += 7) mix(this.env.veg[c]!);
     mix(this.env.stage);
     mix(this.rng.state);
+    mix(this.envRng.state);
     return h;
   }
 }

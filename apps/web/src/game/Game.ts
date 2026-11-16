@@ -966,6 +966,10 @@ export class Game {
     const p = this.engine.animals.pos.get(a.id);
     return { ...a, ground: v.height(a.x, a.z), rendered: p ? p.y : null, water: this.sim.waterNear(a), forage: this.sim.env.vegFrac(this.sim.env.cellIndex(a.x, a.z)), blocked: v.blocked(a.x, a.z, 0) };
   }
+  /** QA: drawn pose (lie 0..1, head, leg swing, drawn yaw) of an animal; presentation state only. */
+  debugPose(id: number): { lie: number; head: number; amp: number; yaw: number } | null {
+    return this.engine.animals.debugPose(id);
+  }
   /** Place the free camera (scenario start). Observer mode; nothing in the simulation changes. */
   setCameraPose(p: { x: number; y: number; z: number; yaw: number; pitch: number }): void {
     Object.assign(this.cam, p);
