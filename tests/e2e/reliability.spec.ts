@@ -117,7 +117,10 @@ test.describe('reliability: lifecycle and streaming (software-rendered Chromium)
     await expect.poll(async () => (await g(page, (G) => G.debugGfx())).divisor, { timeout: 15_000 }).toBe(2);
     // Genuine overload (software rendering cannot hold 30 fps): resolution comes down, and the renderer really uses it
     await expect.poll(async () => (await g(page, (G) => G.debugGfx())).resScale, { timeout: 60_000 }).toBeLessThan(1);
+    // a software rasteriser is render-bound: the downgrade's trial must measure a real gain on real frames and keep it
+    await expect.poll(async () => (await g(page, (G) => G.debugGfx())).governor.helped, { timeout: 90_000 }).toBeGreaterThan(0);
     const live = await g(page, (G) => ({ gfx: G.debugGfx(), ratio: G.engine.renderer.getPixelRatio() as number }));
+    expect(live.gfx.governor.last!.afterMs).toBeLessThan(live.gfx.governor.last!.beforeMs);
     expect(live.ratio).toBeCloseTo(live.gfx.resScale, 5); // device pixel ratio is 1 here
     expect(live.gfx.quality).toBe('low'); // already on the lowest preset: only resolution can give
     // the player raises the frame-rate target and fixes the quality by hand: both are respected and persisted
@@ -156,8 +159,17 @@ test.describe('reliability: lifecycle and streaming (software-rendered Chromium)
     expect(up.viewDist).toBe(700); // Medium's draw distance really applied
     expect(up.shadows).toBe(true);
     expect(up.pixelRatio).toBeCloseTo(1, 5);
-    // sustained overload: resolution first, then the preset; shadows and draw distance go with the preset
-    const down = await g(page, (G) => G.engine.debugFeed(80, 40));
+    // a slowdown rendering settings cannot fix (constant 80 ms frames): the probe is measured, undone on the real
+    // renderer, and quality is kept
+    const cpu = await g(page, (G) => G.engine.debugFeed(80, 20, 'constant'));
+    expect(cpu.changes).toEqual(['resolution:medium@0.9', 'resolution:medium@1']);
+    expect(cpu).toMatchObject({ quality: 'medium', scale: 1, viewDist: 700, shadows: true });
+    expect(cpu.pixelRatio).toBeCloseTo(1, 5);
+    expect(cpu.stats).toMatchObject({ trials: 1, helped: 0, rolledBack: 1 });
+    expect(cpu.stats.last.verdict).toBe('no-help-rolled-back');
+    // sustained render-bound overload (frame time follows resolution and preset): resolution first, then the preset;
+    // shadows and draw distance go with the preset. 160 ms is clearly worse than the held reference, so the hold lifts
+    const down = await g(page, (G) => G.engine.debugFeed(160, 40, 'render'));
     expect(down.quality).toBe('low');
     expect(down.changes[0]).toMatch(/^resolution:medium@0\.9/);
     expect(down.changes.findIndex((c: string) => c.startsWith('preset'))).toBeGreaterThanOrEqual(5);

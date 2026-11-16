@@ -99,9 +99,15 @@ export async function runProfile(h: ProfileHooks, short: boolean, log: (line: st
   report.auto = {
     settled: { quality: settled.quality, scale: settled.resScale }, underLoad: { quality: loaded.quality, scale: loaded.resScale },
     afterRecovery: { quality: recovered.quality, scale: recovered.resScale },
-    recoveredToSettled: recovered.quality === settled.quality && recovered.resScale >= settled.resScale - 0.001, timeline,
+    recoveredToSettled: recovered.quality === settled.quality && recovered.resScale >= settled.resScale - 0.001,
+    // the artificial load is main-thread work: lowering graphics cannot help, so Auto should keep (or restore) quality
+    keptQualityUnderLoad: loaded.quality === settled.quality && loaded.resScale >= settled.resScale - 0.001,
+    // measured downgrade trials (did a downgrade cut frame time?), not a CPU/GPU classification
+    governor: g.engine.governor.stats, timeline,
   };
   log(`  under load ${loaded.quality} ${Math.round(loaded.resScale * 100)}%, after ${recovered.quality} ${Math.round(recovered.resScale * 100)}%`);
+  const gs = g.engine.governor.stats;
+  log(`  downgrade trials ${gs.trials}: helped ${gs.helped}, rolled back ${gs.rolledBack}`);
 
   // 3. memory and GPU objects across restarts (same seed, Low, same pose)
   log('Restarts: 5 x same world…');

@@ -11,7 +11,7 @@ export interface G {
   debugFollow(id: string, dist?: number): boolean;
   debugAnimal(id?: number): any; // eslint-disable-line @typescript-eslint/no-explicit-any
   debugCamera(): { x: number; y: number; z: number; yaw: number; pitch: number; ground: number; speed: number };
-  debugGfx(): { quality: string; ceiling: string; auto: boolean; resScale: number; frameMs: number; fpsTarget: number; divisor: number; refreshMs: number; calibrating: boolean; gpu: string; basis: string; calls: number; triangles: number; geometries: number; textures: number; chunks: number; heapMB: number | null };
+  debugGfx(): { quality: string; ceiling: string; auto: boolean; resScale: number; frameMs: number; fpsTarget: number; divisor: number; refreshMs: number; calibrating: boolean; gpu: string; basis: string; calls: number; triangles: number; geometries: number; textures: number; chunks: number; heapMB: number | null; governor: { trials: number; helped: number; rolledBack: number; holdS: number; last: { kind: string; from: string; to: string; beforeMs: number; afterMs: number; verdict: string } | null } };
   debugStepTo(tick: number): number;
   engine: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean };

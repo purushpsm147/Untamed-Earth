@@ -8,9 +8,16 @@ import { AudioEngine } from '../audio/AudioEngine';
 import { Input } from '../input/Input';
 import { Engine } from '../render/Engine';
 import { QUALITY_ORDER, QualityName } from '../render/quality';
-import { FpsTarget, FramePacer } from '../render/qualityGovernor';
+import { FpsTarget, FramePacer, GovernorStats } from '../render/qualityGovernor';
 import { drawChart } from '../ui/chart';
 import { Curiosity } from './Curiosity';
+
+/** F3 line: what the last downgrade trial measured (not a CPU/GPU classification). */
+function govLine(s: GovernorStats): string {
+  const l = s.last;
+  const last = l ? `last ${l.kind} ${l.from}->${l.to} ${l.beforeMs}->${l.afterMs} ms ${l.verdict === 'helped' ? 'helped' : 'no help, undone'}` : 'no downgrade trials';
+  return `downgrade trials ${s.trials} (helped ${s.helped}, undone ${s.rolledBack})${s.holdS > 0 ? ` hold ${Math.ceil(s.holdS)} s` : ''}  ${last}`;
+}
 
 export type Mode = 'observer' | 'wildlife' | 'experiment' | 'curiosity';
 export interface SaveData {
@@ -810,6 +817,7 @@ export class Game {
         `fps ${this.fps.toFixed(0)}  frame ${this.engine.frameMs.toFixed(1)} ms`,
         `quality ${this.engine.quality.name}${this.engine.auto ? ` (auto, max ${this.engine.qualityCeiling}${this.engine.governor.calibrating ? ', calibrating' : ''})` : ''}  scale ${Math.round(this.engine.resScale * 100)}%`,
         `target ${this.pacer.target || 'display'} fps  display ~${Math.round(1000 / this.pacer.refreshMs)} Hz  render 1/${this.pacer.divisor}`,
+        govLine(this.engine.governor.stats),
         `gpu ${this.gfx.gpu || 'not reported'}`,
         `basis ${this.gfx.basis}`,
         `draws ${inf.calls}  tris ${(inf.triangles / 1000).toFixed(0)}k  geoms ${inf.geometries}`,
@@ -974,10 +982,10 @@ export class Game {
   debugTerrain(): ReturnType<Engine['terrain']['debugState']> {
     return this.engine.terrain.debugState();
   }
-  debugGfx(): { quality: string; ceiling: string; auto: boolean; resScale: number; frameMs: number; fpsTarget: number; divisor: number; refreshMs: number; calibrating: boolean; gpu: string; basis: string; calls: number; triangles: number; geometries: number; textures: number; chunks: number; heapMB: number | null } {
+  debugGfx(): { quality: string; ceiling: string; auto: boolean; resScale: number; frameMs: number; fpsTarget: number; divisor: number; refreshMs: number; calibrating: boolean; gpu: string; basis: string; calls: number; triangles: number; geometries: number; textures: number; chunks: number; heapMB: number | null; governor: GovernorStats } {
     const mem = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
     return { quality: this.engine.quality.name, ceiling: this.engine.qualityCeiling, auto: this.engine.auto, resScale: this.engine.resScale, frameMs: this.engine.frameMs, fpsTarget: this.pacer.target, divisor: this.pacer.divisor,
-      refreshMs: this.pacer.refreshMs, calibrating: this.engine.governor.calibrating, gpu: this.gfx.gpu, basis: this.gfx.basis, ...this.engine.info(), chunks: this.engine.terrain.loaded, heapMB: mem ? mem.usedJSHeapSize / 1048576 : null };
+      refreshMs: this.pacer.refreshMs, calibrating: this.engine.governor.calibrating, gpu: this.gfx.gpu, basis: this.gfx.basis, ...this.engine.info(), chunks: this.engine.terrain.loaded, heapMB: mem ? mem.usedJSHeapSize / 1048576 : null, governor: this.engine.governor.stats };
   }
   debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean } {
     return { key: this.curiosity.subject?.key ?? null, tag: this.curiosity.tag, switches: this.curiosity.director.switches, paused: this.curiosity.paused };

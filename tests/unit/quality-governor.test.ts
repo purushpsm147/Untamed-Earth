@@ -10,10 +10,27 @@ function simulate(g: QualityGovernor, ms: number, seconds: number): QualityChang
   return seen;
 }
 
+/**
+ * A render-bound device: frame time scales with the work the preset and resolution ask for (fill rate is about
+ * two thirds of it here). `highMs` is its frame time on High at full resolution. Real GPUs differ; this only has to
+ * respond to settings, which is what a downgrade trial measures.
+ */
+const COST: Record<string, number> = { low: 0.5, medium: 0.75, high: 1, ultra: 1.3 };
+const renderMs = (g: QualityGovernor, highMs: number): number => highMs * COST[g.quality]! * (0.35 + 0.65 * g.scale * g.scale);
+function simulateDevice(g: QualityGovernor, highMs: number, seconds: number): QualityChange[] {
+  const seen: QualityChange[] = [];
+  for (let t = 0; t < seconds;) {
+    const ms = renderMs(g, highMs);
+    seen.push(g.sample(ms / 1000, false));
+    t += ms / 1000;
+  }
+  return seen;
+}
+
 describe('adaptive quality: deterministic, renderer-independent', () => {
   it('reduces resolution then drops a preset under sustained overload', () => {
     const g = new QualityGovernor('high');
-    const changes = simulate(g, 45, 23);
+    const changes = simulateDevice(g, 45, 23);
     expect(changes).toContain('resolution');
     expect(changes).toContain('preset');
     expect(g.quality).not.toBe('high');
@@ -23,7 +40,7 @@ describe('adaptive quality: deterministic, renderer-independent', () => {
 
   it('recovers resolution AND a higher preset after temporary overload', () => {
     const g = new QualityGovernor('high');
-    simulate(g, 45, 10);
+    simulateDevice(g, 45, 10);
     expect(g.quality).toBe('medium');
     const changes = simulate(g, 16, 125);
     expect(changes).toContain('preset');
@@ -54,7 +71,7 @@ describe('adaptive quality: deterministic, renderer-independent', () => {
     expect(g.quality).toBe('medium');
     expect(g.scale).toBe(1);
     g.setAuto(true);
-    simulate(g, 45, 15);
+    simulateDevice(g, 90, 15);
     expect(g.quality).toBe('low');
     expect(g.ceiling).toBe('medium');
     simulate(g, 16, 150);
@@ -78,7 +95,7 @@ describe('adaptive quality: deterministic, renderer-independent', () => {
 describe('adaptive quality: ordering, hysteresis and very slow devices', () => {
   it('lowers resolution all the way to the floor before it touches the preset', () => {
     const g = new QualityGovernor('high');
-    const changes = simulate(g, 45, 60).filter((c) => c !== 'none');
+    const changes = simulateDevice(g, 90, 60).filter((c) => c !== 'none');
     const firstPreset = changes.indexOf('preset');
     expect(firstPreset).toBeGreaterThanOrEqual(5); // 1.0 -> 0.5 in 0.1 steps first
     expect(changes.slice(0, firstPreset).every((c) => c === 'resolution')).toBe(true);
@@ -130,7 +147,7 @@ describe('adaptive quality: ordering, hysteresis and very slow devices', () => {
 
   it('reacts to a device stuck below 4 fps instead of treating every frame as a resume gap', () => {
     const g = new QualityGovernor('high');
-    for (let i = 0; i < 400; i++) g.sample(0.6, false); // 1.7 fps, every frame longer than the 250 ms gap guard
+    for (let i = 0; i < 400; i++) g.sample(renderMs(g, 1200) / 1000, false); // ~1 fps, every frame longer than the 250 ms gap guard
     expect(g.quality).toBe('low');
     expect(g.scale).toBe(0.5);
     // while a single long frame in an otherwise smooth run is still ignored
@@ -154,7 +171,7 @@ describe('adaptive quality: ordering, hysteresis and very slow devices', () => {
     // mildly slow (28 ms at a 60 fps target) is left to the gentle resolution path
     const mild = new QualityGovernor('high');
     mild.beginCalibration(4);
-    simulate(mild, 28, 4);
+    simulateDevice(mild, 28, 4);
     expect(mild.quality).toBe('high');
     expect(mild.scale).toBeLessThan(1);
   });
@@ -165,11 +182,11 @@ describe('adaptive quality: ordering, hysteresis and very slow devices', () => {
     simulate(g, 33.3, 30);
     expect(g.quality).toBe('high');
     expect(g.scale).toBe(1);
-    simulate(g, 60, 20);
+    simulateDevice(g, 60, 20);
     expect(g.scale).toBeLessThan(1);
     // at 60 fps target the same 33 ms frames are an overload
     const h = new QualityGovernor('high');
-    simulate(h, 33.3, 30);
+    simulateDevice(h, 33.3, 30);
     expect(h.scale).toBeLessThan(1);
   });
 
@@ -189,6 +206,76 @@ describe('adaptive quality: ordering, hysteresis and very slow devices', () => {
     g.resume();
     simulate(g, 45, 0.6);
     expect(g.scale).toBe(1);
+  });
+});
+
+describe('adaptive quality: downgrades must measurably help (render-insensitive slowdowns)', () => {
+  // frame time that does not respond to rendering settings at all, e.g. 30 ms of main-thread work per frame
+  it('rolls back a downgrade that does not improve frame time and keeps the quality', () => {
+    const g = new QualityGovernor('high');
+    const changes = simulate(g, 45, 20).filter((c) => c !== 'none');
+    expect(g.quality).toBe('high');
+    expect(g.scale).toBe(1);
+    expect(changes).toEqual(['resolution', 'resolution']); // one probe, one exact undo
+    expect(g.stats).toMatchObject({ trials: 1, helped: 0, rolledBack: 1 });
+    expect(g.stats.last).toMatchObject({ kind: 'resolution', from: 'high@1', to: 'high@0.9', verdict: 'no-help-rolled-back' });
+    expect(g.stats.holdS).toBeGreaterThan(0);
+  });
+
+  it('probes again with exponential back-off instead of oscillating', () => {
+    const g = new QualityGovernor('high');
+    simulate(g, 45, 900); // 15 minutes of a render-insensitive slowdown
+    const s = g.stats;
+    expect(g.quality).toBe('high');
+    expect(g.scale).toBe(1);
+    expect(s.helped).toBe(0);
+    // holds of 30, 60, 120, 240, 480 s: at most 6 probes in 15 min (a naive controller would degrade to Low and stay)
+    expect(s.trials).toBeLessThanOrEqual(6);
+    expect(s.trials).toBe(s.rolledBack);
+  });
+
+  it('a held governor still acts if frame time gets materially worse, and recovers normally when load ends', () => {
+    const g = new QualityGovernor('high');
+    simulate(g, 45, 6);
+    expect(g.stats.rolledBack).toBe(1);
+    // now a genuinely render-bound load arrives (frame time far above the held reference and responsive)
+    simulateDevice(g, 90, 30);
+    expect(g.stats.helped).toBeGreaterThan(0);
+    expect(g.quality === 'high' && g.scale === 1).toBe(false);
+    // load gone: back to the ceiling
+    simulate(g, 16, 200);
+    expect(g.quality).toBe('high');
+    expect(g.scale).toBe(1);
+  });
+
+  it('a downgrade that helps is kept and reported as measured', () => {
+    const g = new QualityGovernor('high');
+    simulateDevice(g, 30, 4);
+    expect(g.scale).toBeLessThan(1);
+    expect(g.stats.last).toMatchObject({ verdict: 'helped' });
+    expect(g.stats.last!.afterMs).toBeLessThan(g.stats.last!.beforeMs);
+  });
+
+  it('never exceeds the ceiling or touches a manual preset when rolling back', () => {
+    const g = new QualityGovernor('low', 'medium');
+    simulate(g, 80, 30);
+    expect(g.quality).toBe('low');
+    expect(g.ceiling).toBe('medium');
+    const m = new QualityGovernor('high');
+    m.setQuality('medium', false);
+    simulate(m, 80, 30);
+    expect(m.quality).toBe('medium');
+    expect(m.stats.trials).toBe(0);
+  });
+
+  it('is deterministic for the same frame trace', () => {
+    const run = (): string => {
+      const g = new QualityGovernor('high');
+      const out: string[] = [];
+      for (let i = 0; i < 4000; i++) out.push(g.sample((i % 700 < 350 ? 45 : renderMs(g, 50)) / 1000, false));
+      return out.join(',') + JSON.stringify(g.stats);
+    };
+    expect(run()).toBe(run());
   });
 });
 

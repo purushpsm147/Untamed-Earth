@@ -5,7 +5,7 @@ import { AnimalView } from './AnimalView';
 import { GrassView } from './GrassView';
 import { buildLandmarks } from './landmarks';
 import { QUALITY, QualityName, QualityPreset } from './quality';
-import { FpsTarget, QualityChange, QualityGovernor } from './qualityGovernor';
+import { FpsTarget, GovernorStats, QualityChange, QualityGovernor } from './qualityGovernor';
 import { ScatterView } from './ScatterView';
 import { shared } from './shared';
 import { Sky } from './Sky';
@@ -209,17 +209,23 @@ export class Engine {
    * test can check that its decisions really change renderer settings. Real sampling stops for good once
    * this is used, so the trace is the only evidence the governor sees.
    */
-  debugFeed(frameMs: number, seconds: number): { changes: string[]; quality: QualityName; scale: number; pixelRatio: number; viewDist: number; vegDist: number; shadows: boolean } {
+  debugFeed(frameMs: number, seconds: number, model: 'constant' | 'render' = 'constant'): { changes: string[]; quality: QualityName; scale: number; pixelRatio: number; viewDist: number; vegDist: number; shadows: boolean; stats: GovernorStats } {
     this.adapting = false;
     const changes: string[] = [];
-    for (let t = 0; t < seconds * 1000; t += frameMs) {
-      const c = this.governor.sample(frameMs / 1000, false);
+    // 'render': a render-bound device whose frame time follows preset and resolution (relative to where it starts);
+    // 'constant': frame time rendering settings cannot change (e.g. main-thread work)
+    const cost = (): number => ({ low: 0.5, medium: 0.75, high: 1, ultra: 1.3 }[this.governor.quality]) * (0.35 + 0.65 * this.governor.scale ** 2);
+    const c0 = cost();
+    for (let t = 0; t < seconds * 1000;) {
+      const ms = model === 'render' ? (frameMs * cost()) / c0 : frameMs;
+      t += ms;
+      const c = this.governor.sample(ms / 1000, false);
       if (c !== 'none') {
         this.applyChange(c);
         changes.push(`${c}:${this.governor.quality}@${this.governor.scale}`);
       }
     }
-    return { changes, quality: this.quality.name, scale: this.governor.scale, pixelRatio: this.renderer.getPixelRatio(), viewDist: this.terrain.viewDist, vegDist: this.scatter.vegDist, shadows: this.sky.sun.castShadow };
+    return { changes, quality: this.quality.name, scale: this.governor.scale, pixelRatio: this.renderer.getPixelRatio(), viewDist: this.terrain.viewDist, vegDist: this.scatter.vegDist, shadows: this.sky.sun.castShadow, stats: this.governor.stats };
   }
 
   frame(dtReal: number, alpha: number, time: number, selected: number, simRate: number, highlightGroup = 0): void {
