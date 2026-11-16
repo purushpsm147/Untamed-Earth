@@ -27,6 +27,8 @@ jobs:
         run: npm ci
       - name: Typecheck
         run: npm run typecheck
+      - name: Validate animal A/B analyzer syntax
+        run: node --check benchmarks/analyze-animal-upload-ab.mjs
       - name: Headless and unit tests
         run: npm test
       - name: Production build
