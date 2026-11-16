@@ -233,7 +233,9 @@ try {
       bvhBuildMsThisStep: metrics.bvhBuildMs - before.buildMs,
       terrainGenerationMsThisStep: metrics.terrainGenerationMs - before.generationMs,
       liveChunks: chunkMap.size, liveBvhBytes: liveTreeBytes,
-      liveRawGeometryBytes: liveRawBytes, liveTriangles, ...query });
+      liveRawGeometryBytes: liveRawBytes, liveTriangles,
+      lodSignature: [...chunkMap.values()].map(c => `${c.cx}:${c.cz}:${c.res}`).sort().join('|'),
+      ...query });
   }
 } finally {
   for (const key of [...chunkMap.keys()]) release(key, 'final');
@@ -243,6 +245,23 @@ try {
 if (metrics.geometriesCreated !== metrics.geometriesDisposed || metrics.treesCreated !== metrics.treesDisposed) {
   throw Error('Final geometry/BVH allocation imbalance');
 }
+// Repeating an out-and-back circuit must converge to the same owned chunk set
+// and BVH bytes, rather than just releasing accumulated allocations at teardown.
+const repeatOffset = waypoints.length - 1;
+const earlier = records[records.length - 1 - repeatOffset];
+const latest = records.at(-1);
+const repeatedCameraStateStable = !!earlier && !!latest
+  && earlier.x === latest.x && earlier.z === latest.z
+  && earlier.lodSignature === latest.lodSignature
+  && earlier.liveBvhBytes === latest.liveBvhBytes
+  && earlier.liveRawGeometryBytes === latest.liveRawGeometryBytes;
+if (!repeatedCameraStateStable) {
+  throw Error('Repeated camera traversal retained different chunk/LOD state or BVH bytes');
+}
+const oneBatchSavingsMs = records.reduce(
+  (sum, row) => sum + row.nativeThreeMs.medianMs - row.bvhMs.medianMs, 0);
+const batchesPerStopNeededToAmortizeBuild = oneBatchSavingsMs > 0
+  ? metrics.bvhBuildMs / oneBatchSavingsMs : null;
 const report = {
   experiment: 'Real valley chunk LOD rebuild/unload BVH feasibility — synchronous model of TerrainView lifecycle',
   timestamp: new Date().toISOString(), seed,
@@ -253,7 +272,9 @@ const report = {
     sameLodThresholdsAsProduction: [170, 380, 760], unloadExtraMeters: CHUNK_SIZE * 2.5,
     routeStops: route.length, raysPerStop, warmups, measuredRounds: rounds },
   totals: { ...metrics, bvhBuildTimes: percentile(metrics.bvhConstructionTimesMs),
-    finalLiveMeshes: chunkMap.size, finalLiveBvhBytes: liveTreeBytes, finalLiveRawBytes: liveRawBytes },
+    finalLiveMeshes: chunkMap.size, finalLiveBvhBytes: liveTreeBytes, finalLiveRawBytes: liveRawBytes,
+    repeatedCameraStateStable, oneEquivalentRayBatchPerStopSavedMs: oneBatchSavingsMs,
+    batchesPerStopNeededToAmortizeBuild },
   steps: records,
   caveats: [
     'Uses authentic deterministic buildChunkMesh terrain, same LOD thresholds and distance hysteresis as TerrainView.',
@@ -262,6 +283,8 @@ const report = {
     'Per-step ray workload measures camera-like static terrain queries, not full documentary camera or vegetation occlusion.',
     'Raw geometry bytes include positions/indices/normals/colors but do not include GPU copies, shaders or renderer state.',
     'A final zero owned-resource balance establishes benchmark bookkeeping only, not full browser leak freedom.',
+    'Amortization compares BVH build cost with one post-warmup median ray batch saved per camera stop; excludes worker scheduling, GC, mesh generation and GPU costs.',
+    'Repeated traversal at the same camera location must retain the same chunk/LOD signature and estimated memory.',
   ],
 };
 const json = JSON.stringify(report, null, 2);
