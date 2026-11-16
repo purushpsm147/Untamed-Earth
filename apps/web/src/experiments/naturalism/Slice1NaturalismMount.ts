@@ -58,8 +58,9 @@ export class Slice1NaturalismController {
   private rigs: ArticulatedChitalRig[] = [];
   private groupRoot = new THREE.Group();
   private readonly v4Root = new THREE.Group();
-  private readonly v4Vegetation: RiparianVegetationKit | null;
+  private v4Vegetation: RiparianVegetationKit | null = null;
   private readonly v4Rigs: ChitalPrototypeV4[] = [];
+  private v4Initialized = false;
   private variant: 'v3' | 'v4' = 'v3';
   private lastV4Sec: number | null = null;
   private frameDeltasMs: number[] = [];
@@ -79,17 +80,23 @@ export class Slice1NaturalismController {
     bindings.scene.add(this.groupRoot);
     this.v4Root.name = 'Slice1_ExperimentalChitalV4_OptIn';
     this.v4Root.visible = false;
-    // V4 is a second visual representation of exactly the same staged herd IDs
-    // inside the EXISTING scene/renderer. It never creates another WebGL context.
-    for (const st of bindings.herdStates) {
+    // Keeping V3 and baseline lightweight is essential for an honest A/B.
+    // Allocate expensive V4 geometry only when the user actually selects it.
+  }
+
+  private ensureV4Initialized(): void {
+    if (this.v4Initialized) return;
+    this.v4Initialized = true;
+    // This remains ONE scene, ONE renderer, and the SAME staged herd IDs.
+    for (const st of this.bindings.herdStates) {
       const v4 = new ChitalPrototypeV4(150 + st.id, st.hasAntlers ? 'stag' : 'hind');
       const sim = this.toV4Input(st);
-      v4.update(sim, 0, { getHeightAt: bindings.sampleTerrainHeight }, 0);
+      v4.update(sim, 0, { getHeightAt: this.bindings.sampleTerrainHeight }, 0);
       this.v4Rigs.push(v4);
       this.v4Root.add(v4.root);
     }
-    bindings.scene.add(this.v4Root);
-    const eco = bindings.v4Vegetation;
+    this.bindings.scene.add(this.v4Root);
+    const eco = this.bindings.v4Vegetation;
     this.v4Vegetation = eco ? new RiparianVegetationKit({
       seed: 150,
       boundsRadius: 48,
@@ -99,7 +106,7 @@ export class Slice1NaturalismController {
     if (this.v4Vegetation && eco) {
       this.v4Vegetation.group.position.set(eco.originX, 0, eco.originZ);
       this.v4Vegetation.group.visible = false;
-      bindings.scene.add(this.v4Vegetation.group);
+      this.bindings.scene.add(this.v4Vegetation.group);
     }
   }
 
@@ -117,6 +124,7 @@ export class Slice1NaturalismController {
   }
 
   public setVariant(variant: 'v3' | 'v4'): void {
+    if (variant === 'v4') this.ensureV4Initialized();
     this.variant = variant;
     this.groupRoot.visible = false;
     this.v4Root.visible = false;
