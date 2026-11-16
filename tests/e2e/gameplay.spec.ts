@@ -191,8 +191,13 @@ test.describe('gameplay scenarios', () => {
     await g(page, (G) => G.setSpeed(1));
     // stand up first: a resting animal detects threats only half the time per check (lower vigilance, by design),
     // which made this step flaky. An alert deer detects a jackal 6 m away on its next check (every 2-4 s).
-    await hold(page, ['KeyW'], 300);
-    await expect.poll(async () => (await deer()).beh).not.toBe(5);
+    // Poll the actual transition; a fixed 300 ms key tap can miss all frames on slow CI.
+    await page.keyboard.down('KeyW');
+    try {
+      await expect.poll(async () => (await deer()).beh, { timeout: 20_000 }).not.toBe(5);
+    } finally {
+      await page.keyboard.up('KeyW');
+    }
     // a predator close by is perceived (not scripted): fear rises, the HUD warns, and running opens the gap
     await g(page, (G) => {
       const d = G.sim.byId.get(G.controlled);
@@ -404,7 +409,12 @@ test.describe('gameplay scenarios', () => {
       // sample once streaming is idle, so counts reflect settled terrain rather than chunks still in flight
       await expect.poll(() => g(page, (G) => { const t = G.debugTerrain(); return t.pending + t.inFlight + t.queued + t.mismatched; }), { timeout: 60_000 }).toBe(0);
       await page.waitForTimeout(500);
-      const s = await g(page, (G) => ({ gfx: G.debugGfx(), t: G.debugTerrain() }));
+      // The renderer counts only geometries drawn at least once, not all loaded chunks.
+      // Upload every live terrain chunk first, then compare the same quantities per lap.
+      const s = await g(page, (G) => {
+        G.engine.debugDrawAllTerrain();
+        return { gfx: G.debugGfx(), t: G.debugTerrain() };
+      });
       // exact terrain accounting: every geometry the terrain created and has not disposed is a tracked chunk mesh,
       // and every terrain mesh in the scene belongs to a tracked chunk (an orphan or undisposed geometry is a leak)
       expect(s.t.liveGeometries).toBe(s.t.meshes);
@@ -418,7 +428,7 @@ test.describe('gameplay scenarios', () => {
     }
     // A leak can only make this grow (undrawn terrain only lowers it), so the original bounds apply to growth:
     // no lap more than 14 above the first, and the last lap at most 10 above the first.
-    expect(Math.max(...counts) - counts[0]!, `${counts} (totals ${totals})`).toBeLessThanOrEqual(14);
+    expect(Math.max(...counts) - Math.min(...counts), `${counts} (totals ${totals})`).toBeLessThanOrEqual(14);
     expect(counts[3]! - counts[0]!, `${counts} (totals ${totals})`).toBeLessThanOrEqual(10);
     expect(p.errors).toEqual([]);
   });
