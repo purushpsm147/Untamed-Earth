@@ -7,6 +7,7 @@
     "bench": "node run.mjs"
   },
   "dependencies": {
-    "bitecs": "0.4.0"
+    "bitecs": "0.4.0",
+    "miniplex": "2.0.0"
   }
 }
