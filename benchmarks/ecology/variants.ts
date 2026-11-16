@@ -39,5 +39,6 @@ export const VARIANTS: Record<string, Variant> = {
   'fix-drink-approach+forage-search': on('drinkApproachIgnoresDeepWater', 'hungerScaledForageSearch'),
   'fix-critical-thirst': on('criticalThirstPriority'),
   'fix-critical-thirst+pursuit': both(on('criticalThirstPriority'), off('pursuitGiveUp')),
+  'fix-critical-thirst+forage-search': on('criticalThirstPriority', 'hungerScaledForageSearch'),
   'living-valley-off': off('manyEyes', 'coordinatedFlight', 'regroup', 'locomotionLimits', 'jackalDeepWaterAvoidance', 'personalSpace', 'dryResting', 'pursuitGiveUp', 'movingGoalGiveUp'),
 };

@@ -6,7 +6,10 @@
  */
 import { readdirSync, readFileSync } from 'node:fs';
 
-const variants = process.argv.slice(2);
+const args = process.argv.slice(2);
+const jsonOut = args.includes('--json') ? args[args.indexOf('--json') + 1]! : null;
+const variants = args.filter((a, i) => a !== '--json' && args[i - 1] !== '--json');
+const summary: Record<string, unknown> = {};
 const dir = 'docs/evidence/ecology';
 const sp = ['chital', 'boar', 'jackal', 'hare', 'crow', 'myna'];
 const med = (a: number[]): number => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1]! : NaN; };
@@ -28,8 +31,18 @@ for (const v of variants) {
   const chStarve = med(runs.map((r) => r.summary.deaths.chital.starvation));
   const chPred = med(runs.map((r) => r.summary.deaths.chital.predation));
   const jDehyd = med(runs.map((r) => r.summary.deaths.jackal.dehydration));
+  summary[v] = {
+    seeds: runs.map((r) => r.seed), extinctCounts: Object.fromEntries(sp.map((s, i) => [s, ext[i]])), allSixPersist: allPersist,
+    medianEnd: Object.fromEntries(sp.map((s, i) => [s, endMed[i]])), medianJackalLitters: lit, medianKillsPerChase: succ, medianKills: kills,
+    medianChitalStarvation: chStarve, medianChitalPredation: chPred, medianJackalDehydration: jDehyd,
+    perSeedEnd: Object.fromEntries(runs.map((r) => [r.seed, r.endPops])),
+  };
   console.log(`${v.padEnd(34)} n=${runs.length} seeds=[${runs.map((r) => r.seed).join(',')}]`);
   console.log(`   extinct in: ${sp.map((s, i) => `${s} ${ext[i]}`).join(', ')}; all six persist: ${allPersist}/${runs.length}`);
   console.log(`   median end: ${sp.map((s, i) => `${s} ${endMed[i]}`).join(', ')}`);
   console.log(`   median: jackal litters ${lit}, kills/chase ${succ}, kills ${kills}, chital starvation ${chStarve}, chital predation ${chPred}, jackal dehydration ${jDehyd}`);
+}
+if (jsonOut) {
+  const { writeFileSync } = await import('node:fs');
+  writeFileSync(jsonOut, JSON.stringify({ meta: { days: 365, dt: 2, species: sp, lifeYearDays: 48, generated: new Date().toISOString(), source: dir }, variants: summary }, null, 1));
 }
