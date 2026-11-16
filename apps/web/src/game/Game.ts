@@ -966,6 +966,22 @@ export class Game {
     const p = this.engine.animals.pos.get(a.id);
     return { ...a, ground: v.height(a.x, a.z), rendered: p ? p.y : null, water: this.sim.waterNear(a), forage: this.sim.env.vegFrac(this.sim.env.cellIndex(a.x, a.z)), blocked: v.blocked(a.x, a.z, 0) };
   }
+  /**
+   * QA: where an animal is drawn on screen this frame: normalised device coordinates of its body centre, whether it is
+   * inside the frame, and its drawn height as a share of the frame height (from the rendered camera, not an estimate).
+   */
+  debugProject(id: number): { x: number; y: number; inFrame: boolean; heightFrac: number; dist: number } | null {
+    const p = this.engine.animals.pos.get(id);
+    const a = this.sim.byId.get(id);
+    if (!p || !a) return null;
+    const cam = this.engine.camera;
+    cam.updateMatrixWorld();
+    const top = p.clone().add(new THREE.Vector3(0, 0.55, 0)).project(cam);
+    const bottom = p.clone().add(new THREE.Vector3(0, -0.55, 0)).project(cam);
+    const mid = p.clone().project(cam);
+    const inFrame = Math.abs(mid.x) <= 1 && Math.abs(mid.y) <= 1 && mid.z < 1;
+    return { x: mid.x, y: mid.y, inFrame, heightFrac: Math.abs(top.y - bottom.y) / 2, dist: p.distanceTo(cam.position) };
+  }
   /** QA: drawn pose (lie 0..1, head, leg swing, drawn yaw) of an animal; presentation state only. */
   debugPose(id: number): { lie: number; head: number; amp: number; yaw: number } | null {
     return this.engine.animals.debugPose(id);

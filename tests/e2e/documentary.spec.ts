@@ -21,17 +21,7 @@ test('documentary scenario: observe, Curiosity, interrupt, inspect, save and rel
   // 1. Arrival: the fixed starting state, paused by ?qa=1 so it can be read exactly
   const start = await g(page, (G) => {
     const s = (window as unknown as { __scenario: any }).__scenario; // eslint-disable-line @typescript-eslint/no-explicit-any
-    const c = G.debugCamera();
-    const fx = Math.sin(c.yaw);
-    const fz = Math.cos(c.yaw);
-    // chital in front of the camera within 70 m (what the opening shot shows)
-    const inView = G.sim.animals.filter((a: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-      const dx = a.x - c.x;
-      const dz = a.z - c.z;
-      const d = Math.hypot(dx, dz);
-      return a.alive && a.sp === 0 && d < 70 && (dx * fx + dz * fz) / d > 0.7;
-    }).length as number;
-    return { s, c, inView, tick: G.sim.tick as number, hour: G.sim.env.hour as number, weather: G.sim.env.weather as string, mode: G.mode };
+    return { s, c: G.debugCamera(), tick: G.sim.tick as number, hour: G.sim.env.hour as number, weather: G.sim.env.weather as string, mode: G.mode };
   });
   expect(start.s).toBeTruthy();
   expect(start.tick).toBe(start.s.conditions.tick);
@@ -39,8 +29,17 @@ test('documentary scenario: observe, Curiosity, interrupt, inspect, save and rel
   expect(start.weather).toBe('clear');
   expect(start.mode).toBe('observer');
   expect(Math.hypot(start.c.x - start.s.pose.x, start.c.z - start.s.pose.z)).toBeLessThan(0.01);
-  expect(start.inView).toBeGreaterThanOrEqual(4);
-  expect(start.s.herd.inSight).toBeGreaterThanOrEqual(4);
+  expect(start.s.herd.inSight).toBeGreaterThanOrEqual(5);
+  await page.waitForTimeout(1500); // let terrain and animals finish drawing
+  // measured on the rendered camera: herd deer in frame and how large they are drawn
+  const drawn = await g(page, (G) => {
+    const s = (window as unknown as { __scenario: any }).__scenario; // eslint-disable-line @typescript-eslint/no-explicit-any
+    return G.sim.animals.filter((a: any) => a.alive && a.sp === 0 && a.group === s.herd.group) // eslint-disable-line @typescript-eslint/no-explicit-any
+      .map((a: any) => (G as any).debugProject(a.id)).filter((p: any) => p && p.inFrame); // eslint-disable-line @typescript-eslint/no-explicit-any
+  });
+  const big = drawn.filter((p: { heightFrac: number }) => p.heightFrac > 0.06);
+  expect(drawn.length).toBeGreaterThanOrEqual(5);
+  expect(big.length).toBeGreaterThanOrEqual(3); // at least three deer drawn taller than 6% of the frame
   await page.waitForTimeout(1500); // let terrain and animals finish drawing
   await page.screenshot(shot('1-arrival'));
 
@@ -64,7 +63,10 @@ test('documentary scenario: observe, Curiosity, interrupt, inspect, save and rel
   // 4. Inspect identities: the panel shows the simulation's own record for a herd member
   const herdId = await g(page, (G) => {
     const s = (window as unknown as { __scenario: any }).__scenario; // eslint-disable-line @typescript-eslint/no-explicit-any
-    const a = G.sim.animals.find((x: any) => x.alive && x.sp === 0 && x.group === s.herd.group); // eslint-disable-line @typescript-eslint/no-explicit-any
+    // the herd deer drawn largest on screen right now (the one a viewer would point at)
+    const herd = G.sim.animals.filter((x: any) => x.alive && x.sp === 0 && x.group === s.herd.group); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const size = (x: any): number => { const p = (G as any).debugProject(x.id); return p && p.inFrame ? p.heightFrac : 0; }; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const a = herd.reduce((b: any, x: any) => (size(x) > size(b) ? x : b), herd[0]); // eslint-disable-line @typescript-eslint/no-explicit-any
     G.setSpeed(0);
     G.select(a.id);
     return a.id as number;
@@ -108,7 +110,7 @@ test('documentary scenario: observe, Curiosity, interrupt, inspect, save and rel
   // and it keeps living
   await g(page2, (G) => G.setSpeed(1));
   await expect.poll(() => g(page2, (G) => G.sim.stateHash() as number), { timeout: 30_000 }).not.toBe(before.hash);
-  console.log(JSON.stringify({ scenario: start.s, inView: start.inView, curiositySubject: subject, inspected: before.a }));
+  console.log(JSON.stringify({ scenario: start.s, drawn: drawn.map((p: { heightFrac: number }) => Math.round(p.heightFrac * 1000) / 1000), curiositySubject: subject, inspected: before.a }));
   expect(p.errors).toEqual([]);
   expect(p2.errors).toEqual([]);
 });
