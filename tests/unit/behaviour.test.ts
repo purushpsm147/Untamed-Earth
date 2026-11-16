@@ -147,7 +147,7 @@ describe('needs drive behaviour', () => {
 });
 
 describe('ten simulated days', () => {
-  it('nobody is stranded: no animal inside a building, no hare in deep water, almost none parched or starving', () => {
+  it('nobody is stranded: no animal inside a building, no hare in deep water except while escaping, almost none parched or starving', () => {
     const sim = new Simulation(4);
     let inside = 0;
     let hareDeep = 0;
@@ -156,7 +156,9 @@ describe('ten simulated days', () => {
       if (n++ % 50) return;
       for (const a of sim.animals) {
         if (a.alt < 0.5 && sim.valley.blocked(a.x, a.z, 0)) inside++;
-        if (a.sp === SPECIES_INDEX.hare && sim.valley.waterDepth(a.x, a.z, sim.env.stage) > 0.45) hareDeep++;
+        // hares swim only to escape (SpeciesDef.locomotion.swim 'escape'): deep water is allowed while fleeing, never
+        // otherwise (no hare stranded, resting, feeding or idling in it)
+        if (a.sp === SPECIES_INDEX.hare && a.beh !== B.Flee && sim.valley.waterDepth(a.x, a.z, sim.env.stage) > 0.45) hareDeep++;
       }
     });
     expect(inside).toBe(0);
