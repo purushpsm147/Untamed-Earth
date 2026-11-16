@@ -50,6 +50,8 @@ export class EcoObserver {
   readonly deathsBySeason = SPECIES.map(() => SEASON_NAMES.map(() => 0));
   readonly juvenileDeaths = SPECIES.map(() => Object.fromEntries(DEATH_CAUSES.map((c) => [c, 0])) as Record<DeathCause, number>);
   readonly deathAges: number[][] = SPECIES.map(() => []);
+  /** Context of each dehydration death: remembered water?, behaviour, distance to river centreline, age, life stage. */
+  readonly dehydration: { sp: string; day: number; rememberedWater: boolean; behaviour: string; riverDistM: number; ageDays: number; juvenile: boolean }[] = [];
   /** behaviour time budget: samples[species][behaviour] (hourly) */
   readonly budget = SPECIES.map(() => BEHAVIOR_NAMES.map(() => 0));
   /** habitat use: weighted samples[species][forest, meadow, wetland, settlement, dump] */
@@ -73,6 +75,11 @@ export class EcoObserver {
    */
   readonly repro = SPECIES.map(() => ({ eligibleHours: 0, receptiveHours: 0, maleNearHours: 0, conceptions: 0, failedMatings: 0, blockedBy: { cooldown: 0, hunger: 0, health: 0, notDominant: 0 } }));
   private prevRepro = new Map<number, { preg: number; cool: number }>();
+  /**
+   * Pair breeders, in season, hourly: distance from each adult female to her own group's nearest adult male and to the
+   * nearest adult male of any group, bucketed: <50 m, 50-150, 150-400, >400, none alive.
+   */
+  readonly pairDistance = { ownMale: [0, 0, 0, 0, 0], anyMale: [0, 0, 0, 0, 0] };
   /** cohort survival: id -> birth day; and outcome */
   private readonly born = new Map<number, { sp: number; day: number }>();
   readonly cohort = SPECIES.map(() => ({ born: 0, reachedMaturity: 0, diedBeforeMaturity: 0 }));
@@ -101,6 +108,9 @@ export class EcoObserver {
         const a = sim.byId.get(e.id);
         this.deaths[e.sp]![e.cause]++;
         this.deathsBySeason[e.sp]![season]!++;
+        if (a && e.cause === 'dehydration') {
+          this.dehydration.push({ sp: SPECIES[e.sp]!.id, day: Math.floor(sim.env.timeH / 24), rememberedWater: !Number.isNaN(a.waterX), behaviour: BEHAVIOR_NAMES[a.beh]!, riverDistM: Math.round(sim.valley.sample(a.x, a.z).riverD), ageDays: +a.age.toFixed(1), juvenile: a.age < maturityDays(SPECIES[e.sp]!) });
+        }
         if (a) {
           this.deathAges[e.sp]!.push(a.age);
           if (a.age < maturityDays(SPECIES[e.sp]!)) this.juvenileDeaths[e.sp]![e.cause]++;
@@ -221,6 +231,19 @@ export class EcoObserver {
       r.eligibleHours++;
       let dominant = true;
       if (sp.pairBreeding) for (const o of sim.animals) if (o.alive && o.sp === a.sp && o.group === a.group && o.sex === 0 && o.age > a.age) dominant = false;
+      if (sp.pairBreeding) {
+        let own = Infinity;
+        let any = Infinity;
+        for (const m of sim.animals) {
+          if (!m.alive || m.sp !== a.sp || m.sex !== 1 || m.age <= maturityDays(sp)) continue;
+          const d = Math.hypot(m.x - a.x, m.z - a.z);
+          any = Math.min(any, d);
+          if (m.group === a.group) own = Math.min(own, d);
+        }
+        const b = (d: number): number => (d === Infinity ? 4 : d < 50 ? 0 : d < 150 ? 1 : d < 400 ? 2 : 3);
+        this.pairDistance.ownMale[b(own)]!++;
+        this.pairDistance.anyMale[b(any)]!++;
+      }
       if (a.cooldownH > 0) { r.blockedBy.cooldown++; continue; }
       if (a.hunger >= 0.6) { r.blockedBy.hunger++; continue; }
       if (a.health <= 0.55) { r.blockedBy.health++; continue; }
@@ -332,6 +355,8 @@ export class EcoObserver {
       meanDailyDistanceM: Object.fromEntries(SPECIES.map((s, i) => [s.id, this.days.length ? Math.round(this.distancePerDay[i]! / this.days.length) : 0])),
       alarms: Object.fromEntries(SPECIES.map((s, i) => [s.id, this.alarms[i]])),
       reproduction: Object.fromEntries(SPECIES.map((s, i) => [s.id, this.repro[i]])),
+      dehydrationDeaths: this.dehydration,
+      jackalPairDistanceBuckets: { labels: ['<50', '50-150', '150-400', '>400', 'none'], ...this.pairDistance },
       hunting: { ...this.hunt, chasesBySpecies: Object.fromEntries(SPECIES.map((s, i) => [s.id, this.hunt.chasesBySpecies[i]])), killsBySpecies: Object.fromEntries(SPECIES.map((s, i) => [s.id, this.hunt.killsBySpecies[i]])), successPerChase: this.hunt.chases ? +(this.hunt.kills / this.hunt.chases).toFixed(3) : null, meanClosestFailedM: this.hunt.escapes ? +(this.hunt.closestSum / this.hunt.escapes).toFixed(1) : null },
     };
   }
