@@ -19,9 +19,15 @@ jobs:
         run: npm run typecheck
       - name: Compare deterministic static-ray fixtures with strict distance/hit parity
         run: npm run bench:spatial -- --quick --out=docs/evidence/tech-experiments/spatial-baseline-ci.json
+      - name: Install pinned BVH probe independently of production workspaces
+        run: npm install --prefix experiments/spatial-bvh --no-audit --no-fund --package-lock=false
+      - name: Run exact-triangle native versus BVH query comparison
+        run: node experiments/spatial-bvh/run.mjs --quick --out=docs/evidence/tech-experiments/bvh-probe-ci.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: spatial-baseline-quick
-          path: docs/evidence/tech-experiments/spatial-baseline-ci.json
+          path: |
+            docs/evidence/tech-experiments/spatial-baseline-ci.json
+            docs/evidence/tech-experiments/bvh-probe-ci.json
           retention-days: 14
