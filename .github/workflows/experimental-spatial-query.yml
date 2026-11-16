@@ -25,6 +25,8 @@ jobs:
         run: node experiments/spatial-bvh/run.mjs --quick --out=docs/evidence/tech-experiments/bvh-probe-ci.json
       - name: Compare BVH and native queries on actual streaming valley chunk geometry
         run: npx tsx experiments/spatial-bvh/valley-bvh.mjs --quick --out=docs/evidence/tech-experiments/valley-bvh-ci.json
+      - name: Replay BVH allocation/rebuild/unload across real terrain LOD path
+        run: npx tsx experiments/spatial-bvh/streaming-lifecycle.mjs --quick --out=docs/evidence/tech-experiments/streaming-bvh-lifecycle-ci.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -33,4 +35,5 @@ jobs:
             docs/evidence/tech-experiments/spatial-baseline-ci.json
             docs/evidence/tech-experiments/bvh-probe-ci.json
             docs/evidence/tech-experiments/valley-bvh-ci.json
+            docs/evidence/tech-experiments/streaming-bvh-lifecycle-ci.json
           retention-days: 14
