@@ -74,7 +74,9 @@ describe('opt-in animal instance-upload A/B experiment', () => {
       for (const name of ['iAnim', 'iPose']) {
         const aa = a.geometry.getAttribute(name) as THREE.InstancedBufferAttribute;
         const bb = b.geometry.getAttribute(name) as THREE.InstancedBufferAttribute;
-        expect(Array.from(bb.array.slice(0, b.count * 4))).toEqual(Array.from(aa.array.slice(0, a.count * 4))));
+        const rendered = Array.from(bb.array.slice(0, b.count * 4));
+        const baseline = Array.from(aa.array.slice(0, a.count * 4));
+        expect(rendered).toEqual(baseline);
       }
     }
     expect(active.debugUpload().visible).toBe(full.debugUpload().visible);
