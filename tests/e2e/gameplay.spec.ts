@@ -419,15 +419,14 @@ test.describe('gameplay scenarios', () => {
       // and every terrain mesh in the scene belongs to a tracked chunk (an orphan or undisposed geometry is a leak)
       expect(s.t.liveGeometries).toBe(s.t.meshes);
       expect(s.t.inGroup).toBe(s.t.meshes);
-      // Renderer-wide geometry counts only geometry drawn at least once, so it depends on which chunks were in view and
-      // which the 420 m/s path happened to sample (frame-rate dependent; CI run 115: 54, 70, 77, 67). The original
-      // thresholds therefore apply to geometry that is not terrain: renderer count minus live terrain meshes.
+      // All currently live terrain meshes were submitted once above, so their WebGL geometry count no longer
+      // depends on the camera path or CI frame rate. Subtract those meshes to track non-terrain allocations.
       counts.push(s.gfx.geometries - s.t.meshes);
       totals.push(s.gfx.geometries);
       expect(s.gfx.chunks).toBeGreaterThan(8);
     }
-    // A leak can only make this grow (undrawn terrain only lowers it), so the original bounds apply to growth:
-    // no lap more than 14 above the first, and the last lap at most 10 above the first.
+    // Preserve the existing leak thresholds across four comparable measurements: a spread of at most 14,
+    // with the final lap at most 10 geometries above the first.
     expect(Math.max(...counts) - Math.min(...counts), `${counts} (totals ${totals})`).toBeLessThanOrEqual(14);
     expect(counts[3]! - counts[0]!, `${counts} (totals ${totals})`).toBeLessThanOrEqual(10);
     expect(p.errors).toEqual([]);
