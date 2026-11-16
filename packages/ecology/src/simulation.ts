@@ -144,6 +144,8 @@ export const ECO_EXPERIMENT = {
   drinkApproachIgnoresDeepWater: false,
   /** PROPOSAL (off = production): hungry animals search farther for forage and feel less home-range pull */
   hungerScaledForageSearch: false,
+  /** CANDIDATE FIX (off = production): critical thirst (> 0.85) outranks feeding (dehydration kills faster than hunger) */
+  criticalThirstPriority: false,
 };
 
 /** Candidate steering offsets from the goal direction (radians), in tie-break order: straight first, then alternating. */
@@ -696,7 +698,7 @@ export class Simulation {
         best = b;
       }
     };
-    if (a.thirst > 0.3) consider(B.SeekWater, Math.pow(a.thirst, 1.4) * 1.25);
+    if (a.thirst > 0.3) consider(B.SeekWater, Math.pow(a.thirst, 1.4) * 1.25 + (ECO_EXPERIMENT.criticalThirstPriority && a.thirst > 0.85 ? 0.6 : 0));
     if (a.hunger > 0.22) consider(B.Forage, Math.pow(a.hunger, 1.15) * (0.55 + 0.45 * act));
     consider(sp.flies ? B.Roost : B.Rest, Math.pow(1 - a.energy, 1.4) * 1.1 + (1 - act) * 0.42);
     if (mt) consider(B.SeekMate, 0.5);
