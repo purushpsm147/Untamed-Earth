@@ -119,6 +119,8 @@ export interface SimSnapshot {
   rainAcc: number;
   groups: [number, number, number, number][];
   eaten?: number[];
+  eatenBy?: FoodBudget[];
+  killKg?: number;
 }
 
 const NO_CONTROL: ControlInput = { mx: 0, mz: 0, run: false, action: null };
@@ -130,6 +132,10 @@ const MAX_UP_GRADE = 0.95;
 const MAX_DOWN_GRADE = 1.3;
 /** Thirst above which the emergency layer sends an animal to water (thirst saturates ~5 h later, then health drains). */
 export const CRITICAL_THIRST = 0.85;
+
+/** Cumulative intake by food source, kg. */
+export interface FoodBudget { veg: number; invert: number; fauna: number; kill: number; carrion: number }
+const emptyBudget = (): FoodBudget => ({ veg: 0, invert: 0, fauna: 0, kill: 0, carrion: 0 });
 /** Daylight below which a diurnal animal settled on its roost/rest site waits for first light before going to water. */
 const DARK = 0.1;
 
@@ -168,6 +174,15 @@ export class Simulation {
   deaths: number[][] = SPECIES.map(() => DEATH_CAUSES.map(() => 0));
   /** Cumulative food eaten per species, kg (forage + pools + carrion): evidence that needs drive consumption. */
   eaten: number[] = SPECIES.map(() => 0);
+  /**
+   * The same intake split by source (diagnostic; not part of the state hash). `kill` is meat from carcasses left by
+   * predation, `carrion` from any other death. Lets diet composition be compared with field diet studies.
+   */
+  eatenBy: FoodBudget[] = SPECIES.map(() => emptyBudget());
+  /** Cumulative carcass mass left by predation, kg (diagnostic): kill mass minus what was eaten is lost to decay. */
+  killKg = 0;
+  /** Ids of carcasses that came from predation (diagnostic; after a load, older carcasses count as carrion). */
+  private readonly killCarcasses = new Set<number>();
   history: StatSample[] = [];
   /** Optional detail focus (camera). Animals far from it decide less often. null = uniform detail. */
   focus: { x: number; z: number } | null = null;
@@ -491,6 +506,10 @@ export class Simulation {
     if (leaveCarcass) {
       const kg = sp.mass * this.growth(a, sp) * 0.6 * (0.6 + 0.4 * (1 - a.hunger));
       this.carcasses.push({ id: this.nextId++, x: a.x, z: a.z, kg, sp: a.sp });
+      if (cause === 'predation') {
+        this.killCarcasses.add(this.nextId - 1);
+        this.killKg += kg;
+      }
     }
     this.events.emit({ type: 'death', sp: a.sp, id: a.id, cause, x: a.x, z: a.z });
   }
@@ -518,7 +537,10 @@ export class Simulation {
       const rot = c.kg * Math.min(1, dtH * 0.035) + dtH * 0.002;
       c.kg -= rot;
       this.env.addDetritus(c.x, c.z, Math.max(0, rot) * 0.3);
-      if (c.kg <= 0.02) list.splice(i, 1);
+      if (c.kg <= 0.02) {
+        list.splice(i, 1);
+        this.killCarcasses.delete(c.id);
+      }
     }
   }
 
@@ -927,9 +949,22 @@ export class Simulation {
     const g = this.growth(a, sp);
     const want = (sp.intake / sp.feedHours) * dtH * Math.min(1, sum * 1.6) * (0.35 + 0.65 * g);
     let got = 0;
-    if (wV > 0) got += env.consume(env.veg, c, (want * wV) / sum, env.cap[c]! * 0.04);
-    if (wI > 0) got += env.consume(env.invert, c, (want * wI) / sum, 0.02);
-    if (wF > 0) got += env.consume(env.fauna, c, (want * wF) / sum, 0.02);
+    const budget = this.eatenBy[a.sp]!;
+    if (wV > 0) {
+      const g1 = env.consume(env.veg, c, (want * wV) / sum, env.cap[c]! * 0.04);
+      budget.veg += g1;
+      got += g1;
+    }
+    if (wI > 0) {
+      const g1 = env.consume(env.invert, c, (want * wI) / sum, 0.02);
+      budget.invert += g1;
+      got += g1;
+    }
+    if (wF > 0) {
+      const g1 = env.consume(env.fauna, c, (want * wF) / sum, 0.02);
+      budget.fauna += g1;
+      got += g1;
+    }
     this.eaten[a.sp] = this.eaten[a.sp]! + got;
     a.hunger = Math.max(0, a.hunger - got / (sp.intake * 2 * (0.35 + 0.65 * g)));
     // succulent forage supplies part of the water budget (most of it for hares)
@@ -1146,6 +1181,8 @@ export class Simulation {
         const bite = Math.min(c.kg, (sp.intake / 1.5) * dtH * (0.35 + 0.65 * g));
         c.kg -= bite;
         this.eaten[a.sp] = this.eaten[a.sp]! + bite;
+        if (this.killCarcasses.has(c.id)) this.eatenBy[a.sp]!.kill += bite;
+        else this.eatenBy[a.sp]!.carrion += bite;
         // meat is energy dense relative to the mixed diet `intake` is expressed in
         a.hunger = Math.max(0, a.hunger - (bite * 1.6) / (sp.intake * 2 * (0.35 + 0.65 * g)));
         if (a.hunger <= 0.02) {
@@ -1453,7 +1490,7 @@ export class Simulation {
       animals: this.animals.filter((a) => a.alive).map((a) => ({ ...a })), carcasses: this.carcasses.map((c) => ({ ...c })),
       fertility: [...this.fertility], births: [...this.births], deaths: this.deaths.map((r) => [...r]),
       history: this.history.map((h) => ({ ...h, pops: [...h.pops] })), statAcc: this.statAcc, groupAcc: this.groupAcc, rainAcc: this.rainAcc,
-      groups: [...this.groups].map(([id, g]) => [id, g.x, g.z, g.n]), eaten: [...this.eaten],
+      groups: [...this.groups].map(([id, g]) => [id, g.x, g.z, g.n]), eaten: [...this.eaten], eatenBy: this.eatenBy.map((b) => ({ ...b })), killKg: this.killKg,
     };
   }
 
@@ -1481,6 +1518,9 @@ export class Simulation {
     this.groupAcc = s.groupAcc;
     this.rainAcc = s.rainAcc;
     if (s.eaten) this.eaten = [...s.eaten];
+    this.eatenBy = s.eatenBy ? s.eatenBy.map((b) => ({ ...b })) : SPECIES.map(() => emptyBudget());
+    this.killKg = s.killKg ?? 0;
+    this.killCarcasses.clear();
     this.groups.clear();
     for (const [id, x, z, n] of s.groups) this.groups.set(id, { x, z, n });
   }

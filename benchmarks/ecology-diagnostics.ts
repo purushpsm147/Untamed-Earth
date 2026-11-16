@@ -34,7 +34,7 @@ for (const seed of seeds) {
   obs.detach();
   restore?.();
   const end = SPECIES.map((_, i) => sim.population(i));
-  runs.push({ seed, wallS: +((performance.now() - ts) / 1000).toFixed(1), endPops: end, extinct: SPECIES.filter((_, i) => end[i] === 0).map((s) => s.id), hash: sim.stateHash(), summary: obs.summary(), days: obs.days });
+  runs.push({ seed, wallS: +((performance.now() - ts) / 1000).toFixed(1), endPops: end, extinct: SPECIES.filter((_, i) => end[i] === 0).map((s) => s.id), hash: sim.stateHash(), diet: { eatenBy: sim.eatenBy, killKg: +sim.killKg.toFixed(2), eaten: sim.eaten.map((e) => +e.toFixed(2)) }, summary: obs.summary(), days: obs.days });
   console.log(`${variant} dt=${dt} seed ${seed}: end ${end.join('/')} extinct [${runs.at(-1)!.extinct}] ${runs.at(-1)!.wallS}s`);
 }
 let commit = 'unknown';
