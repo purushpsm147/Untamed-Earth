@@ -191,8 +191,13 @@ test.describe('gameplay scenarios', () => {
     await g(page, (G) => G.setSpeed(1));
     // stand up first: a resting animal detects threats only half the time per check (lower vigilance, by design),
     // which made this step flaky. An alert deer detects a jackal 6 m away on its next check (every 2-4 s).
-    await hold(page, ['KeyW'], 300);
-    await expect.poll(async () => (await deer()).beh).not.toBe(5);
+    // hold W until the deer has actually stood up (a fixed 300 ms tap can fall between slow CI frames: CI run 175)
+    await page.keyboard.down('KeyW');
+    try {
+      await expect.poll(async () => (await deer()).beh, { timeout: 20_000 }).not.toBe(5);
+    } finally {
+      await page.keyboard.up('KeyW');
+    }
     // a predator close by is perceived (not scripted): fear rises, the HUD warns, and running opens the gap
     await g(page, (G) => {
       const d = G.sim.byId.get(G.controlled);
@@ -404,21 +409,20 @@ test.describe('gameplay scenarios', () => {
       // sample once streaming is idle, so counts reflect settled terrain rather than chunks still in flight
       await expect.poll(() => g(page, (G) => { const t = G.debugTerrain(); return t.pending + t.inFlight + t.queued + t.mismatched; }), { timeout: 60_000 }).toBe(0);
       await page.waitForTimeout(500);
-      const s = await g(page, (G) => ({ gfx: G.debugGfx(), t: G.debugTerrain() }));
+      const s = await g(page, (G) => { G.engine.debugDrawAllTerrain(); return { gfx: G.debugGfx(), t: G.debugTerrain() }; });
       // exact terrain accounting: every geometry the terrain created and has not disposed is a tracked chunk mesh,
       // and every terrain mesh in the scene belongs to a tracked chunk (an orphan or undisposed geometry is a leak)
       expect(s.t.liveGeometries).toBe(s.t.meshes);
       expect(s.t.inGroup).toBe(s.t.meshes);
-      // Renderer-wide geometry counts only geometry drawn at least once, so it depends on which chunks were in view and
-      // which the 420 m/s path happened to sample (frame-rate dependent; CI run 115: 54, 70, 77, 67). The original
-      // thresholds therefore apply to geometry that is not terrain: renderer count minus live terrain meshes.
+      // Renderer-wide geometry counts only geometry drawn at least once (CI runs 115/176: totals 54-80 depending on
+      // what was in view). Every live terrain chunk is drawn once above, so renderer count minus live terrain meshes is
+      // exactly the non-terrain geometry; the original thresholds apply to it.
       counts.push(s.gfx.geometries - s.t.meshes);
       totals.push(s.gfx.geometries);
       expect(s.gfx.chunks).toBeGreaterThan(8);
     }
-    // A leak can only make this grow (undrawn terrain only lowers it), so the original bounds apply to growth:
-    // no lap more than 14 above the first, and the last lap at most 10 above the first.
-    expect(Math.max(...counts) - counts[0]!, `${counts} (totals ${totals})`).toBeLessThanOrEqual(14);
+    // a leak would grow every lap (original bounds)
+    expect(Math.max(...counts) - Math.min(...counts), `${counts} (totals ${totals})`).toBeLessThanOrEqual(14);
     expect(counts[3]! - counts[0]!, `${counts} (totals ${totals})`).toBeLessThanOrEqual(10);
     expect(p.errors).toEqual([]);
   });
