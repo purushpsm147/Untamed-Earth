@@ -18,7 +18,8 @@
     "test:smoke": "playwright test --project=smoke",
     "bench": "tsx benchmarks/sim-bench.ts",
     "sim": "tsx benchmarks/sim-report.ts",
-    "movement": "tsx benchmarks/movement-report.ts"
+    "movement": "tsx benchmarks/movement-report.ts",
+    "bench:spatial": "tsx benchmarks/spatial-query-baseline.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
