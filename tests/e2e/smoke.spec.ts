@@ -127,3 +127,64 @@ test('explicit Auto at startup overrides a previously saved manual graphics sett
   );
   expect(autoEnabled).toBe(true);
 });
+
+test('Observer has independent yaw, pitch, bank/roll and optical zoom without touching ecology', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?qa=1');
+  await page.selectOption('#startQuality', 'low');
+  await page.click('#btnNew');
+  await expect(page.locator('#hud')).toBeVisible({ timeout: 90_000 });
+  const read = (): Promise<{ yaw: number; pitch: number; roll: number; fov: number; hash: number }> => page.evaluate(() => {
+    const G = (window as unknown as { __untamed: {
+      debugCamera(): { yaw: number; pitch: number; roll: number; fov: number };
+      sim: { stateHash(): number };
+    } }).__untamed;
+    return { ...G.debugCamera(), hash: G.sim.stateHash() };
+  });
+  const before = await read();
+  expect(before.roll).toBe(0);
+  expect(before.fov).toBe(62);
+
+  await page.keyboard.down('KeyL');
+  try {
+    await expect.poll(async () => (await read()).yaw, { timeout: 20_000 }).toBeGreaterThan(before.yaw + 0.08);
+  } finally {
+    await page.keyboard.up('KeyL');
+  }
+  const turned = await read();
+  await page.keyboard.down('KeyI');
+  try {
+    await expect.poll(async () => (await read()).pitch, { timeout: 20_000 }).toBeGreaterThan(turned.pitch + 0.08);
+  } finally {
+    await page.keyboard.up('KeyI');
+  }
+  await page.keyboard.down('KeyU');
+  try {
+    await expect.poll(async () => (await read()).roll, { timeout: 20_000 }).toBeGreaterThan(0.08);
+  } finally {
+    await page.keyboard.up('KeyU');
+  }
+  const banked = await read();
+  expect(banked.yaw).toBeGreaterThan(before.yaw);
+  expect(banked.pitch).toBeGreaterThan(before.pitch);
+
+  // Alt+wheel changes optical field of view, whereas ordinary wheel still adjusts fly speed.
+  await page.evaluate(() => {
+    document.getElementById('view')!.dispatchEvent(new WheelEvent('wheel', {
+      deltaY: -100, altKey: true, bubbles: true, cancelable: true,
+    }));
+  });
+  await expect.poll(async () => (await read()).fov, { timeout: 20_000 }).toBeLessThan(62);
+  expect((await read()).hash).toBe(before.hash);
+
+  // B levels the camera and resets optical zoom without snapping its direction.
+  const aiming = await read();
+  await page.keyboard.press('KeyB');
+  await expect.poll(async () => (await read()).roll, { timeout: 20_000 }).toBe(0);
+  expect((await read()).fov).toBe(62);
+  expect((await read()).yaw).toBeCloseTo(aiming.yaw, 3);
+  expect((await read()).pitch).toBeCloseTo(aiming.pitch, 3);
+  expect((await read()).hash).toBe(before.hash);
+  expect(errors).toEqual([]);
+});
