@@ -1,6 +1,7 @@
 import { EventBus, Rng, SpatialHash, angleDiff, clamp, clamp01, hash3, lerp } from '@untamed/core';
 import { EnvSnapshot, Environment } from '@untamed/environment';
 import { REGION_SIZE, Valley } from '@untamed/worlds';
+import { StepProfiler } from './profile';
 import { SPECIES, SPECIES_INDEX, SpeciesDef, SpeciesId, gestationHours, intervalHours, lifeDays, maturityDays, weanDays } from './species';
 
 /**
@@ -155,6 +156,18 @@ export class Simulation {
   carcasses: Carcass[] = [];
   readonly byId = new Map<number, Animal>();
   private readonly hash = new SpatialHash<Animal>(REGION_SIZE, 48);
+  /**
+   * The same animals indexed per species (same cell size; same insertion order within each species). Perception and
+   * personal space only ever look at their own species, their predators and their prey, so they query these instead
+   * of scanning every animal in range. Visiting order within a species is unchanged, so results are identical.
+   */
+  private readonly spHash = SPECIES.map(() => new SpatialHash<Animal>(REGION_SIZE, 48));
+  /** Per species: the species perception must visit, own species first (see decide). */
+  private static readonly PERCEIVES = SPECIES.map((sp, i) => ({
+    self: i,
+    predators: sp.predators.map((id) => SPECIES_INDEX[id]),
+    prey: sp.prey.map((id) => SPECIES_INDEX[id]),
+  }));
   private readonly groups = new Map<number, { x: number; z: number; n: number }>();
   tick = 0;
   nextId = 1;
@@ -168,6 +181,16 @@ export class Simulation {
   /** Optional detail focus (camera). Animals far from it decide less often. null = uniform detail. */
   focus: { x: number; z: number } | null = null;
   control: ControlInput = NO_CONTROL;
+  /** Opt-in step profiler (benchmarks only). null = off: no timing calls, no effect on state or random streams. */
+  private prof: StepProfiler | null = null;
+  get profiler(): StepProfiler | null {
+    return this.prof;
+  }
+  set profiler(p: StepProfiler | null) {
+    this.prof = p;
+    this.hash.stats = p ? p.query : null;
+    for (const h of this.spHash) h.stats = p ? p.query : null;
+  }
   private statAcc = 0;
   private groupAcc = 0;
   private rainAcc = 0;
@@ -308,37 +331,87 @@ export class Simulation {
   // ------------------------------------------------------------------ main loop
   /** Advance by dt kinetic seconds (0.05 .. 2). */
   step(dt: number): void {
+    const P = this.prof;
+    const tStart = P ? P.now() : 0;
+    let t = tStart;
     const dtH = (dt * TIME_SCALE) / 3600;
     this.tick++;
     this.env.step(dtH, this.envRng);
     this.rainAcc += this.env.rain * dtH;
+    if (P) t = P.lap('environment', t);
     this.hash.clear();
+    for (const h of this.spHash) h.clear();
     const list = this.animals;
-    for (let i = 0; i < list.length; i++) this.hash.insert(list[i]!);
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i]!;
+      this.hash.insert(a);
+      this.spHash[a.sp]!.insert(a);
+    }
+    if (P) t = P.lap('spatialIndex', t);
     this.groupAcc += dt;
     if (this.groupAcc >= 4) {
       this.groupAcc = 0;
       this.rebuildGroups();
+      if (P) t = P.lap('herdGroups', t);
     }
     const n = list.length; // newborns appended during the loop act from the next tick
+    if (P) {
+      P.animalTicks += n;
+      this.stepAnimalsProfiled(P, list, n, dt, dtH);
+      t = P.now();
+    } else {
+      for (let i = 0; i < n; i++) {
+        const a = list[i]!;
+        if (!a.alive) continue;
+        const sp = SPECIES[a.sp]!;
+        this.physiology(a, sp, dt, dtH);
+        if (!a.alive) continue;
+        a.timer -= dt;
+        if (a.timer <= 0) this.decide(a, sp);
+        if (a.controlled) this.actControlled(a, sp, dt, dtH);
+        else this.act(a, sp, dt, dtH);
+        this.move(a, sp, dt);
+      }
+    }
+    this.stepCarcasses(dtH);
+    if (P) t = P.lap('carcasses', t);
+    if (this.dead) {
+      this.sweep();
+      if (P) t = P.lap('sweep', t);
+    }
+    this.statAcc += dtH;
+    if (this.statAcc >= 2) {
+      this.statAcc -= 2;
+      this.recordStats();
+      if (P) t = P.lap('stats', t);
+    }
+    if (P) {
+      P.ticks++;
+      P.tickMs.push(P.now() - tStart);
+    }
+  }
+
+  /** The same per-animal sequence as step(), with stage timing. Kept separate so the unprofiled loop stays untouched. */
+  private stepAnimalsProfiled(P: StepProfiler, list: Animal[], n: number, dt: number, dtH: number): void {
+    let t = P.now();
     for (let i = 0; i < n; i++) {
       const a = list[i]!;
       if (!a.alive) continue;
       const sp = SPECIES[a.sp]!;
       this.physiology(a, sp, dt, dtH);
+      t = P.lap('physiology', t);
       if (!a.alive) continue;
       a.timer -= dt;
-      if (a.timer <= 0) this.decide(a, sp);
+      if (a.timer <= 0) {
+        this.decide(a, sp);
+        t = P.lap('decide', t);
+      }
+      const stage = a.beh === B.Stalk || a.beh === B.Chase ? 'actPredation' : a.beh === B.Regroup || a.beh === B.Follow ? 'actHerd' : 'act';
       if (a.controlled) this.actControlled(a, sp, dt, dtH);
       else this.act(a, sp, dt, dtH);
+      t = P.lap(stage, t);
       this.move(a, sp, dt);
-    }
-    this.stepCarcasses(dtH);
-    if (this.dead) this.sweep();
-    this.statAcc += dtH;
-    if (this.statAcc >= 2) {
-      this.statAcc -= 2;
-      this.recordStats();
+      t = P.lap('move', t);
     }
   }
 
@@ -457,6 +530,13 @@ export class Simulation {
   }
 
   private giveBirth(m: Animal, sp: SpeciesDef): void {
+    const P = this.prof;
+    const t = P ? P.now() : 0;
+    this.giveBirthInner(m, sp);
+    if (P) P.lap('births', t);
+  }
+
+  private giveBirthInner(m: Animal, sp: SpeciesDef): void {
     m.pregnantH = 0;
     m.cooldownH = intervalHours(sp) - gestationHours(sp);
     const f = this.fertility[m.sp]!;
@@ -477,6 +557,13 @@ export class Simulation {
   }
 
   private kill(a: Animal, cause: DeathCause, leaveCarcass = true): void {
+    const P = this.prof;
+    const t = P ? P.now() : 0;
+    this.killInner(a, cause, leaveCarcass);
+    if (P) P.lap('deaths', t);
+  }
+
+  private killInner(a: Animal, cause: DeathCause, leaveCarcass: boolean): void {
     if (!a.alive) return;
     a.alive = false;
     this.dead = true;
@@ -561,7 +648,9 @@ export class Simulation {
     let preyD2 = vis * vis;
     let alarm: Animal | null = null;
     let crowd = 0;
-    this.hash.query(a.x, a.z, R, (o, d2) => {
+    const P = this.prof;
+    const tPerc = P ? P.now() : 0;
+    const visit = (o: Animal, d2: number): void => {
       if (o === a || !o.alive) return;
       const osp = SPECIES[o.sp]!;
       if (o.sp === a.sp) {
@@ -588,8 +677,16 @@ export class Simulation {
         prey = o;
         preyD2 = d2;
       }
-    });
+    };
+    // Only species that can matter are visited: own species (crowd, mates, alarms), predators if this animal can be
+    // afraid, prey if it is hunting. Each prey species has a single predator species, so threat candidates (the only
+    // random draws here) are visited in exactly the same order as a scan of all animals would visit them.
+    const per = Simulation.PERCEIVES[a.sp]!;
+    this.spHash[per.self]!.query(a.x, a.z, R, visit);
+    if (fearful) for (const s of per.predators) this.spHash[s]!.query(a.x, a.z, R, visit);
+    if (hunter) for (const s of per.prey) this.spHash[s]!.query(a.x, a.z, R, visit);
     a.crowd = crowd;
+    if (P) P.lap('perception', tPerc);
     // narrowing helpers (closures above defeat control-flow analysis)
     const th = threat as Animal | null;
     const al = alarm as Animal | null;
@@ -1243,7 +1340,7 @@ export class Simulation {
     if (!sp.flies && a.want > 0) a.speed = Math.min(a.speed, Math.sqrt(2 * loco.decel * Math.max(0, dist - 0.4)) + 0.25);
     if (a.speed < 0.02 && a.want <= 0) a.speed = 0;
     // personal space: herd animals standing or ambling shuffle apart instead of occupying the same spot
-    if (!sp.flies && sp.group > 1 && a.speed < sp.walk * 0.6 && a.want < sp.walk * 0.6 && !a.controlled && a.beh !== B.Drink && a.beh !== B.Flee && a.beh !== B.Follow && this.giveSpace(a, sp, dt, loco.agility, a.beh === B.Rest ? 0.5 : 1)) {
+    if (!sp.flies && sp.group > 1 && a.speed < sp.walk * 0.6 && a.want < sp.walk * 0.6 && !a.controlled && a.beh !== B.Drink && a.beh !== B.Flee && a.beh !== B.Follow && this.giveSpaceTimed(a, sp, dt, loco.agility, a.beh === B.Rest ? 0.5 : 1)) {
       a.chkT = 0;
       return;
     }
@@ -1327,12 +1424,21 @@ export class Simulation {
    * at its normal turning rate and walks forward slowly (0.25 m/s), so facing and movement agree. A resting animal
    * reacts only when badly crowded (reach 0.5: it gets up, steps aside, and lies down again).
    */
+  private giveSpaceTimed(a: Animal, sp: SpeciesDef, dt: number, agility: number, reach: number): boolean {
+    const P = this.prof;
+    if (!P) return this.giveSpace(a, sp, dt, agility, reach);
+    const t = P.now();
+    const r = this.giveSpace(a, sp, dt, agility, reach);
+    P.lap('personalSpace', t);
+    return r;
+  }
+
   private giveSpace(a: Animal, sp: SpeciesDef, dt: number, agility: number, reach = 1): boolean {
     const personal = Math.max(0.6, sp.length * 1.1) * reach;
     let px = 0;
     let pz = 0;
-    this.hash.query(a.x, a.z, personal, (o, d2) => {
-      if (o === a || o.sp !== a.sp || !o.alive) return;
+    this.spHash[a.sp]!.query(a.x, a.z, personal, (o, d2) => {
+      if (o === a || !o.alive) return;
       const d = Math.sqrt(d2);
       // exactly coincident: separate along a direction fixed by the pair's ids (deterministic, symmetric)
       const ang = d > 1e-3 ? Math.atan2(a.x - o.x, a.z - o.z) : ((Math.min(a.id, o.id) * 2.39996) % (Math.PI * 2)) + (a.id < o.id ? 0 : Math.PI);

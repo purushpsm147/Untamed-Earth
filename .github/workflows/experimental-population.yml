@@ -1,0 +1,32 @@
+name: Experiment - population scaling (real simulation)
+
+on:
+  push:
+    branches: [experiment/tech-validation-population]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  population-quick:
+    name: Profiled real-simulation scaling (quick) and parity checkpoints
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Scaling (natural, 1,000 and 2,500 animals; four speeds)
+        run: BENCH_LABEL=github-actions node --expose-gc --import tsx benchmarks/population-scaling.ts --quick --out population-scaling-ci.json
+      - name: Parity checkpoints (state hashes for review)
+        run: node --import tsx benchmarks/population-parity.ts > population-parity-ci.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: population-scaling-ci
+          path: |
+            population-scaling-ci.json
+            population-parity-ci.json

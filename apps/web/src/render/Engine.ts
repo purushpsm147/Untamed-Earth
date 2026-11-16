@@ -228,6 +228,18 @@ export class Engine {
     return { changes, quality: this.quality.name, scale: this.governor.scale, pixelRatio: this.renderer.getPixelRatio(), viewDist: this.terrain.viewDist, vegDist: this.scatter.vegDist, shadows: this.sky.sun.castShadow, stats: this.governor.stats };
   }
 
+  /**
+   * QA: draw every live terrain chunk once with frustum culling off, so the renderer has uploaded all of them and its
+   * geometry count no longer depends on what happened to be in view (used by the chunk-traversal leak test).
+   */
+  debugDrawAllTerrain(): void {
+    const meshes = this.terrain.group.children as THREE.Mesh[];
+    const prev = meshes.map((m) => m.frustumCulled);
+    for (const m of meshes) m.frustumCulled = false;
+    this.renderer.render(this.scene, this.camera);
+    meshes.forEach((m, i) => (m.frustumCulled = prev[i]!));
+  }
+
   frame(dtReal: number, alpha: number, time: number, selected: number, simRate: number, highlightGroup = 0): void {
     const env = this.sim.env;
     const cam = this.camera.position;
