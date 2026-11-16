@@ -23,6 +23,16 @@ interface Vis extends PoseState {
 
 const MAX = 700;
 
+/** An opt-in A/B experiment: baseline marks entire instance attributes dirty; active only uploads used slots. */
+export type AnimalUploadMode = 'full' | 'active';
+export interface AnimalUploadSample {
+  mode: AnimalUploadMode;
+  frames: number;
+  averageVisible: number;
+  averageRequestedBytes: number;
+  totalDropped: number;
+}
+
 function animatedMaterial(): THREE.MeshStandardMaterial {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0 });
   mat.onBeforeCompile = (sh) => {
@@ -57,6 +67,9 @@ export class AnimalView {
   private readonly groupRings: THREE.InstancedMesh;
   private readonly vis = new Map<number, Vis>();
   private frame = 0;
+  /** Estimated attribute bytes requested for the most recent frame, not measured GPU transfer traffic. */
+  private lastUpload = { visible: 0, requestedBytes: 0, dropped: 0 };
+  private uploadSample: { frames: number; visible: number; requestedBytes: number; dropped: number } | null = null;
   private readonly m = new THREE.Matrix4();
   private readonly q = new THREE.Quaternion();
   private readonly e = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -65,7 +78,7 @@ export class AnimalView {
   /** Interpolated world position of each rendered animal this frame (for picking and cameras). */
   readonly pos = new Map<number, THREE.Vector3>();
 
-  constructor(private readonly sim: Simulation) {
+  constructor(private readonly sim: Simulation, readonly uploadMode: AnimalUploadMode = 'full') {
     const models = buildAnimalModels();
     const mat = animatedMaterial();
     for (const [name, model] of Object.entries(models)) {
@@ -106,6 +119,7 @@ export class AnimalView {
     const sim = this.sim;
     const valley = sim.valley;
     this.frame++;
+    let dropped = 0;
     for (const b of Object.values(this.batches)) b.n = 0;
     const max2 = maxDist * maxDist;
     this.marker.visible = false;
@@ -118,7 +132,10 @@ export class AnimalView {
       const sp = SPECIES[a.sp]!;
       const adult = a.age > maturityDays(sp);
       const b = this.batches[sp.id === 'chital' && adult && a.sex === 1 ? 'stag' : sp.id]!;
-      if (b.n >= MAX) continue;
+      if (b.n >= MAX) {
+        dropped++; // Report overflow: this experiment must not silently imply extra animal capacity.
+        continue;
+      }
       let v = this.vis.get(a.id);
       if (!v) this.vis.set(a.id, (v = { ...newPose(), phase: (a.id * 1.7) % 6.28, yaw: a.heading, seen: 0, off: NaN }));
       v.seen = this.frame;
@@ -172,11 +189,40 @@ export class AnimalView {
     }
     this.groupRings.count = rings;
     this.groupRings.instanceMatrix.needsUpdate = true;
+    let visible = 0;
+    let requestedBytes = 0;
     for (const b of Object.values(this.batches)) {
       b.mesh.count = b.n;
-      b.mesh.instanceMatrix.needsUpdate = true;
-      b.anim.needsUpdate = true;
-      b.pose.needsUpdate = true;
+      visible += b.n;
+      if (this.uploadMode === 'active') {
+        // Three.js update ranges are measured in elements (floats), not bytes.
+        // The three arrays are contiguous: 16 matrix + 4 animation + 4 pose floats per instance.
+        b.mesh.instanceMatrix.clearUpdateRanges();
+        b.anim.clearUpdateRanges();
+        b.pose.clearUpdateRanges();
+        if (b.n > 0) {
+          b.mesh.instanceMatrix.addUpdateRange(0, b.n * 16);
+          b.anim.addUpdateRange(0, b.n * 4);
+          b.pose.addUpdateRange(0, b.n * 4);
+          b.mesh.instanceMatrix.needsUpdate = true;
+          b.anim.needsUpdate = true;
+          b.pose.needsUpdate = true;
+          requestedBytes += b.n * 24 * 4;
+        }
+      } else {
+        // Exact baseline behavior, including dirtying empty batches.
+        b.mesh.instanceMatrix.needsUpdate = true;
+        b.anim.needsUpdate = true;
+        b.pose.needsUpdate = true;
+        if (b.n > 0) requestedBytes += MAX * 24 * 4;
+      }
+    }
+    this.lastUpload = { visible, requestedBytes, dropped };
+    if (this.uploadSample) {
+      this.uploadSample.frames++;
+      this.uploadSample.visible += visible;
+      this.uploadSample.requestedBytes += requestedBytes;
+      this.uploadSample.dropped += dropped;
     }
     // carcasses shrink as they are eaten and decompose
     let cn = 0;
@@ -198,6 +244,27 @@ export class AnimalView {
         }
       }
     }
+  }
+
+  /** Inspect intended attribute update volume; Three.js/driver may optimize actual GPU transfers differently. */
+  debugUpload(): { mode: AnimalUploadMode; visible: number; requestedBytes: number; dropped: number } {
+    return { mode: this.uploadMode, ...this.lastUpload };
+  }
+
+  beginUploadSample(): void {
+    this.uploadSample = { frames: 0, visible: 0, requestedBytes: 0, dropped: 0 };
+  }
+
+  endUploadSample(): AnimalUploadSample {
+    const s = this.uploadSample;
+    this.uploadSample = null;
+    return {
+      mode: this.uploadMode,
+      frames: s?.frames ?? 0,
+      averageVisible: s && s.frames ? Math.round(s.visible / s.frames * 10) / 10 : 0,
+      averageRequestedBytes: s && s.frames ? Math.round(s.requestedBytes / s.frames) : 0,
+      totalDropped: s?.dropped ?? 0,
+    };
   }
 
   /** QA: the drawn pose of one animal this frame (presentation state only), or null if not drawn. */
