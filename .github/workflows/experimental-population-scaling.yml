@@ -1,0 +1,27 @@
+name: Experimental population scaling baseline
+on:
+  push:
+    branches:
+      - experiment/population-scaling-baseline
+  workflow_dispatch:
+jobs:
+  scaling-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Typecheck experimental benchmark and entire workspace
+        run: npm run typecheck
+      - name: Run baseline; enforce AoS vs SoA state and query parity
+        run: npm run bench:scale -- --quick --out=docs/evidence/tech-experiments/population-baseline-ci.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: population-baseline-quick
+          path: docs/evidence/tech-experiments/population-baseline-ci.json
+          retention-days: 14
