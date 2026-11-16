@@ -1,7 +1,9 @@
 # Ecological stability investigation (Mission 4)
 
 Baseline: integration `a0e08ba` (CI run 132 green). Experiments: branch `experiment/ecology-stability`.
-Fix: branch `fix/ecology-critical-thirst` (this report). All runs: unmodified weather (it has its own random
+Fix: branch `fix/ecology-critical-thirst` (this report). Machine-readable 15-seed summary:
+[`evidence/ecology/summary-15-seeds.json`](evidence/ecology/summary-15-seeds.json); raw per-day evidence (23 MB, with
+seed, runtime and configuration metadata) is on the experiment branch under `docs/evidence/ecology/`. All runs: unmodified weather (it has its own random
 stream, so **every comparison below uses identical weather for the same seed**), 365 game days at the 1000× tick (2 s),
 Linux container, Node 22.
 
@@ -105,12 +107,44 @@ thirsty animal. Hashes at days 120/240/360 (seeds 1–3, 2 s tick): seed 1 `4786
 seed 3 `1919382446/1293843596/1422860966` → `872687463/1692326525/1291504284`. The production change produces exactly
 the hashes of the experiment switch it replaces, so the 15-seed evidence applies to it.
 
+## Lessons from wild ecosystems (what real animals do that the model lacks)
+The remaining instabilities line up with documented behaviour of these species. Field evidence, briefly:
+
+| What wild animals do | What the model does | Implication |
+|---|---|---|
+| **Golden jackals are generalists**: in Indian studies rodents, birds and fruit make up >60% of the diet (Bharatpur) or rodents, reptiles and fruit >80% (Kanha); mammals ~45% of scat occurrence in Sariska, mostly rodents; vegetable matter ~20% [JoTT 2020; ADW] | Jackal diet `veg 0.12`; hares and fawns carry much of the load, so a thriving jackal population collapses prey (finding 5) | Shift weight toward the small-fauna pool, carrion and fruit, so predation on hares/fawns is opportunistic, not the staple |
+| **Pairs hunt together**: jackal pairs were more than twice as successful as singles on gazelle fawns; mothers defend fawns [Wyman 1967, Serengeti; Ngorongoro field note] | Jackals hunt alone; partners drift apart (receptive females rarely have their male nearby) | Pair cohesion (partners travel together) would raise breeding contact and make fawn hunting a pair activity, instead of tuning per-attack odds |
+| **Territorial pairs, helpers that disperse**: breeding pairs are spaced around core den territories; helpers stay about a year then leave; jackals range 40–50 km when food is scarce [JoTT 2020; ADW] | No territories, no dispersal, closed valley; 6 founders | Territory-limited breeding (regulation) plus emigration/immigration at the valley edge (rescue): the two missing stabilisers |
+| **Chital switch to browse in the dry season** (shrubs stay green longer; grass 53% of dry-season intake vs 95% wet, Queensland) and favour forest when dry [CSIRO RJ20015; Sri Lanka study] | Chital eat a single vegetation pool, same everywhere and all year | Seasonal browse resource in forest/scrub would buffer dry-season starvation |
+| **Chital herds split when food is scarce**: dry-season groups of 5–6 [Sri Lanka study]; home ranges ~1.4 km² (F) / 1.95 km² (M) | Herd cohesion and regroup pull animals back to one centre regardless of food | Likely why wider forage search did not reduce chital starvation: cohesion should relax with hunger (fission–fusion), letting small groups spread over the range |
+| **Chital drink daily near permanent water, approach cautiously in herds** | Water access works; vigilance in groups exists | Consistent; no change |
+
+Sources: [Journal of Threatened Taxa 12(11), 2020](https://threatenedtaxa.org/index.php/JoTT/article/download/4489/6959?inline=1),
+[Animal Diversity Web: Canis aureus](https://animaldiversity.org/accounts/Canis_aureus/),
+[Zeitschrift für Säugetierkunde 43 (jackal fawn hunting)](https://www.zobodat.at/pdf/Zeitschrift-Saeugetierkunde_43_0210-0223.pdf),
+[Ultimate Ungulate: Axis axis](https://ultimateungulate.com/Artiodactyla/Axis_axis.html),
+[CSIRO Rangeland Journal RJ20015 (chital diet, Queensland)](https://publish.csiro.au/rj/RJ20015),
+[Sri Lanka chital study (archive.org)](https://archive.org/download/biostor-148559/biostor-148559.pdf).
+No field study found gives a jackal success rate per chase on hares; any attack-success calibration must therefore be
+judged by population outcomes and diet composition, not a single literature number.
+
 ## Proposed next interventions (findings first; not implemented in production)
+Ordered by evidence and by how much behavioural realism they add (each to be tested one at a time, 15 seeds, same
+weather, against this baseline):
+0. **Diet realism for jackals** (field diet composition): more small fauna, carrion and fruit; fewer kills needed per
+   jackal. Directly addresses prey collapse when jackals thrive.
+0b. **Pair cohesion and pair hunting** for pair-bonded species, and **fission–fusion chital herds** (cohesion relaxes
+   with hunger). Both replace parameter tuning with behaviour observed in the wild.
 1. **Predator–prey calibration with the pursuit fix** (finding 2): exempt Stalk/Chase from the closest-approach
    give-up (keep "not moving at all"), then calibrate attack success per prey type against field-plausible ranges
    (golden jackal success on hares and fawns), judged by 15-seed persistence and prey not collapsing. One change at a time.
 2. **Hunger-scaled forage search** (finding 4): search reach and home-range tolerance widen as hunger rises
-   (up to 3× at hunger 1). See its 15-seed result in the table below.
+   (up to 3× at hunger 1). Tested on top of the critical-thirst fix, 15 seeds: jackals extinct **6/15** (from 11),
+   all six species persist **5/15** (from 3), median day-365 boar 32, hare 91, jackal 1; but **chital starvation is
+   unchanged** (median 60 vs 59). It mainly helps jackals, which also forage for small fauna over a large home range.
+   So the chital local-depletion hypothesis is incomplete: wider search alone does not move herds off depleted
+   ground. Next diagnostic: herd cohesion/regroup and calf-following anchoring herds (both pull animals back toward
+   the herd centre), and forage regrowth rates. Not proposed for production yet.
 3. **Open population boundary** (finding 5): rare, seeded immigration and emigration of jackals (and dispersing
    subadults) at the valley edge, and territory-based breeding limits. This is a substantial modelling change and
    needs its own design review.
