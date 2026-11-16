@@ -646,9 +646,23 @@ export function updateArticulatedChitalRig(
     const localSlopePitch = target.groundSlopePitch - thetaPitch;
     solveLimbIK3D(limb, _tmpLocalAnkle, localSlopePitch);
 
+    // The initial ankle solve is exact at the ankle, but hoof pitch/abduction
+    // changes the sole's vertical offset. Compensate using the ACTUAL world
+    // plantar marker, then solve again. This corrects contact at the foot rather
+    // than loosening the strict 5mm acceptance threshold.
+    for (let pass = 0; pass < 3; pass++) {
+      limb.upper.updateMatrixWorld(true);
+      limb.hoofBottom.getWorldPosition(_tmpHoofBottomWorld);
+      const soleError = _tmpHoofBottomWorld.y - target.groundY;
+      if (Math.abs(soleError) <= 0.0001) break;
+      _tmpWorldAnkle.y -= soleError;
+      _tmpLocalAnkle.copy(_tmpWorldAnkle);
+      rig.bodyGroup.worldToLocal(_tmpLocalAnkle);
+      solveLimbIK3D(limb, _tmpLocalAnkle, localSlopePitch);
+    }
+
     limb.upper.updateMatrixWorld(true);
     limb.hoofBottom.getWorldPosition(_tmpHoofBottomWorld);
-
     const clearance = _tmpHoofBottomWorld.y - target.groundY;
     perHoofClearance[limb.name] = clearance;
     if (target.isStance) {
