@@ -21,5 +21,6 @@ export default defineConfig({
     { name: 'reliability', testMatch: 'tests/e2e/reliability.spec.ts' },
     { name: 'naturalism', testMatch: 'tests/e2e/naturalism-ab.spec.ts' },
     { name: 'naturalism-v3', testMatch: 'tests/e2e/slice1-naturalism-ab.spec.ts' },
+    { name: 'naturalism-v4', testMatch: 'tests/e2e/slice1-naturalism-v4.spec.ts' },
   ],
 });
