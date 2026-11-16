@@ -228,6 +228,22 @@ export class Engine {
     return { changes, quality: this.quality.name, scale: this.governor.scale, pixelRatio: this.renderer.getPixelRatio(), viewDist: this.terrain.viewDist, vegDist: this.scatter.vegDist, shadows: this.sky.sun.castShadow, stats: this.governor.stats };
   }
 
+  /**
+   * QA-only: submit all live terrain meshes once so GPU geometry accounting
+   * is independent of the view/framerate along a traversal path.
+   * Restore frustum-culling settings even if the render throws.
+   */
+  debugDrawAllTerrain(): void {
+    const meshes = this.terrain.group.children as THREE.Mesh[];
+    const previous = meshes.map((mesh) => mesh.frustumCulled);
+    try {
+      for (const mesh of meshes) mesh.frustumCulled = false;
+      this.renderer.render(this.scene, this.camera);
+    } finally {
+      meshes.forEach((mesh, index) => { mesh.frustumCulled = previous[index]!; });
+    }
+  }
+
   frame(dtReal: number, alpha: number, time: number, selected: number, simRate: number, highlightGroup = 0): void {
     const env = this.sim.env;
     const cam = this.camera.position;
