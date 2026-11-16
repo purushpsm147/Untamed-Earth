@@ -746,6 +746,7 @@ export class ChitalPrototypeV4 {
    * Updates pose, continuous gait phase, terrain slope alignment, and world-space foot IK.
    */
   public update(sim: ChitalSimInput, dt: number, terrain: TerrainQuery, elapsedSec: number): ChitalGroundingDiagnostic {
+    void dt; // The V4 gait phase follows actual world displacement, not wall-clock ticks.
     const scale = this.root.scale.y;
     const groundCenter = terrain.getHeightAt(sim.x, sim.z);
 
