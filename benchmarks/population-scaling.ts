@@ -104,6 +104,8 @@ for (const target of SIZES) {
       const b0 = sim.births.reduce((s, x) => s + x, 0);
       const d0 = sim.deaths.flat().reduce((s, x) => s + x, 0);
       gc?.();
+      await new Promise((res) => setImmediate(res)); // deliver GC entries from setup before counting starts
+      await new Promise((res) => setTimeout(res, 20));
       const g0 = gcCount;
       const gm0 = gcMs;
       const t: number[] = [];
@@ -112,7 +114,7 @@ for (const target of SIZES) {
         sim.step(sp.dt);
         t.push(performance.now() - a);
       }
-      await new Promise((res) => setImmediate(res)); // let GC observer entries arrive
+      await new Promise((res) => setTimeout(res, 20)); // let this round's GC entries arrive
       allTicks = allTicks.concat(t);
       rounds.push({
         median: r3(pct(t, 0.5)), p95: r3(pct(t, 0.95)), p99: r3(pct(t, 0.99)), max: r3(Math.max(...t)),
