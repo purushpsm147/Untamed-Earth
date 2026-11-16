@@ -95,7 +95,9 @@ function buildContinuousBodyGeometry(radialSegments = 24): THREE.BufferGeometry 
 
   for (let i = 0; i < rings; i++) {
     const st = SPINE_STATIONS[i];
-    for (let j = 0; j <= radialSegments; j++) {
+    // No duplicate seam vertices: the material uses body-space mapping, not a UV texture.
+    // This gives a topologically closed manifold after the terminal caps are added.
+    for (let j = 0; j < radialSegments; j++) {
       const u = j / radialSegments;
       const theta = u * Math.PI * 2.0; // 0 = dorsal top, PI = ventral belly
       const sinT = Math.sin(theta);
@@ -116,13 +118,14 @@ function buildContinuousBodyGeometry(radialSegments = 24): THREE.BufferGeometry 
     }
   }
 
-  const stride = radialSegments + 1;
+  const stride = radialSegments;
   for (let i = 0; i < rings - 1; i++) {
     for (let j = 0; j < radialSegments; j++) {
       const a = i * stride + j;
       const b = (i + 1) * stride + j;
-      const c = (i + 1) * stride + (j + 1);
-      const d = i * stride + (j + 1);
+      const next = (j + 1) % radialSegments;
+      const c = (i + 1) * stride + next;
+      const d = i * stride + next;
       indices.push(a, b, d, b, c, d);
     }
   }
@@ -147,9 +150,11 @@ function buildContinuousBodyGeometry(radialSegments = 24): THREE.BufferGeometry 
   const noseCenter = addCapCenter(SPINE_STATIONS[rings - 1]);
   for (let j = 0; j < radialSegments; j++) {
     // Tail cap faces -Z, nose cap faces +Z.
-    indices.push(tailCenter, j, j + 1);
+    const next = (j + 1) % radialSegments;
+    indices.push(tailCenter, j, next);
     const end = (rings - 1) * stride + j;
-    indices.push(noseCenter, end + 1, end);
+    const endNext = (rings - 1) * stride + next;
+    indices.push(noseCenter, endNext, end);
   }
 
   geo.setIndex(indices);
