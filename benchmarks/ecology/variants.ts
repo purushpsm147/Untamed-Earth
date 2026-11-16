@@ -14,6 +14,13 @@ const off = (...flags: Flag[]): Variant => () => {
   return () => { for (const [f, v] of saved) ECO_EXPERIMENT[f] = v; };
 };
 
+const on = (...flags: Flag[]): Variant => () => {
+  const saved = flags.map((f) => [f, ECO_EXPERIMENT[f]] as const);
+  for (const f of flags) ECO_EXPERIMENT[f] = true;
+  return () => { for (const [f, v] of saved) ECO_EXPERIMENT[f] = v; };
+};
+const both = (a: Variant, b: Variant): Variant => (sim) => { const ua = a(sim); const ub = b(sim); return () => { ub?.(); ua?.(); }; };
+
 export const VARIANTS: Record<string, Variant> = {
   baseline: () => undefined,
   'no-many-eyes': off('manyEyes'),
@@ -25,5 +32,8 @@ export const VARIANTS: Record<string, Variant> = {
   'no-dry-resting': off('dryResting'),
   'no-pursuit-giveup': off('pursuitGiveUp'),
   'no-moving-goal-giveup': off('pursuitGiveUp', 'movingGoalGiveUp'),
+  // candidate interventions
+  'fix-drink-approach': on('drinkApproachIgnoresDeepWater'),
+  'fix-drink-approach+pursuit': both(on('drinkApproachIgnoresDeepWater'), off('pursuitGiveUp')),
   'living-valley-off': off('manyEyes', 'coordinatedFlight', 'regroup', 'locomotionLimits', 'jackalDeepWaterAvoidance', 'personalSpace', 'dryResting', 'pursuitGiveUp', 'movingGoalGiveUp'),
 };

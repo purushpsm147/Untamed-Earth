@@ -140,6 +140,8 @@ export const ECO_EXPERIMENT = {
   pursuitGiveUp: true,
   /** ... and to the other moving goals (SeekMate, Follow, Regroup) */
   movingGoalGiveUp: true,
+  /** CANDIDATE FIX (off = production): an animal heading for a drinking site is not repelled by deep water there */
+  drinkApproachIgnoresDeepWater: false,
 };
 
 /** Candidate steering offsets from the goal direction (radians), in tie-break order: straight first, then alternating. */
@@ -1397,7 +1399,7 @@ export class Simulation {
     let cost = 0;
     if (depth > 0.3) {
       if (sp.mass < 5) return Infinity;
-      if (depth > 0.45) cost += (sp.id === 'jackal' && ECO_EXPERIMENT.jackalDeepWaterAvoidance ? 1.4 : 0.6) * (a.beh === B.Flee ? 0.35 : 1);
+      if (depth > 0.45 && !(ECO_EXPERIMENT.drinkApproachIgnoresDeepWater && a.beh === B.SeekWater)) cost += (sp.id === 'jackal' && ECO_EXPERIMENT.jackalDeepWaterAvoidance ? 1.4 : 0.6) * (a.beh === B.Flee ? 0.35 : 1);
     }
     const grade = (h - h0) / dist;
     if (grade > MAX_UP_GRADE || grade < -MAX_DOWN_GRADE) return Infinity;
