@@ -1,8 +1,8 @@
-export type Action = 'eat' | 'drink' | 'rest' | 'release' | 'pause' | 'follow' | 'control' | 'diag' | 'help' | 'speedUp' | 'speedDown' | 'capture' | 'mute' | 'stats' | 'curiosity' | 'skip';
+export type Action = 'eat' | 'drink' | 'rest' | 'release' | 'pause' | 'follow' | 'control' | 'diag' | 'help' | 'speedUp' | 'speedDown' | 'capture' | 'mute' | 'stats' | 'curiosity' | 'skip' | 'levelCamera';
 
 const KEY_ACTIONS: Record<string, Action> = {
   KeyE: 'eat', KeyF: 'drink', KeyR: 'rest', KeyX: 'release', Escape: 'pause', KeyG: 'follow', KeyP: 'control', F3: 'diag', KeyH: 'help',
-  BracketRight: 'speedUp', BracketLeft: 'speedDown', KeyC: 'capture', KeyM: 'mute', KeyT: 'stats', KeyV: 'curiosity', KeyN: 'skip',
+  BracketRight: 'speedUp', BracketLeft: 'speedDown', KeyC: 'capture', KeyM: 'mute', KeyT: 'stats', KeyV: 'curiosity', KeyN: 'skip', KeyB: 'levelCamera',
 };
 /** Standard-mapping gamepad buttons. */
 const PAD_ACTIONS: Record<number, Action> = { 0: 'eat', 2: 'drink', 3: 'rest', 1: 'release', 9: 'pause', 5: 'speedUp', 4: 'speedDown' };
@@ -17,6 +17,10 @@ export class Input {
   moveY = 0; // vertical
   lookX = 0; // accumulated yaw delta this frame (radians)
   lookY = 0;
+  /** Camera banking (roll); keyboard U/O only, radians accumulated per frame. */
+  roll = 0;
+  /** Optical field-of-view adjustment from Alt+mouse wheel; separate from fly-speed/animal orbit zoom. */
+  lensZoom = 0;
   zoom = 0;
   fast = false;
   touch = false;
@@ -122,7 +126,10 @@ export class Input {
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', up);
     el.addEventListener('wheel', (e) => {
-      if (this.enabled) this.zoom += Math.sign(e.deltaY);
+      if (this.enabled) {
+        if (e.altKey) this.lensZoom += Math.sign(e.deltaY);
+        else this.zoom += Math.sign(e.deltaY);
+      }
       e.preventDefault();
     }, { passive: false });
   }
@@ -179,6 +186,12 @@ export class Input {
     let mz = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
     let my = (k.has("Space") ? 1 : 0) - (k.has("KeyQ") || k.has("ControlLeft") ? 1 : 0) + this.touchY;
     this.fast = k.has('ShiftLeft') || k.has('ShiftRight') || this.touchFast;
+    // Explicit keyboard turning for observers without a mouse. Mouse and gamepad deltas remain additive.
+    // J/L: yaw left/right; I/K: pitch up/down; U/O: bank left/right.
+    const turn = dt * 1.7;
+    this.lookX += ((k.has('KeyL') ? 1 : 0) - (k.has('KeyJ') ? 1 : 0)) * turn;
+    this.lookY += ((k.has('KeyI') ? 1 : 0) - (k.has('KeyK') ? 1 : 0)) * turn;
+    this.roll += ((k.has('KeyU') ? 1 : 0) - (k.has('KeyO') ? 1 : 0)) * turn;
     if (this.stick) {
       mx += Math.max(-1, Math.min(1, (this.stick.x - this.stick.x0) / 45));
       mz += Math.max(-1, Math.min(1, -(this.stick.y - this.stick.y0) / 45));
@@ -211,6 +224,8 @@ export class Input {
   endFrame(): void {
     this.lookX = 0;
     this.lookY = 0;
+    this.roll = 0;
+    this.lensZoom = 0;
     this.zoom = 0;
     this.click = null;
   }
