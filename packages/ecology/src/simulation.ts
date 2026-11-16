@@ -123,6 +123,25 @@ export interface SimSnapshot {
 
 const NO_CONTROL: ControlInput = { mx: 0, mz: 0, run: false, action: null };
 
+/**
+ * EXPERIMENT-ONLY switches for controlled ecology comparisons (Mission 4, benchmarks/ecology/variants.ts). Defaults are
+ * the production behaviour; nothing in the game changes them. Each flag disables one Living Valley component.
+ */
+export const ECO_EXPERIMENT = {
+  manyEyes: true,
+  coordinatedFlight: true,
+  regroup: true,
+  /** acceleration / braking and speed-dependent turn limits (off: speed jumps to the wanted value, turning unlimited) */
+  locomotionLimits: true,
+  jackalDeepWaterAvoidance: true,
+  personalSpace: true,
+  dryResting: true,
+  /** Living Valley progress check (closest approach must improve every 4 s) applied to pursuits (Stalk, Chase) */
+  pursuitGiveUp: true,
+  /** ... and to the other moving goals (SeekMate, Follow, Regroup) */
+  movingGoalGiveUp: true,
+};
+
 /** Candidate steering offsets from the goal direction (radians), in tie-break order: straight first, then alternating. */
 const STEER_OFFSETS = [0, 0.35, -0.35, 0.8, -0.8, 1.35, -1.35, 2.0, -2.0, 2.7, -2.7];
 /** Grades (rise/run) a ground animal will not climb or descend. */
@@ -579,7 +598,7 @@ export class Simulation {
         if (o.beh === B.Stalk) p *= 0.4;
         if (a.beh === B.Rest) p *= 0.5;
         // many eyes: each herd mate nearby adds a chance that someone spots the predator (group vigilance)
-        if (p > 0 && p < 1 && sp.group > 1) p = 1 - Math.pow(1 - p, 1 + 0.25 * Math.min(a.crowd, 8));
+        if (ECO_EXPERIMENT.manyEyes && p > 0 && p < 1 && sp.group > 1) p = 1 - Math.pow(1 - p, 1 + 0.25 * Math.min(a.crowd, 8));
         if (p > 0 && d2 < threatD2 && rng.next() < p) {
           threat = o;
           threatD2 = d2;
@@ -682,7 +701,7 @@ export class Simulation {
     const grp = sp.group > 2 && !sp.flies ? this.groups.get(a.group) : undefined;
     if (grp && grp.n > 1) {
       const dg = Math.hypot(grp.x - a.x, grp.z - a.z);
-      if (dg > 30) consider(B.Regroup, clamp((dg - 30) / 60, 0, 0.55) + 0.12);
+      if (dg > 30 && ECO_EXPERIMENT.regroup) consider(B.Regroup, clamp((dg - 30) / 60, 0, 0.55) + 0.12);
     }
     let carc: Carcass | null = null;
     if (sp.diet.carrion > 0 && a.hunger > 0.25 && this.carcasses.length > 0) {
@@ -768,7 +787,7 @@ export class Simulation {
         a.tz = a.z;
         // ground animals do not lie down in water: from a wet spot (e.g. after drinking) walk a few metres to dry,
         // open ground first. Directions are tried in a fixed order, so the choice is deterministic.
-        if (!sp.flies && this.valley.waterDepth(a.x, a.z, this.env.stage) > -0.1) {
+        if (ECO_EXPERIMENT.dryResting && !sp.flies && this.valley.waterDepth(a.x, a.z, this.env.stage) > -0.1) {
           search: for (const r of [3, 6, 10]) {
             for (let k = 0; k < 8; k++) {
               const ang = a.heading + Math.PI + (k * Math.PI) / 4;
@@ -863,7 +882,7 @@ export class Simulation {
     let fx = dx * c - dz * s;
     let fz = dx * s + dz * c;
     // herd animals flee as a herd: bend the escape toward the group unless the group lies toward the threat
-    const g = sp.group > 2 && !sp.flies ? this.groups.get(a.group) : undefined;
+    const g = sp.group > 2 && !sp.flies && ECO_EXPERIMENT.coordinatedFlight ? this.groups.get(a.group) : undefined;
     if (g && g.n > 1) {
       const gx = g.x - a.x;
       const gz = g.z - a.z;
@@ -999,7 +1018,7 @@ export class Simulation {
         a.stamina = Math.max(0, a.stamina - dt / sp.sprintS);
         if (dist < 3) {
           if (a.fear > 0.3 && !sp.flies) this.startFlee(a, sp);
-          else if (sp.group > 2 && !sp.flies && !a.controlled) {
+          else if (sp.group > 2 && !sp.flies && !a.controlled && ECO_EXPERIMENT.regroup) {
             // danger over: a herd animal rejoins its herd instead of grazing wherever the flight ended
             a.beh = B.Regroup;
             a.timer = this.rng.range(1, 3);
@@ -1239,11 +1258,11 @@ export class Simulation {
     // ---- speed: approach what the behaviour wants within acceleration limits; brake for the destination ----
     const loco = locomotion(sp);
     const rate = a.want > a.speed ? loco.accel : loco.decel;
-    a.speed += clamp(a.want - a.speed, -rate * dt, rate * dt);
+    a.speed += ECO_EXPERIMENT.locomotionLimits ? clamp(a.want - a.speed, -rate * dt, rate * dt) : a.want - a.speed;
     if (!sp.flies && a.want > 0) a.speed = Math.min(a.speed, Math.sqrt(2 * loco.decel * Math.max(0, dist - 0.4)) + 0.25);
     if (a.speed < 0.02 && a.want <= 0) a.speed = 0;
     // personal space: herd animals standing or ambling shuffle apart instead of occupying the same spot
-    if (!sp.flies && sp.group > 1 && a.speed < sp.walk * 0.6 && a.want < sp.walk * 0.6 && !a.controlled && a.beh !== B.Drink && a.beh !== B.Flee && a.beh !== B.Follow && this.giveSpace(a, sp, dt, loco.agility, a.beh === B.Rest ? 0.5 : 1)) {
+    if (ECO_EXPERIMENT.personalSpace && !sp.flies && sp.group > 1 && a.speed < sp.walk * 0.6 && a.want < sp.walk * 0.6 && !a.controlled && a.beh !== B.Drink && a.beh !== B.Flee && a.beh !== B.Follow && this.giveSpace(a, sp, dt, loco.agility, a.beh === B.Rest ? 0.5 : 1)) {
       a.chkT = 0;
       return;
     }
@@ -1271,7 +1290,7 @@ export class Simulation {
     const steered = this.steer(a, sp, goal, look);
     const desired = Number.isNaN(steered) ? a.heading + Math.PI : steered; // everything blocked: turn around
     // turning rate falls with speed (a sprinting deer arcs; a walking one can pivot) and with body size
-    const maxTurn = (loco.agility * 4.5 * dt) / (1 + a.speed / 6);
+    const maxTurn = ECO_EXPERIMENT.locomotionLimits ? (loco.agility * 4.5 * dt) / (1 + a.speed / 6) : Math.PI;
     a.heading += clamp(angleDiff(a.heading, desired), -maxTurn, maxTurn);
     const depth = this.valley.waterDepth(a.x, a.z, this.env.stage);
     if (depth > 0.45) step *= 0.4; // wading / swimming
@@ -1302,7 +1321,9 @@ export class Simulation {
       const selfMoved = Math.hypot(a.x - a.cx, a.z - a.cz);
       // oscillating back and forth never improves the closest approach, so this catches dithering too
       const noProgress = dist > 2 && a.chkD - a.bestD < 0.8;
-      if (!a.controlled && a.want > 0 && (selfMoved < 0.6 || noProgress)) a.stuck++;
+      const pursuit = a.beh === B.Chase || a.beh === B.Stalk;
+      const exempt = (pursuit && !ECO_EXPERIMENT.pursuitGiveUp) || (!fixedGoal && !pursuit && !ECO_EXPERIMENT.movingGoalGiveUp);
+      if (!a.controlled && a.want > 0 && (selfMoved < 0.6 || (noProgress && !exempt))) a.stuck++;
       else a.stuck = 0;
       a.chkD = a.bestD;
       a.cx = a.x;
@@ -1376,7 +1397,7 @@ export class Simulation {
     let cost = 0;
     if (depth > 0.3) {
       if (sp.mass < 5) return Infinity;
-      if (depth > 0.45) cost += (sp.id === 'jackal' ? 1.4 : 0.6) * (a.beh === B.Flee ? 0.35 : 1);
+      if (depth > 0.45) cost += (sp.id === 'jackal' && ECO_EXPERIMENT.jackalDeepWaterAvoidance ? 1.4 : 0.6) * (a.beh === B.Flee ? 0.35 : 1);
     }
     const grade = (h - h0) / dist;
     if (grade > MAX_UP_GRADE || grade < -MAX_DOWN_GRADE) return Infinity;
