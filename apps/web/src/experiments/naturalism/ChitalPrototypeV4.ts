@@ -905,8 +905,10 @@ export class ChitalPrototypeV4 {
     const distRaw = Math.hypot(dy, dz);
     const dist = THREE.MathUtils.clamp(distRaw, minReach, maxReach);
 
-    // Angle of target vector from downward vertical (-Y)
-    const targetAngle = Math.atan2(dz, -dy);
+    // Three.js positive rotation about X maps a downward -Y limb toward -Z.
+    // A forward +Z target therefore requires a NEGATIVE target angle.
+    // The previous sign silently mirrored fore/aft hoof placement.
+    const targetAngle = -Math.atan2(dz, -dy);
 
     // Law of cosines for interior knee/hock deflection
     const cosUpper = THREE.MathUtils.clamp((L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist), -1, 1);
