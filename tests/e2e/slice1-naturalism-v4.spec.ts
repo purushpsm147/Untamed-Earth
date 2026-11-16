@@ -5,7 +5,12 @@ import * as THREE from 'three';
 import { ChitalPrototypeV4 } from '../../apps/web/src/experiments/naturalism/ChitalPrototypeV4';
 
 const EVIDENCE = path.resolve(process.cwd(), 'docs/evidence/slice1-v4');
-const MODES = ['baseline', 'naturalistic'] as const;
+const SHOTS = ['riverbank_vista', 'chital_closeup'] as const;
+const COMPARISONS = [
+  { label: 'baseline', variant: 'v3', mode: 'baseline' },
+  { label: 'v3', variant: 'v3', mode: 'naturalistic' },
+  { label: 'v4', variant: 'v4', mode: 'naturalistic' },
+] as const;
 
 test.describe('V4 skinned chital — opt-in, isolated renderer experiment', () => {
   test.setTimeout(12 * 60_000);
@@ -60,7 +65,7 @@ test.describe('V4 skinned chital — opt-in, isolated renderer experiment', () =
     }
   });
 
-  test('V4 and baseline render in the same scene without WebGL errors (720p/1080p)', async ({ page }) => {
+  test('baseline, V3 and V4 render through one live scene and renderer at 720p/1080p', async ({ page }) => {
     const errors: string[] = [];
     page.on('console', m => { if (m.type() === 'error' || /THREE.WebGLProgram/.test(m.text())) errors.push(m.text()); });
     page.on('pageerror', e => errors.push(e.message));
@@ -73,30 +78,32 @@ test.describe('V4 skinned chital — opt-in, isolated renderer experiment', () =
       { tag: '1080p', width: 1920, height: 1080 },
     ]) {
       await page.setViewportSize({ width: vp.width, height: vp.height });
-      for (const mode of MODES) {
-        await page.evaluate(({ mode, width, height }) => {
-          const app = window.__naturalSlice;
-          if (!app) throw Error('Original /?slice=1 renderer was not mounted');
-          app.resize(width, height);
-          app.selectShot('chital_closeup');
-          app.setMode(mode);
-        }, { mode, width: vp.width, height: vp.height });
-        // Keep this first integration smoke short; the 180+ frame V3 evidence
-        // test continues to be required and is NOT replaced or relaxed.
-        await page.evaluate(() => new Promise<void>(resolve => {
-          let count = 0;
-          const frame = () => { if (++count === 8) resolve(); else requestAnimationFrame(frame); };
-          requestAnimationFrame(frame);
-        }));
-        const diag = await page.evaluate(() => window.__SLICE1_DIAGNOSTICS__);
-        expect(diag).toBeTruthy();
-        expect(diag!.variant).toBe('v4');
-        expect(diag!.activeChitalCount).toBeGreaterThan(0);
-        expect(Number.isFinite(diag!.maxStanceHoofErrorMeters)).toBe(true);
-        expect(Number.isFinite(diag!.maxStanceFootHorizontalErrorMeters)).toBe(true);
-        const file = `chital-closeup-${mode}-${vp.tag}.png`;
-        await page.screenshot({ path: path.join(EVIDENCE, file), fullPage: false });
-        cases[`${vp.tag}_${mode}`] = { ...diag, screenshot: file };
+      for (const shot of SHOTS) {
+        for (const item of COMPARISONS) {
+          await page.evaluate(({ variant, mode, shot, width, height }) => {
+            const app = window.__naturalSlice;
+            if (!app) throw Error('Original /?slice=1 renderer was not mounted');
+            app.resize(width, height);
+            app.v3.setVariant(variant);
+            app.selectShot(shot);
+            app.setMode(mode);
+          }, { ...item, shot, width: vp.width, height: vp.height });
+          // A short functional shader smoke, NOT a physical GPU benchmark.
+          await page.evaluate(() => new Promise<void>(resolve => {
+            let count = 0;
+            const frame = () => { if (++count === 8) resolve(); else requestAnimationFrame(frame); };
+            requestAnimationFrame(frame);
+          }));
+          const diag = await page.evaluate(() => window.__SLICE1_DIAGNOSTICS__);
+          expect(diag).toBeTruthy();
+          expect(diag!.variant).toBe(item.variant);
+          expect(diag!.activeChitalCount).toBeGreaterThan(0);
+          expect(Number.isFinite(diag!.maxStanceHoofErrorMeters)).toBe(true);
+          expect(Number.isFinite(diag!.maxStanceFootHorizontalErrorMeters)).toBe(true);
+          const file = `${shot}-${item.label}-${vp.tag}.png`;
+          await page.screenshot({ path: path.join(EVIDENCE, file), fullPage: false });
+          cases[`${shot}_${vp.tag}_${item.label}`] = { ...diag, screenshot: file };
+        }
       }
     }
     fs.writeFileSync(path.join(EVIDENCE, 'functional-smoke.json'), JSON.stringify({
