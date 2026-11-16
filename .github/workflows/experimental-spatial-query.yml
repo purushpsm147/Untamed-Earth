@@ -23,6 +23,8 @@ jobs:
         run: npm install --prefix experiments/spatial-bvh --no-audit --no-fund --package-lock=false
       - name: Run exact-triangle native versus BVH query comparison
         run: node experiments/spatial-bvh/run.mjs --quick --out=docs/evidence/tech-experiments/bvh-probe-ci.json
+      - name: Compare BVH and native queries on actual streaming valley chunk geometry
+        run: npx tsx experiments/spatial-bvh/valley-bvh.mjs --quick --out=docs/evidence/tech-experiments/valley-bvh-ci.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -30,4 +32,5 @@ jobs:
           path: |
             docs/evidence/tech-experiments/spatial-baseline-ci.json
             docs/evidence/tech-experiments/bvh-probe-ci.json
+            docs/evidence/tech-experiments/valley-bvh-ci.json
           retention-days: 14
