@@ -1,0 +1,12 @@
+{
+  "name": "untamed-ecs-scaling-probe",
+  "private": true,
+  "type": "module",
+  "description": "Isolated experimental ECS comparison, not loaded by production or root workspaces",
+  "scripts": {
+    "bench": "node run.mjs"
+  },
+  "dependencies": {
+    "bitecs": "0.4.0"
+  }
+}
