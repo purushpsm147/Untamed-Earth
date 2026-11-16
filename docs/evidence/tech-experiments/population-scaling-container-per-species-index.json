@@ -1,0 +1,2140 @@
+{
+ "env": {
+  "label": "container-per-species-index",
+  "commit": "a0e08ba38209d939c086b62415974c3bf6c0f710",
+  "node": "v22.23.4",
+  "v8": "12.4.254.21-node.57",
+  "platform": "linux 6.18.44-fc-v470 x64",
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+  "logicalCpus": 4,
+  "totalMemGB": 15.711,
+  "gcExposed": true,
+  "date": "2026-11-16T08:53:01.281Z",
+  "seed": 3,
+  "quick": false
+ },
+ "budget": {
+  "gameCapMsPerRealSecond": 540,
+  "comfortableMsPerRealSecond": 250
+ },
+ "results": [
+  {
+   "target": 0,
+   "animals": 216,
+   "natural": true,
+   "buildMs": 301.652,
+   "scatterWarmMs": 1727.17,
+   "heapMB": {
+    "before": 7.363,
+    "afterFixture": 8.015,
+    "perAnimalKB": 3.091
+   },
+   "save": {
+    "snapshotMs": 0.473,
+    "jsonMs": 5.553,
+    "bytes": 764181,
+    "bytesPerAnimal": 3538,
+    "loadMs": 250.954
+   },
+   "speeds": [
+    {
+     "speed": 1,
+     "dt": 0.1,
+     "ticksPerRealSecond": 10,
+     "ticksMeasured": 300,
+     "rounds": 3,
+     "tickMs": {
+      "median": 0.142,
+      "p95": 0.809,
+      "p99": 1.364,
+      "max": 5.245
+     },
+     "perAnimalUs": 0.659,
+     "msPerRealSecond": 1.423,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 0.458,
+       "p95": 1.093,
+       "p99": 1.795,
+       "max": 5.245,
+       "gcCount": 0,
+       "gcMs": 0,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 216,
+       "hash": 1726790372
+      },
+      {
+       "median": 0.127,
+       "p95": 0.224,
+       "p99": 0.64,
+       "max": 2.068,
+       "gcCount": 611,
+       "gcMs": 155.578,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 216,
+       "hash": 1726790372
+      },
+      {
+       "median": 0.125,
+       "p95": 0.236,
+       "p99": 0.642,
+       "max": 0.926,
+       "gcCount": 231,
+       "gcMs": 95.322,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 216,
+       "hash": 1726790372
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 0.345,
+      "stageMsPerTick": {
+       "environment": 0.003,
+       "spatialIndex": 0.057,
+       "herdGroups": 0.003,
+       "physiology": 0.042,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.019,
+       "perception": 0.017,
+       "actPredation": 0.001,
+       "actHerd": 0,
+       "act": 0.059,
+       "move": 0.15,
+       "personalSpace": 0.018,
+       "carcasses": 0,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 66,
+      "visitedPerTick": 352,
+      "visitedPerQuery": 5.352,
+      "decidesPerTick": 3.7,
+      "birthsCalls": 0,
+      "deathCalls": 0
+     }
+    },
+    {
+     "speed": 10,
+     "dt": 0.25,
+     "ticksPerRealSecond": 40,
+     "ticksMeasured": 300,
+     "rounds": 3,
+     "tickMs": {
+      "median": 0.181,
+      "p95": 0.521,
+      "p99": 1.072,
+      "max": 1.932
+     },
+     "perAnimalUs": 0.838,
+     "msPerRealSecond": 7.237,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 0.247,
+       "p95": 0.727,
+       "p99": 1.163,
+       "max": 1.932,
+       "gcCount": 231,
+       "gcMs": 88.25,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 215,
+       "hash": 3387344159
+      },
+      {
+       "median": 0.186,
+       "p95": 0.373,
+       "p99": 0.87,
+       "max": 1.513,
+       "gcCount": 462,
+       "gcMs": 166.345,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 215,
+       "hash": 3387344159
+      },
+      {
+       "median": 0.123,
+       "p95": 0.242,
+       "p99": 0.663,
+       "max": 1.011,
+       "gcCount": 230,
+       "gcMs": 87.087,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 215,
+       "hash": 3387344159
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 0.24,
+      "stageMsPerTick": {
+       "environment": 0.003,
+       "spatialIndex": 0.036,
+       "herdGroups": 0.001,
+       "physiology": 0.034,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.023,
+       "perception": 0.019,
+       "actPredation": 0.001,
+       "actHerd": 0,
+       "act": 0.044,
+       "move": 0.085,
+       "personalSpace": 0.012,
+       "carcasses": 0,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 81,
+      "visitedPerTick": 423,
+      "visitedPerQuery": 5.236,
+      "decidesPerTick": 9,
+      "birthsCalls": 0,
+      "deathCalls": 1
+     }
+    },
+    {
+     "speed": 100,
+     "dt": 1,
+     "ticksPerRealSecond": 100,
+     "ticksMeasured": 300,
+     "rounds": 3,
+     "tickMs": {
+      "median": 0.355,
+      "p95": 0.824,
+      "p99": 1.228,
+      "max": 2.893
+     },
+     "perAnimalUs": 1.643,
+     "msPerRealSecond": 35.487,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 0.392,
+       "p95": 0.793,
+       "p99": 1.298,
+       "max": 1.684,
+       "gcCount": 230,
+       "gcMs": 94.167,
+       "births": 0,
+       "deaths": 2,
+       "endAlive": 214,
+       "hash": 2332151371
+      },
+      {
+       "median": 0.3,
+       "p95": 0.506,
+       "p99": 0.898,
+       "max": 1.193,
+       "gcCount": 466,
+       "gcMs": 177.045,
+       "births": 0,
+       "deaths": 2,
+       "endAlive": 214,
+       "hash": 2332151371
+      },
+      {
+       "median": 0.395,
+       "p95": 0.932,
+       "p99": 1.609,
+       "max": 2.893,
+       "gcCount": 235,
+       "gcMs": 82.826,
+       "births": 0,
+       "deaths": 2,
+       "endAlive": 214,
+       "hash": 2332151371
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 0.389,
+      "stageMsPerTick": {
+       "environment": 0.008,
+       "spatialIndex": 0.041,
+       "herdGroups": 0.004,
+       "physiology": 0.031,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.14,
+       "perception": 0.052,
+       "actPredation": 0,
+       "actHerd": 0,
+       "act": 0.037,
+       "move": 0.088,
+       "personalSpace": 0.012,
+       "carcasses": 0.001,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 129,
+      "visitedPerTick": 615,
+      "visitedPerQuery": 4.765,
+      "decidesPerTick": 34.36,
+      "birthsCalls": 0,
+      "deathCalls": 2
+     }
+    },
+    {
+     "speed": 1000,
+     "dt": 2,
+     "ticksPerRealSecond": 500,
+     "ticksMeasured": 210,
+     "rounds": 3,
+     "tickMs": {
+      "median": 0.415,
+      "p95": 0.989,
+      "p99": 1.223,
+      "max": 1.831
+     },
+     "perAnimalUs": 1.92,
+     "msPerRealSecond": 207.389,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 0.667,
+       "p95": 1.142,
+       "p99": 1.671,
+       "max": 1.831,
+       "gcCount": 233,
+       "gcMs": 82.084,
+       "births": 0,
+       "deaths": 2,
+       "endAlive": 213,
+       "hash": 3762666559
+      },
+      {
+       "median": 0.334,
+       "p95": 0.519,
+       "p99": 0.859,
+       "max": 0.948,
+       "gcCount": 466,
+       "gcMs": 171.36,
+       "births": 0,
+       "deaths": 2,
+       "endAlive": 213,
+       "hash": 3762666559
+      },
+      {
+       "median": 0.372,
+       "p95": 0.574,
+       "p99": 0.916,
+       "max": 1.337,
+       "gcCount": 231,
+       "gcMs": 95.713,
+       "births": 0,
+       "deaths": 2,
+       "endAlive": 213,
+       "hash": 3762666559
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 0.534,
+      "stageMsPerTick": {
+       "environment": 0.015,
+       "spatialIndex": 0.042,
+       "herdGroups": 0.014,
+       "physiology": 0.04,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.16,
+       "perception": 0.106,
+       "actPredation": 0,
+       "actHerd": 0,
+       "act": 0.04,
+       "move": 0.126,
+       "personalSpace": 0.02,
+       "carcasses": 0.001,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 171,
+      "visitedPerTick": 746,
+      "visitedPerQuery": 4.359,
+      "decidesPerTick": 61.629,
+      "birthsCalls": 0,
+      "deathCalls": 2
+     }
+    }
+   ]
+  },
+  {
+   "target": 250,
+   "animals": 250,
+   "natural": false,
+   "buildMs": 276.818,
+   "scatterWarmMs": 1752.343,
+   "heapMB": {
+    "before": 19.41,
+    "afterFixture": 19.43,
+    "perAnimalKB": 0.082
+   },
+   "save": {
+    "snapshotMs": 0.275,
+    "jsonMs": 6.027,
+    "bytes": 789969,
+    "bytesPerAnimal": 3160,
+    "loadMs": 264.13
+   },
+   "speeds": [
+    {
+     "speed": 1,
+     "dt": 0.1,
+     "ticksPerRealSecond": 10,
+     "ticksMeasured": 300,
+     "rounds": 3,
+     "tickMs": {
+      "median": 0.17,
+      "p95": 0.302,
+      "p99": 0.671,
+      "max": 1.114
+     },
+     "perAnimalUs": 0.681,
+     "msPerRealSecond": 1.703,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 0.171,
+       "p95": 0.293,
+       "p99": 0.697,
+       "max": 0.973,
+       "gcCount": 231,
+       "gcMs": 86.374,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 250,
+       "hash": 3921587863
+      },
+      {
+       "median": 0.165,
+       "p95": 0.296,
+       "p99": 0.592,
+       "max": 0.85,
+       "gcCount": 514,
+       "gcMs": 214.785,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 250,
+       "hash": 3921587863
+      },
+      {
+       "median": 0.177,
+       "p95": 0.313,
+       "p99": 0.752,
+       "max": 1.114,
+       "gcCount": 231,
+       "gcMs": 86.735,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 250,
+       "hash": 3921587863
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 0.341,
+      "stageMsPerTick": {
+       "environment": 0.001,
+       "spatialIndex": 0.076,
+       "herdGroups": 0.001,
+       "physiology": 0.057,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.013,
+       "perception": 0.021,
+       "actPredation": 0.001,
+       "actHerd": 0,
+       "act": 0.061,
+       "move": 0.178,
+       "personalSpace": 0.016,
+       "carcasses": 0,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 74,
+      "visitedPerTick": 399,
+      "visitedPerQuery": 5.408,
+      "decidesPerTick": 4.267,
+      "birthsCalls": 0,
+      "deathCalls": 0
+     }
+    },
+    {
+     "speed": 10,
+     "dt": 0.25,
+     "ticksPerRealSecond": 40,
+     "ticksMeasured": 300,
+     "rounds": 3,
+     "tickMs": {
+      "median": 0.174,
+      "p95": 0.411,
+      "p99": 0.792,
+      "max": 3.712
+     },
+     "perAnimalUs": 0.696,
+     "msPerRealSecond": 6.956,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 0.143,
+       "p95": 0.255,
+       "p99": 0.796,
+       "max": 0.973,
+       "gcCount": 230,
+       "gcMs": 95.177,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 249,
+       "hash": 729977519
+      },
+      {
+       "median": 0.159,
+       "p95": 0.259,
+       "p99": 0.664,
+       "max": 0.792,
+       "gcCount": 461,
+       "gcMs": 192.338,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 249,
+       "hash": 729977519
+      },
+      {
+       "median": 0.279,
+       "p95": 0.459,
+       "p99": 1.028,
+       "max": 3.712,
+       "gcCount": 231,
+       "gcMs": 97.433,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 249,
+       "hash": 729977519
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 0.25,
+      "stageMsPerTick": {
+       "environment": 0.002,
+       "spatialIndex": 0.034,
+       "herdGroups": 0.001,
+       "physiology": 0.035,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.022,
+       "perception": 0.018,
+       "actPredation": 0,
+       "actHerd": 0,
+       "act": 0.041,
+       "move": 0.097,
+       "personalSpace": 0.013,
+       "carcasses": 0,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 92,
+      "visitedPerTick": 465,
+      "visitedPerQuery": 5.052,
+      "decidesPerTick": 10.107,
+      "birthsCalls": 0,
+      "deathCalls": 1
+     }
+    },
+    {
+     "speed": 100,
+     "dt": 1,
+     "ticksPerRealSecond": 100,
+     "ticksMeasured": 300,
+     "rounds": 3,
+     "tickMs": {
+      "median": 0.295,
+      "p95": 0.679,
+      "p99": 1.298,
+      "max": 6.467
+     },
+     "perAnimalUs": 1.181,
+     "msPerRealSecond": 29.52,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 0.262,
+       "p95": 0.482,
+       "p99": 0.844,
+       "max": 0.908,
+       "gcCount": 230,
+       "gcMs": 97.689,
+       "births": 0,
+       "deaths": 3,
+       "endAlive": 247,
+       "hash": 3046294423
+      },
+      {
+       "median": 0.283,
+       "p95": 0.516,
+       "p99": 2.072,
+       "max": 5.486,
+       "gcCount": 462,
+       "gcMs": 178.13,
+       "births": 0,
+       "deaths": 3,
+       "endAlive": 247,
+       "hash": 3046294423
+      },
+      {
+       "median": 0.438,
+       "p95": 0.775,
+       "p99": 1.699,
+       "max": 6.467,
+       "gcCount": 232,
+       "gcMs": 85.396,
+       "births": 0,
+       "deaths": 3,
+       "endAlive": 247,
+       "hash": 3046294423
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 0.538,
+      "stageMsPerTick": {
+       "environment": 0.011,
+       "spatialIndex": 0.063,
+       "herdGroups": 0.006,
+       "physiology": 0.059,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.132,
+       "perception": 0.088,
+       "actPredation": 0,
+       "actHerd": 0,
+       "act": 0.068,
+       "move": 0.154,
+       "personalSpace": 0.021,
+       "carcasses": 0,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 147,
+      "visitedPerTick": 653,
+      "visitedPerQuery": 4.445,
+      "decidesPerTick": 38,
+      "birthsCalls": 0,
+      "deathCalls": 3
+     }
+    },
+    {
+     "speed": 1000,
+     "dt": 2,
+     "ticksPerRealSecond": 500,
+     "ticksMeasured": 210,
+     "rounds": 3,
+     "tickMs": {
+      "median": 0.605,
+      "p95": 1.12,
+      "p99": 1.556,
+      "max": 4.556
+     },
+     "perAnimalUs": 2.422,
+     "msPerRealSecond": 302.742,
+     "withinGameCap": true,
+     "comfortable": false,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 0.55,
+       "p95": 1.047,
+       "p99": 1.22,
+       "max": 2.273,
+       "gcCount": 232,
+       "gcMs": 89.079,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 248,
+       "hash": 75794826
+      },
+      {
+       "median": 0.503,
+       "p95": 1.001,
+       "p99": 1.257,
+       "max": 1.507,
+       "gcCount": 466,
+       "gcMs": 198.424,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 248,
+       "hash": 75794826
+      },
+      {
+       "median": 0.844,
+       "p95": 1.31,
+       "p99": 2.001,
+       "max": 4.556,
+       "gcCount": 233,
+       "gcMs": 105.787,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 248,
+       "hash": 75794826
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 0.667,
+      "stageMsPerTick": {
+       "environment": 0.016,
+       "spatialIndex": 0.053,
+       "herdGroups": 0.009,
+       "physiology": 0.047,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.236,
+       "perception": 0.132,
+       "actPredation": 0,
+       "actHerd": 0,
+       "act": 0.057,
+       "move": 0.164,
+       "personalSpace": 0.015,
+       "carcasses": 0,
+       "sweep": 0,
+       "stats": 0.001
+      },
+      "queriesPerTick": 202,
+      "visitedPerTick": 883,
+      "visitedPerQuery": 4.375,
+      "decidesPerTick": 73.167,
+      "birthsCalls": 0,
+      "deathCalls": 1
+     }
+    }
+   ]
+  },
+  {
+   "target": 1000,
+   "animals": 1000,
+   "natural": false,
+   "buildMs": 234.363,
+   "scatterWarmMs": 1657.736,
+   "heapMB": {
+    "before": 19.757,
+    "afterFixture": 20.317,
+    "perAnimalKB": 0.574
+   },
+   "save": {
+    "snapshotMs": 0.433,
+    "jsonMs": 8.828,
+    "bytes": 1357727,
+    "bytesPerAnimal": 1358,
+    "loadMs": 231.726
+   },
+   "speeds": [
+    {
+     "speed": 1,
+     "dt": 0.1,
+     "ticksPerRealSecond": 10,
+     "ticksMeasured": 300,
+     "rounds": 3,
+     "tickMs": {
+      "median": 1.27,
+      "p95": 2.046,
+      "p99": 2.829,
+      "max": 5.32
+     },
+     "perAnimalUs": 1.27,
+     "msPerRealSecond": 12.7,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 1.277,
+       "p95": 1.906,
+       "p99": 2.651,
+       "max": 4.506,
+       "gcCount": 233,
+       "gcMs": 93.358,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 999,
+       "hash": 1731573301
+      },
+      {
+       "median": 1.243,
+       "p95": 1.855,
+       "p99": 2.728,
+       "max": 5.32,
+       "gcCount": 537,
+       "gcMs": 240.631,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 999,
+       "hash": 1731573301
+      },
+      {
+       "median": 1.313,
+       "p95": 2.247,
+       "p99": 3.698,
+       "max": 4.2,
+       "gcCount": 251,
+       "gcMs": 117.701,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 999,
+       "hash": 1731573301
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 2.004,
+      "stageMsPerTick": {
+       "environment": 0.003,
+       "spatialIndex": 0.252,
+       "herdGroups": 0.003,
+       "physiology": 0.24,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.083,
+       "perception": 0.098,
+       "actPredation": 0.001,
+       "actHerd": 0,
+       "act": 0.274,
+       "move": 1.198,
+       "personalSpace": 0.07,
+       "carcasses": 0,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 254,
+      "visitedPerTick": 1635,
+      "visitedPerQuery": 6.435,
+      "decidesPerTick": 19.087,
+      "birthsCalls": 0,
+      "deathCalls": 1
+     }
+    },
+    {
+     "speed": 10,
+     "dt": 0.25,
+     "ticksPerRealSecond": 40,
+     "ticksMeasured": 300,
+     "rounds": 3,
+     "tickMs": {
+      "median": 0.728,
+      "p95": 1.737,
+      "p99": 2.514,
+      "max": 3.458
+     },
+     "perAnimalUs": 0.728,
+     "msPerRealSecond": 29.116,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 0.93,
+       "p95": 1.696,
+       "p99": 2.632,
+       "max": 3.458,
+       "gcCount": 251,
+       "gcMs": 112.012,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 1000,
+       "hash": 2498479318
+      },
+      {
+       "median": 0.689,
+       "p95": 1.542,
+       "p99": 1.948,
+       "max": 2.39,
+       "gcCount": 498,
+       "gcMs": 198.022,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 1000,
+       "hash": 2498479318
+      },
+      {
+       "median": 0.653,
+       "p95": 1.953,
+       "p99": 2.745,
+       "max": 3.118,
+       "gcCount": 244,
+       "gcMs": 106.419,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 1000,
+       "hash": 2498479318
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 1.198,
+      "stageMsPerTick": {
+       "environment": 0.003,
+       "spatialIndex": 0.183,
+       "herdGroups": 0.007,
+       "physiology": 0.206,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.103,
+       "perception": 0.13,
+       "actPredation": 0,
+       "actHerd": 0.001,
+       "act": 0.193,
+       "move": 0.497,
+       "personalSpace": 0.063,
+       "carcasses": 0,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 383,
+      "visitedPerTick": 2493,
+      "visitedPerQuery": 6.509,
+      "decidesPerTick": 43.36,
+      "birthsCalls": 0,
+      "deathCalls": 0
+     }
+    },
+    {
+     "speed": 100,
+     "dt": 1,
+     "ticksPerRealSecond": 100,
+     "ticksMeasured": 300,
+     "rounds": 3,
+     "tickMs": {
+      "median": 1.368,
+      "p95": 2.41,
+      "p99": 3.338,
+      "max": 4.448
+     },
+     "perAnimalUs": 1.368,
+     "msPerRealSecond": 136.827,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 1.511,
+       "p95": 2.594,
+       "p99": 3.685,
+       "max": 4.448,
+       "gcCount": 244,
+       "gcMs": 101.472,
+       "births": 0,
+       "deaths": 3,
+       "endAlive": 997,
+       "hash": 150789515
+      },
+      {
+       "median": 1.293,
+       "p95": 2.367,
+       "p99": 3.022,
+       "max": 3.42,
+       "gcCount": 496,
+       "gcMs": 175.933,
+       "births": 0,
+       "deaths": 3,
+       "endAlive": 997,
+       "hash": 150789515
+      },
+      {
+       "median": 1.331,
+       "p95": 2.248,
+       "p99": 3.394,
+       "max": 4.088,
+       "gcCount": 249,
+       "gcMs": 115.767,
+       "births": 0,
+       "deaths": 3,
+       "endAlive": 997,
+       "hash": 150789515
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 1.902,
+      "stageMsPerTick": {
+       "environment": 0.009,
+       "spatialIndex": 0.185,
+       "herdGroups": 0.024,
+       "physiology": 0.214,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.352,
+       "perception": 0.415,
+       "actPredation": 0,
+       "actHerd": 0.001,
+       "act": 0.223,
+       "move": 0.482,
+       "personalSpace": 0.074,
+       "carcasses": 0.001,
+       "sweep": 0.001,
+       "stats": 0.001
+      },
+      "queriesPerTick": 633,
+      "visitedPerTick": 4772,
+      "visitedPerQuery": 7.54,
+      "decidesPerTick": 156.457,
+      "birthsCalls": 0,
+      "deathCalls": 3
+     }
+    },
+    {
+     "speed": 1000,
+     "dt": 2,
+     "ticksPerRealSecond": 500,
+     "ticksMeasured": 210,
+     "rounds": 3,
+     "tickMs": {
+      "median": 2.004,
+      "p95": 4.284,
+      "p99": 5.069,
+      "max": 5.664
+     },
+     "perAnimalUs": 2.004,
+     "msPerRealSecond": 1001.884,
+     "withinGameCap": false,
+     "comfortable": false,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 2.084,
+       "p95": 4.823,
+       "p99": 5.539,
+       "max": 5.664,
+       "gcCount": 249,
+       "gcMs": 98.394,
+       "births": 0,
+       "deaths": 3,
+       "endAlive": 996,
+       "hash": 2021603788
+      },
+      {
+       "median": 1.853,
+       "p95": 3.184,
+       "p99": 4.362,
+       "max": 5.124,
+       "gcCount": 503,
+       "gcMs": 231.623,
+       "births": 0,
+       "deaths": 3,
+       "endAlive": 996,
+       "hash": 2021603788
+      },
+      {
+       "median": 1.99,
+       "p95": 3.206,
+       "p99": 3.882,
+       "max": 4.18,
+       "gcCount": 249,
+       "gcMs": 116.34,
+       "births": 0,
+       "deaths": 3,
+       "endAlive": 996,
+       "hash": 2021603788
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 2.353,
+      "stageMsPerTick": {
+       "environment": 0.016,
+       "spatialIndex": 0.191,
+       "herdGroups": 0.045,
+       "physiology": 0.166,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.561,
+       "perception": 0.704,
+       "actPredation": 0,
+       "actHerd": 0.001,
+       "act": 0.202,
+       "move": 0.614,
+       "personalSpace": 0.071,
+       "carcasses": 0.001,
+       "sweep": 0,
+       "stats": 0.001
+      },
+      "queriesPerTick": 845,
+      "visitedPerTick": 7318,
+      "visitedPerQuery": 8.656,
+      "decidesPerTick": 294.919,
+      "birthsCalls": 0,
+      "deathCalls": 3
+     }
+    }
+   ]
+  },
+  {
+   "target": 2500,
+   "animals": 2500,
+   "natural": false,
+   "buildMs": 278.211,
+   "scatterWarmMs": 1719.48,
+   "heapMB": {
+    "before": 23.864,
+    "afterFixture": 25.011,
+    "perAnimalKB": 0.47
+   },
+   "save": {
+    "snapshotMs": 1.347,
+    "jsonMs": 22.138,
+    "bytes": 2495931,
+    "bytesPerAnimal": 998,
+    "loadMs": 253.892
+   },
+   "speeds": [
+    {
+     "speed": 1,
+     "dt": 0.1,
+     "ticksPerRealSecond": 10,
+     "ticksMeasured": 150,
+     "rounds": 3,
+     "tickMs": {
+      "median": 3.638,
+      "p95": 5.45,
+      "p99": 6.566,
+      "max": 7.818
+     },
+     "perAnimalUs": 1.455,
+     "msPerRealSecond": 36.383,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 3.534,
+       "p95": 4.79,
+       "p99": 5.45,
+       "max": 5.64,
+       "gcCount": 249,
+       "gcMs": 109.064,
+       "births": 0,
+       "deaths": 2,
+       "endAlive": 2498,
+       "hash": 3293866441
+      },
+      {
+       "median": 3.685,
+       "p95": 5.704,
+       "p99": 6.819,
+       "max": 7.818,
+       "gcCount": 569,
+       "gcMs": 263.366,
+       "births": 0,
+       "deaths": 2,
+       "endAlive": 2498,
+       "hash": 3293866441
+      },
+      {
+       "median": 3.62,
+       "p95": 6.037,
+       "p99": 6.651,
+       "max": 6.987,
+       "gcCount": 265,
+       "gcMs": 125.349,
+       "births": 0,
+       "deaths": 2,
+       "endAlive": 2498,
+       "hash": 3293866441
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 4.53,
+      "stageMsPerTick": {
+       "environment": 0.002,
+       "spatialIndex": 0.39,
+       "herdGroups": 0.005,
+       "physiology": 0.432,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.16,
+       "perception": 0.314,
+       "actPredation": 0.001,
+       "actHerd": 0.003,
+       "act": 0.604,
+       "move": 2.867,
+       "personalSpace": 0.104,
+       "carcasses": 0.001,
+       "sweep": 0.001,
+       "stats": 0
+      },
+      "queriesPerTick": 458,
+      "visitedPerTick": 4689,
+      "visitedPerQuery": 10.236,
+      "decidesPerTick": 59.927,
+      "birthsCalls": 0,
+      "deathCalls": 2
+     }
+    },
+    {
+     "speed": 10,
+     "dt": 0.25,
+     "ticksPerRealSecond": 40,
+     "ticksMeasured": 150,
+     "rounds": 3,
+     "tickMs": {
+      "median": 3.202,
+      "p95": 5.508,
+      "p99": 7.994,
+      "max": 15.092
+     },
+     "perAnimalUs": 1.281,
+     "msPerRealSecond": 128.066,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 3.436,
+       "p95": 4.993,
+       "p99": 5.876,
+       "max": 6.386,
+       "gcCount": 265,
+       "gcMs": 119.915,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 2500,
+       "hash": 2647122682
+      },
+      {
+       "median": 3.083,
+       "p95": 4.26,
+       "p99": 5.89,
+       "max": 15.092,
+       "gcCount": 532,
+       "gcMs": 268.877,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 2500,
+       "hash": 2647122682
+      },
+      {
+       "median": 3.385,
+       "p95": 6.662,
+       "p99": 10.659,
+       "max": 12.408,
+       "gcCount": 261,
+       "gcMs": 125.643,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 2500,
+       "hash": 2647122682
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 4.497,
+      "stageMsPerTick": {
+       "environment": 0.003,
+       "spatialIndex": 0.369,
+       "herdGroups": 0.011,
+       "physiology": 0.407,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.331,
+       "perception": 0.538,
+       "actPredation": 0.001,
+       "actHerd": 0.015,
+       "act": 0.507,
+       "move": 2.106,
+       "personalSpace": 0.134,
+       "carcasses": 0,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 796,
+      "visitedPerTick": 8626,
+      "visitedPerQuery": 10.841,
+      "decidesPerTick": 124.933,
+      "birthsCalls": 0,
+      "deathCalls": 0
+     }
+    },
+    {
+     "speed": 100,
+     "dt": 1,
+     "ticksPerRealSecond": 100,
+     "ticksMeasured": 150,
+     "rounds": 3,
+     "tickMs": {
+      "median": 3.346,
+      "p95": 6.342,
+      "p99": 7.549,
+      "max": 11.151
+     },
+     "perAnimalUs": 1.338,
+     "msPerRealSecond": 334.577,
+     "withinGameCap": true,
+     "comfortable": false,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 2.936,
+       "p95": 4.712,
+       "p99": 7.334,
+       "max": 7.415,
+       "gcCount": 261,
+       "gcMs": 129.41,
+       "births": 0,
+       "deaths": 2,
+       "endAlive": 2497,
+       "hash": 4229994841
+      },
+      {
+       "median": 3.105,
+       "p95": 5.529,
+       "p99": 7.549,
+       "max": 8.611,
+       "gcCount": 527,
+       "gcMs": 249.782,
+       "births": 0,
+       "deaths": 2,
+       "endAlive": 2497,
+       "hash": 4229994841
+      },
+      {
+       "median": 4.15,
+       "p95": 6.69,
+       "p99": 8.972,
+       "max": 11.151,
+       "gcCount": 259,
+       "gcMs": 116.359,
+       "births": 0,
+       "deaths": 2,
+       "endAlive": 2497,
+       "hash": 4229994841
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 4.681,
+      "stageMsPerTick": {
+       "environment": 0.009,
+       "spatialIndex": 0.353,
+       "herdGroups": 0.072,
+       "physiology": 0.451,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.885,
+       "perception": 1.356,
+       "actPredation": 0,
+       "actHerd": 0.004,
+       "act": 0.567,
+       "move": 1.192,
+       "personalSpace": 0.199,
+       "carcasses": 0.001,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 1598,
+      "visitedPerTick": 21424,
+      "visitedPerQuery": 13.404,
+      "decidesPerTick": 403.013,
+      "birthsCalls": 0,
+      "deathCalls": 2
+     }
+    },
+    {
+     "speed": 1000,
+     "dt": 2,
+     "ticksPerRealSecond": 500,
+     "ticksMeasured": 105,
+     "rounds": 3,
+     "tickMs": {
+      "median": 5.682,
+      "p95": 8.578,
+      "p99": 10.2,
+      "max": 11.196
+     },
+     "perAnimalUs": 2.273,
+     "msPerRealSecond": 2841.024,
+     "withinGameCap": false,
+     "comfortable": false,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 5.032,
+       "p95": 7.899,
+       "p99": 8.638,
+       "max": 9.232,
+       "gcCount": 259,
+       "gcMs": 128.497,
+       "births": 0,
+       "deaths": 5,
+       "endAlive": 2495,
+       "hash": 3226538002
+      },
+      {
+       "median": 6.665,
+       "p95": 8.19,
+       "p99": 8.689,
+       "max": 10.431,
+       "gcCount": 521,
+       "gcMs": 315.769,
+       "births": 0,
+       "deaths": 5,
+       "endAlive": 2495,
+       "hash": 3226538002
+      },
+      {
+       "median": 5.682,
+       "p95": 9.189,
+       "p99": 10.24,
+       "max": 11.196,
+       "gcCount": 255,
+       "gcMs": 133.765,
+       "births": 0,
+       "deaths": 5,
+       "endAlive": 2495,
+       "hash": 3226538002
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 8.644,
+      "stageMsPerTick": {
+       "environment": 0.028,
+       "spatialIndex": 0.473,
+       "herdGroups": 0.136,
+       "physiology": 0.579,
+       "births": 0,
+       "deaths": 0.001,
+       "decide": 1.779,
+       "perception": 2.99,
+       "actPredation": 0,
+       "actHerd": 0.003,
+       "act": 0.821,
+       "move": 1.71,
+       "personalSpace": 0.26,
+       "carcasses": 0.002,
+       "sweep": 0.002,
+       "stats": 0.001
+      },
+      "queriesPerTick": 2230,
+      "visitedPerTick": 33501,
+      "visitedPerQuery": 15.021,
+      "decidesPerTick": 727.181,
+      "birthsCalls": 0,
+      "deathCalls": 5
+     }
+    }
+   ]
+  },
+  {
+   "target": 5000,
+   "animals": 5000,
+   "natural": false,
+   "buildMs": 243.625,
+   "scatterWarmMs": 1891.096,
+   "heapMB": {
+    "before": 31.823,
+    "afterFixture": 33.736,
+    "perAnimalKB": 0.392
+   },
+   "save": {
+    "snapshotMs": 1.534,
+    "jsonMs": 25.812,
+    "bytes": 4392650,
+    "bytesPerAnimal": 879,
+    "loadMs": 216.008
+   },
+   "speeds": [
+    {
+     "speed": 1,
+     "dt": 0.1,
+     "ticksPerRealSecond": 10,
+     "ticksMeasured": 80,
+     "rounds": 3,
+     "tickMs": {
+      "median": 8.596,
+      "p95": 14.429,
+      "p99": 16.744,
+      "max": 29.091
+     },
+     "perAnimalUs": 1.719,
+     "msPerRealSecond": 85.96,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 8.071,
+       "p95": 11.713,
+       "p99": 12.333,
+       "max": 12.333,
+       "gcCount": 255,
+       "gcMs": 133.967,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 5000,
+       "hash": 676451404
+      },
+      {
+       "median": 8.822,
+       "p95": 13.545,
+       "p99": 29.091,
+       "max": 29.091,
+       "gcCount": 593,
+       "gcMs": 400.012,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 5000,
+       "hash": 676451404
+      },
+      {
+       "median": 8.768,
+       "p95": 15.027,
+       "p99": 15.242,
+       "max": 15.242,
+       "gcCount": 277,
+       "gcMs": 182.598,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 5000,
+       "hash": 676451404
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 10.542,
+      "stageMsPerTick": {
+       "environment": 0.002,
+       "spatialIndex": 0.602,
+       "herdGroups": 0.008,
+       "physiology": 0.819,
+       "births": 0,
+       "deaths": 0,
+       "decide": 0.445,
+       "perception": 1.002,
+       "actPredation": 0.001,
+       "actHerd": 0.005,
+       "act": 1.196,
+       "move": 6.61,
+       "personalSpace": 0.115,
+       "carcasses": 0,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 774,
+      "visitedPerTick": 15931,
+      "visitedPerQuery": 20.58,
+      "decidesPerTick": 165.925,
+      "birthsCalls": 0,
+      "deathCalls": 0
+     }
+    },
+    {
+     "speed": 10,
+     "dt": 0.25,
+     "ticksPerRealSecond": 40,
+     "ticksMeasured": 80,
+     "rounds": 3,
+     "tickMs": {
+      "median": 9.657,
+      "p95": 17.262,
+      "p99": 18.548,
+      "max": 23.101
+     },
+     "perAnimalUs": 1.931,
+     "msPerRealSecond": 386.261,
+     "withinGameCap": true,
+     "comfortable": false,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 10.57,
+       "p95": 18.039,
+       "p99": 18.548,
+       "max": 18.548,
+       "gcCount": 277,
+       "gcMs": 147.227,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 5000,
+       "hash": 570655392
+      },
+      {
+       "median": 9.005,
+       "p95": 15.494,
+       "p99": 17.116,
+       "max": 17.116,
+       "gcCount": 563,
+       "gcMs": 335.439,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 5000,
+       "hash": 570655392
+      },
+      {
+       "median": 9.595,
+       "p95": 17.366,
+       "p99": 23.101,
+       "max": 23.101,
+       "gcCount": 281,
+       "gcMs": 151.269,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 5000,
+       "hash": 570655392
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 12.221,
+      "stageMsPerTick": {
+       "environment": 0.003,
+       "spatialIndex": 0.658,
+       "herdGroups": 0.028,
+       "physiology": 0.991,
+       "births": 0,
+       "deaths": 0,
+       "decide": 1.011,
+       "perception": 1.955,
+       "actPredation": 0.001,
+       "actHerd": 0.022,
+       "act": 1.197,
+       "move": 6.769,
+       "personalSpace": 0.222,
+       "carcasses": 0,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 1444,
+      "visitedPerTick": 31325,
+      "visitedPerQuery": 21.689,
+      "decidesPerTick": 313.225,
+      "birthsCalls": 0,
+      "deathCalls": 0
+     }
+    },
+    {
+     "speed": 100,
+     "dt": 1,
+     "ticksPerRealSecond": 100,
+     "ticksMeasured": 80,
+     "rounds": 3,
+     "tickMs": {
+      "median": 8.591,
+      "p95": 18.69,
+      "p99": 21.234,
+      "max": 25.975
+     },
+     "perAnimalUs": 1.718,
+     "msPerRealSecond": 859.073,
+     "withinGameCap": false,
+     "comfortable": false,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 9.472,
+       "p95": 20.248,
+       "p99": 25.975,
+       "max": 25.975,
+       "gcCount": 281,
+       "gcMs": 175.522,
+       "births": 0,
+       "deaths": 7,
+       "endAlive": 4993,
+       "hash": 3197923393
+      },
+      {
+       "median": 8.555,
+       "p95": 18.59,
+       "p99": 21.234,
+       "max": 21.234,
+       "gcCount": 561,
+       "gcMs": 393.15,
+       "births": 0,
+       "deaths": 7,
+       "endAlive": 4993,
+       "hash": 3197923393
+      },
+      {
+       "median": 8.384,
+       "p95": 13.543,
+       "p99": 18.276,
+       "max": 18.276,
+       "gcCount": 276,
+       "gcMs": 184.271,
+       "births": 0,
+       "deaths": 7,
+       "endAlive": 4993,
+       "hash": 3197923393
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 10.486,
+      "stageMsPerTick": {
+       "environment": 0.008,
+       "spatialIndex": 0.617,
+       "herdGroups": 0.105,
+       "physiology": 0.87,
+       "births": 0,
+       "deaths": 0.001,
+       "decide": 1.763,
+       "perception": 4.127,
+       "actPredation": 0.001,
+       "actHerd": 0.014,
+       "act": 0.981,
+       "move": 2.439,
+       "personalSpace": 0.333,
+       "carcasses": 0.001,
+       "sweep": 0.009,
+       "stats": 0
+      },
+      "queriesPerTick": 3175,
+      "visitedPerTick": 76966,
+      "visitedPerQuery": 24.244,
+      "decidesPerTick": 853.288,
+      "birthsCalls": 0,
+      "deathCalls": 7
+     }
+    },
+    {
+     "speed": 1000,
+     "dt": 2,
+     "ticksPerRealSecond": 500,
+     "ticksMeasured": 56,
+     "rounds": 3,
+     "tickMs": {
+      "median": 12.948,
+      "p95": 20.017,
+      "p99": 24.14,
+      "max": 26.052
+     },
+     "perAnimalUs": 2.59,
+     "msPerRealSecond": 6473.78,
+     "withinGameCap": false,
+     "comfortable": false,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 12.948,
+       "p95": 19.221,
+       "p99": 23.227,
+       "max": 23.227,
+       "gcCount": 276,
+       "gcMs": 178.778,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 4998,
+       "hash": 226117355
+      },
+      {
+       "median": 12.085,
+       "p95": 16.878,
+       "p99": 24.14,
+       "max": 24.14,
+       "gcCount": 552,
+       "gcMs": 369.422,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 4998,
+       "hash": 226117355
+      },
+      {
+       "median": 15.121,
+       "p95": 20.696,
+       "p99": 26.052,
+       "max": 26.052,
+       "gcCount": 272,
+       "gcMs": 230.217,
+       "births": 0,
+       "deaths": 1,
+       "endAlive": 4998,
+       "hash": 226117355
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 17.085,
+      "stageMsPerTick": {
+       "environment": 0.021,
+       "spatialIndex": 0.771,
+       "herdGroups": 0.236,
+       "physiology": 1.185,
+       "births": 0,
+       "deaths": 0,
+       "decide": 3.247,
+       "perception": 8.133,
+       "actPredation": 0.002,
+       "actHerd": 0.007,
+       "act": 1.225,
+       "move": 3,
+       "personalSpace": 0.456,
+       "carcasses": 0.002,
+       "sweep": 0.001,
+       "stats": 0.011
+      },
+      "queriesPerTick": 4561,
+      "visitedPerTick": 126571,
+      "visitedPerQuery": 27.754,
+      "decidesPerTick": 1519.107,
+      "birthsCalls": 0,
+      "deathCalls": 1
+     }
+    }
+   ]
+  },
+  {
+   "target": 10000,
+   "animals": 10000,
+   "natural": false,
+   "buildMs": 280.224,
+   "scatterWarmMs": 1857.966,
+   "heapMB": {
+    "before": 43.913,
+    "afterFixture": 47.681,
+    "perAnimalKB": 0.386
+   },
+   "save": {
+    "snapshotMs": 3.192,
+    "jsonMs": 50.521,
+    "bytes": 8187296,
+    "bytesPerAnimal": 819,
+    "loadMs": 368.129
+   },
+   "speeds": [
+    {
+     "speed": 1,
+     "dt": 0.1,
+     "ticksPerRealSecond": 10,
+     "ticksMeasured": 80,
+     "rounds": 3,
+     "tickMs": {
+      "median": 22.373,
+      "p95": 35.521,
+      "p99": 43.233,
+      "max": 170.121
+     },
+     "perAnimalUs": 2.237,
+     "msPerRealSecond": 223.73,
+     "withinGameCap": true,
+     "comfortable": true,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 23.407,
+       "p95": 37.182,
+       "p99": 170.121,
+       "max": 170.121,
+       "gcCount": 272,
+       "gcMs": 203.893,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 10000,
+       "hash": 3939673219
+      },
+      {
+       "median": 22.992,
+       "p95": 38.922,
+       "p99": 43.233,
+       "max": 43.233,
+       "gcCount": 670,
+       "gcMs": 720.578,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 10000,
+       "hash": 3939673219
+      },
+      {
+       "median": 21.463,
+       "p95": 27.307,
+       "p99": 29.923,
+       "max": 29.923,
+       "gcCount": 339,
+       "gcMs": 387.079,
+       "births": 0,
+       "deaths": 0,
+       "endAlive": 10000,
+       "hash": 3939673219
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 24.852,
+      "stageMsPerTick": {
+       "environment": 0.003,
+       "spatialIndex": 1.008,
+       "herdGroups": 0.022,
+       "physiology": 1.871,
+       "births": 0,
+       "deaths": 0,
+       "decide": 1.395,
+       "perception": 4.139,
+       "actPredation": 0.002,
+       "actHerd": 0.014,
+       "act": 2.671,
+       "move": 15.061,
+       "personalSpace": 0.226,
+       "carcasses": 0,
+       "sweep": 0,
+       "stats": 0
+      },
+      "queriesPerTick": 1561,
+      "visitedPerTick": 66080,
+      "visitedPerQuery": 42.322,
+      "decidesPerTick": 395.375,
+      "birthsCalls": 0,
+      "deathCalls": 0
+     }
+    },
+    {
+     "speed": 10,
+     "dt": 0.25,
+     "ticksPerRealSecond": 40,
+     "ticksMeasured": 80,
+     "rounds": 3,
+     "tickMs": {
+      "median": 25.187,
+      "p95": 33.997,
+      "p99": 40.958,
+      "max": 50.434
+     },
+     "perAnimalUs": 2.519,
+     "msPerRealSecond": 1007.481,
+     "withinGameCap": false,
+     "comfortable": false,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 25.089,
+       "p95": 28.866,
+       "p99": 32.27,
+       "max": 32.27,
+       "gcCount": 339,
+       "gcMs": 333.38,
+       "births": 0,
+       "deaths": 3,
+       "endAlive": 9997,
+       "hash": 3465139369
+      },
+      {
+       "median": 23.775,
+       "p95": 36.881,
+       "p99": 50.434,
+       "max": 50.434,
+       "gcCount": 696,
+       "gcMs": 562.033,
+       "births": 0,
+       "deaths": 3,
+       "endAlive": 9997,
+       "hash": 3465139369
+      },
+      {
+       "median": 27.774,
+       "p95": 35.128,
+       "p99": 38.597,
+       "max": 38.597,
+       "gcCount": 351,
+       "gcMs": 289.184,
+       "births": 0,
+       "deaths": 3,
+       "endAlive": 9997,
+       "hash": 3465139369
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 33.733,
+      "stageMsPerTick": {
+       "environment": 0.006,
+       "spatialIndex": 1.333,
+       "herdGroups": 0.084,
+       "physiology": 2.381,
+       "births": 0,
+       "deaths": 0.001,
+       "decide": 3.717,
+       "perception": 9.715,
+       "actPredation": 0.003,
+       "actHerd": 0.062,
+       "act": 3.121,
+       "move": 15.138,
+       "personalSpace": 0.485,
+       "carcasses": 0.002,
+       "sweep": 0.012,
+       "stats": 0
+      },
+      "queriesPerTick": 2982,
+      "visitedPerTick": 133734,
+      "visitedPerQuery": 44.854,
+      "decidesPerTick": 733.788,
+      "birthsCalls": 0,
+      "deathCalls": 3
+     }
+    },
+    {
+     "speed": 100,
+     "dt": 1,
+     "ticksPerRealSecond": 100,
+     "ticksMeasured": 80,
+     "rounds": 3,
+     "tickMs": {
+      "median": 27.34,
+      "p95": 48.031,
+      "p99": 59.994,
+      "max": 66.231
+     },
+     "perAnimalUs": 2.734,
+     "msPerRealSecond": 2733.979,
+     "withinGameCap": false,
+     "comfortable": false,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 25.855,
+       "p95": 42.98,
+       "p99": 53.554,
+       "max": 53.554,
+       "gcCount": 350,
+       "gcMs": 314.798,
+       "births": 0,
+       "deaths": 9,
+       "endAlive": 9987,
+       "hash": 3318745617
+      },
+      {
+       "median": 26.205,
+       "p95": 58.902,
+       "p99": 66.231,
+       "max": 66.231,
+       "gcCount": 705,
+       "gcMs": 637.514,
+       "births": 0,
+       "deaths": 9,
+       "endAlive": 9987,
+       "hash": 3318745617
+      },
+      {
+       "median": 32.378,
+       "p95": 48.301,
+       "p99": 52.959,
+       "max": 52.959,
+       "gcCount": 346,
+       "gcMs": 297.761,
+       "births": 0,
+       "deaths": 9,
+       "endAlive": 9987,
+       "hash": 3318745617
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 33.613,
+      "stageMsPerTick": {
+       "environment": 0.012,
+       "spatialIndex": 1.547,
+       "herdGroups": 0.334,
+       "physiology": 2.421,
+       "births": 0,
+       "deaths": 0.002,
+       "decide": 5.132,
+       "perception": 19.144,
+       "actPredation": 0.001,
+       "actHerd": 0.057,
+       "act": 2.419,
+       "move": 6.125,
+       "personalSpace": 0.894,
+       "carcasses": 0.006,
+       "sweep": 0.03,
+       "stats": 0
+      },
+      "queriesPerTick": 6382,
+      "visitedPerTick": 302045,
+      "visitedPerQuery": 47.326,
+      "decidesPerTick": 1754.288,
+      "birthsCalls": 0,
+      "deathCalls": 9
+     }
+    },
+    {
+     "speed": 1000,
+     "dt": 2,
+     "ticksPerRealSecond": 500,
+     "ticksMeasured": 56,
+     "rounds": 3,
+     "tickMs": {
+      "median": 45.569,
+      "p95": 66.662,
+      "p99": 85.874,
+      "max": 86.47
+     },
+     "perAnimalUs": 4.557,
+     "msPerRealSecond": 22784.342,
+     "withinGameCap": false,
+     "comfortable": false,
+     "deterministic": true,
+     "rounds_": [
+      {
+       "median": 44.407,
+       "p95": 63.718,
+       "p99": 77.645,
+       "max": 77.645,
+       "gcCount": 346,
+       "gcMs": 288.473,
+       "births": 0,
+       "deaths": 13,
+       "endAlive": 9984,
+       "hash": 1453116725
+      },
+      {
+       "median": 44.187,
+       "p95": 59.761,
+       "p99": 85.874,
+       "max": 85.874,
+       "gcCount": 697,
+       "gcMs": 586.274,
+       "births": 0,
+       "deaths": 13,
+       "endAlive": 9984,
+       "hash": 1453116725
+      },
+      {
+       "median": 49.513,
+       "p95": 71.985,
+       "p99": 86.47,
+       "max": 86.47,
+       "gcCount": 338,
+       "gcMs": 269.933,
+       "births": 0,
+       "deaths": 13,
+       "endAlive": 9984,
+       "hash": 1453116725
+      }
+     ],
+     "profiled": {
+      "tickMsMedian": 52.036,
+      "stageMsPerTick": {
+       "environment": 0.023,
+       "spatialIndex": 1.54,
+       "herdGroups": 0.601,
+       "physiology": 2.921,
+       "births": 0,
+       "deaths": 0.003,
+       "decide": 7.711,
+       "perception": 29.702,
+       "actPredation": 0.001,
+       "actHerd": 0.023,
+       "act": 2.541,
+       "move": 6.089,
+       "personalSpace": 1.061,
+       "carcasses": 0.007,
+       "sweep": 0.067,
+       "stats": 0.004
+      },
+      "queriesPerTick": 9087,
+      "visitedPerTick": 482591,
+      "visitedPerQuery": 53.108,
+      "decidesPerTick": 3053.804,
+      "birthsCalls": 0,
+      "deathCalls": 13
+     }
+    }
+   ]
+  }
+ ]
+}
