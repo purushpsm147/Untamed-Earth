@@ -123,7 +123,8 @@ export class AnimalView {
       if (!v) this.vis.set(a.id, (v = { ...newPose(), phase: (a.id * 1.7) % 6.28, yaw: a.heading, seen: 0, off: NaN }));
       v.seen = this.frame;
       const alt = a.palt + (a.alt - a.palt) * alpha;
-      const ground = d2 < 300 * 300 ? valley.height(x, z) : valley.heightFast(x, z);
+      // exact terrain near the camera, and always for animals in boundary transit (the corridor is outside the region)
+      const ground = d2 < 300 * 300 || a.transit ? valley.height(x, z) : valley.heightFast(x, z);
       const wd = valley.waterSurface(z) + sim.env.stage - ground;
       const moved = Math.hypot(a.x - a.px, a.z - a.pz);
       const moving = a.speed > 0.05 && moved > 1e-4;

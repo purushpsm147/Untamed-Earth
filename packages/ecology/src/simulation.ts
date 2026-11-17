@@ -1,6 +1,7 @@
 import { EventBus, Rng, SpatialHash, angleDiff, clamp, clamp01, hash3, lerp } from '@untamed/core';
 import { EnvSnapshot, Environment } from '@untamed/environment';
-import { REGION_SIZE, Valley } from '@untamed/worlds';
+import { CORRIDOR, REGION_SIZE, Valley } from '@untamed/worlds';
+import { CLOSED_BOUNDARY, HARE_SETTLE_H, HARE_STRIP, MIGRANT_SPECIES, SECTORS, edgeSigned, emptyMigrationStats, entryPoint, insideLandscape, insideRegion, outwardNormal, sectorOf, type BoundaryConfig, type ExitKind, type MigrationStats } from './boundary';
 import { LIFE_COMPRESSION, SPECIES, SPECIES_INDEX, SpeciesDef, SpeciesId, gestationHours, intervalHours, lifeDays, maturityDays, weanDays } from './species';
 
 /**
@@ -19,6 +20,18 @@ export const BEHAVIOR_NAMES = ['Idle', 'Wandering', 'Foraging', 'Seeking water',
 
 export interface Animal {
   id: number;
+  /** Boundary transit (issue #29): +1 walking in through the corridor, -1 walking out, 0/absent none. */
+  transit?: number;
+  /** Lineage (issue #29): 0/absent = valley resident lineage (founders and young of resident-lineage mothers born in the valley); 1 = regional lineage. */
+  origin?: number;
+  /** Why the current exit started (issue #29 counters). */
+  exitKind?: ExitKind;
+  /** Game hours on-map since the last entry (newcomer settlement). */
+  onH?: number;
+  /** A regional-lineage animal that has established residence in the valley (counted once). */
+  settled?: boolean;
+  /** Off-map (in the regional landscape, coarse simulation). */
+  off?: boolean;
   sp: number;
   x: number; z: number; alt: number;
   px: number; pz: number; palt: number;
@@ -137,6 +150,13 @@ export interface SimSnapshot {
   territories?: Territory[];
   territoryStats?: TerritoryStats;
   terrAccH?: number;
+  boundary?: BoundaryConfig;
+  regional?: Animal[];
+  migRng?: number;
+  migration?: MigrationStats;
+  sectorSuit?: number[];
+  regAccH?: number;
+  founders?: number;
 }
 
 const NO_CONTROL: ControlInput = { mx: 0, mz: 0, run: false, action: null };
@@ -163,6 +183,17 @@ const maySwim = (sp: SpeciesDef, fleeing: boolean): boolean =>
  * 1 m resolution; only a step longer than 32 m (none today) would be sampled more coarsely. Work per animal is bounded.
  */
 const SWEEP_M = 1;
+/**
+ * The region edge is a wall this far inside the map for every movement mode. Flight used to clamp at 4 m while ground
+ * movement refused anything closer than 6 m, so a bird that landed in the 4-6 m strip could not take a single ground
+ * step and died there of thirst or hunger (docs/OPEN_BOUNDARY_AUDIT.md, finding B1).
+ */
+export const EDGE_WALL = 6;
+const outsideWall = (x: number, z: number): boolean => x < EDGE_WALL || z < EDGE_WALL || x > REGION_SIZE - EDGE_WALL || z > REGION_SIZE - EDGE_WALL;
+/** Inside the transit corridor's outer line (the region plus CORRIDOR m on every side). */
+const inCorridor = (x: number, z: number): boolean => x >= -CORRIDOR && z >= -CORRIDOR && x <= REGION_SIZE + CORRIDOR && z <= REGION_SIZE + CORRIDOR;
+/** The edge refuses this position for this animal: everyone stops at the wall; only animals in transit may use the corridor. */
+const edgeBlocks = (a: Animal | null, x: number, z: number): boolean => outsideWall(x, z) && !(a?.transit && inCorridor(x, z));
 const SWEEP_SAMPLES_MAX = 32;
 /** A destination given up as unreachable is avoided for this many game hours, within this radius (m). */
 export const FAILED_TARGET_HOURS = 6;
@@ -216,6 +247,19 @@ export class Simulation {
   readonly territories = new Map<number, Territory>();
   territoryStats: TerritoryStats = { dispersed: 0, claimed: 0, joined: 0, inherited: 0, vacated: 0 };
   private terrAccH = 0;
+  /** Open-boundary configuration (closed unless configureBoundary is called before the first step). */
+  boundary: BoundaryConfig = { ...CLOSED_BOUNDARY };
+  /** Off-map regional individuals (issue #29): full records, coarse hourly simulation, not rendered, not perceivable. */
+  regional: Animal[] = [];
+  /** Off-map random stream; exists only when the boundary is open, so the closed valley draws nothing from it. */
+  migRng: Rng | null = null;
+  migration: MigrationStats | null = null;
+  /** Off-map habitat suitability per edge sector (drawn once). */
+  sectorSuit: number[] = [];
+  /** On-map animals at world creation (conservation bookkeeping). */
+  founders = 0;
+  private regAccH = 0;
+  private readonly exiting: Animal[] = [];
   private dead = false;
   /** 1 for environment cells that touch a building footprint (cheap pre-filter for collision tests). */
   private readonly bldCell: Uint8Array;
@@ -233,6 +277,7 @@ export class Simulation {
     if (snapshot) this.restore(snapshot);
     else {
       this.populate();
+      this.founders = this.animals.length;
       this.updateTerritories();
       this.recordStats();
       this.rebuildGroups();
@@ -371,6 +416,14 @@ export class Simulation {
       this.terrAccH -= 1;
       this.updateTerritories();
     }
+    if (this.boundary.open) {
+      this.regAccH += dtH;
+      if (this.regAccH >= 1) {
+        this.regAccH -= 1;
+        this.stepRegional();
+        this.settleNewcomers();
+      }
+    }
     const n = list.length; // newborns appended during the loop act from the next tick
     for (let i = 0; i < n; i++) {
       const a = list[i]!;
@@ -382,9 +435,16 @@ export class Simulation {
       if (a.timer <= 0) this.decide(a, sp);
       if (a.controlled) this.actControlled(a, sp, dt, dtH);
       else this.act(a, sp, dt, dtH);
+      if (this.boundary.open) this.maybeBeginExit(a, sp, dt);
       this.move(a, sp, dt);
       this.updateMode(a, sp);
+      // an exit completes 2.5 m inside the outer line (walking behaviours count arrival within 2 m of their destination)
+      if (a.transit === -1 && edgeSigned(a.x, a.z) <= -(CORRIDOR - 2.5)) {
+        if (this.boundary.open) this.exiting.push(a);
+        else (a.transit = -2), (a.want = 0); // closed valley (corridor tests only): stop at the outer line
+      }
     }
+    if (this.exiting.length) this.completeExits();
     this.stepCarcasses(dtH);
     if (this.dead) this.sweep();
     this.statAcc += dtH;
@@ -523,7 +583,8 @@ export class Simulation {
       if (!m || !m.alive || m.group !== t.group) t.male = 0;
     }
     const adults = new Map<number, number>(); // territory group -> living adult members
-    for (const a of this.animals) {
+    const everyone = this.regional.length ? [...this.animals, ...this.regional] : this.animals;
+    for (const a of everyone) {
       if (!a.alive) continue;
       const sp = SPECIES[a.sp]!;
       if (!sp.territory || !this.territories.has(a.group) || a.age <= maturityDays(sp)) continue;
@@ -536,8 +597,9 @@ export class Simulation {
       }
     }
     // ---- 2-4. per animal, in id order of the animal list (deterministic) ----
-    for (const a of this.animals) {
+    for (const a of everyone) {
       if (!a.alive || a.controlled) continue;
+      const off = !!a.off;
       const sp = SPECIES[a.sp]!;
       const terr = sp.territory;
       if (!terr) continue;
@@ -559,8 +621,7 @@ export class Simulation {
         // helper: disperse after the helper period
         if (a.age > mat + (terr.helperYears * 365) / LIFE_COMPRESSION) {
           a.group = this.nextId++;
-          a.homeX = this.rng.range(80, REGION_SIZE - 80);
-          a.homeZ = this.rng.range(80, REGION_SIZE - 80);
+          [a.homeX, a.homeZ] = this.anchor(a);
           this.territoryStats.dispersed++;
         }
         continue;
@@ -582,16 +643,17 @@ export class Simulation {
         a.homeX = inside.x;
         a.homeZ = inside.z;
         this.territoryStats.joined++;
-      } else if (clear && this.valley.inBounds(a.x, a.z, 60) && this.valley.waterDepth(a.x, a.z, this.env.stage) < -0.3 && !this.insideBuilding(a.x, a.z, 2)) {
+        if (!off && a.origin === 1 && !a.settled && insideRegion(inside.x, inside.z)) this.markSettled(a);
+      } else if (clear && (off ? this.regionalClaimOk(a, terr.spacing) : this.valley.inBounds(a.x, a.z, 60) && this.valley.waterDepth(a.x, a.z, this.env.stage) < -0.3 && !this.insideBuilding(a.x, a.z, 2))) {
         const nt: Territory = { group: a.group, sp: a.sp, x: a.x, z: a.z, female: a.sex === 0 ? a.id : 0, male: a.sex === 1 ? a.id : 0, sinceH: now };
         this.territories.set(a.group, nt);
         a.homeX = a.x;
         a.homeZ = a.z;
         this.territoryStats.claimed++;
-      } else if (Math.hypot(a.homeX - a.x, a.homeZ - a.z) < 80 || this.rng.chance(1 / 24)) {
-        // keep exploring: a new anchor somewhere in the region
-        a.homeX = this.rng.range(80, REGION_SIZE - 80);
-        a.homeZ = this.rng.range(80, REGION_SIZE - 80);
+        if (!off && a.origin === 1 && !a.settled) this.markSettled(a);
+      } else if (Math.hypot(a.homeX - a.x, a.homeZ - a.z) < 80 || this.rngFor(a).chance(1 / 24)) {
+        // keep exploring: a new anchor somewhere in the region (the regional landscape when the boundary is open)
+        [a.homeX, a.homeZ] = this.anchor(a);
       }
     }
   }
@@ -621,6 +683,7 @@ export class Simulation {
     const n = Math.floor(base * Math.min(f, 2) * cond + this.rng.next() * 0.999 * (f > 1 || cond < 1 ? 1 : 0));
     for (let i = 0; i < n; i++) {
       const c = this.spawn(m.sp, m.x + this.rng.range(-1.5, 1.5), m.z + this.rng.range(-1.5, 1.5), 0, m.group, m.id, m.homeX, m.homeZ);
+      if (m.origin) c.origin = m.origin;
       c.waterX = m.waterX;
       c.waterZ = m.waterZ;
       c.alt = m.alt;
@@ -734,6 +797,7 @@ export class Simulation {
   }
 
   private decide(a: Animal, sp: SpeciesDef): void {
+    if (a.transit && a.beh !== B.Flee && a.beh !== B.Chase) return this.updateTransit(a);
     const env = this.env;
     const rng = this.rng;
     const cell = env.cellIndex(a.x, a.z);
@@ -1045,8 +1109,15 @@ export class Simulation {
     }
     const r = (sp.group > 1 ? 28 : sp.homeRange * 0.6) * scale * (sp.flies ? 2.2 : 1);
     a.beh = B.Wander;
-    a.tx = clamp(ax + this.rng.range(-r, r), 10, REGION_SIZE - 10);
-    a.tz = clamp(az + this.rng.range(-r, r), 10, REGION_SIZE - 10);
+    const rx = ax + this.rng.range(-r, r);
+    const rz = az + this.rng.range(-r, r);
+    a.tx = clamp(rx, 10, REGION_SIZE - 10);
+    a.tz = clamp(rz, 10, REGION_SIZE - 10);
+    // open boundary: a migrant whose home lies beyond the edge (or a disperser heading out) keeps a destination outside
+    if (this.boundary.open && this.isMigrant(sp) && !a.controlled && !insideRegion(rx, rz)) {
+      a.tx = rx;
+      a.tz = rz;
+    }
     // avoid a spot recently given up on (at most 3 redraws; extra random draws happen only when one is remembered)
     for (let k = 0; k < 3 && this.recentlyFailed(a, a.tx, a.tz); k++) {
       a.tx = clamp(ax + this.rng.range(-r, r), 10, REGION_SIZE - 10);
@@ -1088,6 +1159,11 @@ export class Simulation {
     a.beh = B.Flee;
     a.tx = clamp(a.x + fx * 70, 8, REGION_SIZE - 8);
     a.tz = clamp(a.z + fz * 70, 8, REGION_SIZE - 8);
+    if (this.boundary.open && this.boundary.fleeExit && this.isMigrant(sp) && !a.controlled && !insideRegion(a.x + fx * 70, a.z + fz * 70)) {
+      a.tx = a.x + fx * 70;
+      a.tz = a.z + fz * 70;
+    }
+    if (a.transit === -1) this.aimOut(a); // already in the corridor: keep running out
     if (sp.flies) {
       const p = this.valley.findPerch(a.tx, a.tz, this.rng.next());
       if (p) {
@@ -1427,7 +1503,7 @@ export class Simulation {
    * unreachable site, give up, and re-find the same site until it died of thirst (ECOLOGICAL_STABILITY_REPORT.md).
    */
   private readonly drinkable = (x: number, z: number): boolean =>
-    x >= 6 && z >= 6 && x <= REGION_SIZE - 6 && z <= REGION_SIZE - 6 && !this.insideBuilding(x, z);
+    !outsideWall(x, z) && !this.insideBuilding(x, z);
 
   private insideBuilding(x: number, z: number, margin = 0.6): boolean {
     return this.bldCell[this.env.cellIndex(x, z)] === 1 && this.valley.blocked(x, z, margin);
@@ -1522,12 +1598,512 @@ export class Simulation {
     a.mode = !sp.flies && d > swimDepth(sp) ? MODE.Swim : d > 0.02 ? MODE.Wade : MODE.Walk;
   }
 
-  private passable(sp: SpeciesDef, x: number, z: number, fromDepth: number, fleeing: boolean): boolean {
-    if (x < 6 || z < 6 || x > REGION_SIZE - 6 || z > REGION_SIZE - 6) return false;
+
+  // ------------------------------------------------------------------ open boundary (issue #29)
+  /**
+   * Open the valley boundary for this run (must be called before the first step; the closed valley never calls it).
+   * Creates the finite regional population: jackal territories packed into the ring by the same spacing rule valley
+   * floaters use, and hares in an edge strip at the valley's initial density. Everything is drawn from migRng.
+   */
+  configureBoundary(o: Partial<BoundaryConfig>): void {
+    if (this.tick !== 0) throw new Error('configureBoundary must be called before the first step');
+    this.boundary = { ...CLOSED_BOUNDARY, ...o };
+    if (!this.boundary.open) return;
+    this.migRng = new Rng(hash3(this.seed, 99, 3));
+    this.migration = emptyMigrationStats(SPECIES.length);
+    this.sectorSuit = Array.from({ length: SECTORS }, () => this.migRng!.range(0.6, 1));
+    this.initRegional();
+  }
+
+  private isMigrant(sp: SpeciesDef): boolean {
+    return MIGRANT_SPECIES.includes(sp.id);
+  }
+  private rngFor(a: Animal): Rng {
+    return a.off ? this.migRng! : this.rng;
+  }
+  /** A dispersal / exploration anchor: anywhere in the valley (closed) or the regional landscape (open). */
+  private anchor(a: Animal): [number, number] {
+    const r = this.rngFor(a);
+    if (!this.boundary.open) return [r.range(80, REGION_SIZE - 80), r.range(80, REGION_SIZE - 80)];
+    const w = this.boundary.ringW;
+    return [r.range(-w + 80, REGION_SIZE + w - 80), r.range(-w + 80, REGION_SIZE + w - 80)];
+  }
+  /** An off-map floater may claim where it stands: outside the valley, its exclusive disc inside the landscape, on suitable ground. */
+  private regionalClaimOk(a: Animal, spacing: number): boolean {
+    const c = edgeSigned(a.x, a.z);
+    if (c >= 0 || c < -(this.boundary.ringW - spacing / 2)) return false;
+    return this.migRng!.next() < this.sectorSuit[sectorOf(a.x, a.z)]!;
+  }
+  private markSettled(a: Animal): void {
+    a.settled = true;
+    this.migration!.settled[a.sp]!++;
+  }
+  /** Off-map equilibrium for hunger and thirst (pre-registered): 0.25 + 0.35 (1 - suitability (1 - crowding)). */
+  private offNeed(a: Animal): number {
+    const suit = this.sectorSuit[sectorOf(a.x, a.z)]!;
+    return 0.25 + 0.35 * (1 - suit * (1 - this.offCrowding(a)));
+  }
+  /** Off-map crowding 0..1 for hares (local density against strip capacity); jackals are regulated by spacing (0). */
+  private offCrowding(a: Animal): number {
+    if (SPECIES[a.sp]!.id !== 'hare') return 0;
+    let n = 0;
+    for (const o of this.regional) if (o.alive && o.sp === a.sp && Math.abs(o.x - a.x) < 200 && Math.abs(o.z - a.z) < 200) n++;
+    const cap = this.hareDensity() * 400 * 400 * this.boundary.hareCapacity;
+    return clamp01(n / Math.max(1, cap));
+  }
+  /** The valley's initial hare density, animals per m² (off-map hares live at this density x suitability). */
+  private hareDensity(): number {
+    return SPECIES[SPECIES_INDEX.hare]!.initial / (REGION_SIZE * REGION_SIZE);
+  }
+
+  private initRegional(): void {
+    const r = this.migRng!;
+    const w = this.boundary.ringW;
+    const st = this.migration!;
+    const make = (si: number, x: number, z: number, group: number, homeX: number, homeZ: number, adult: boolean, sex: 0 | 1 | null): Animal => {
+      const sp = SPECIES[si]!;
+      const mat = maturityDays(sp);
+      const age = adult ? r.range(mat, lifeDays(sp) * 0.7) : r.chance(0.22) ? r.range(mat * 0.35, mat) : r.range(mat, lifeDays(sp) * 0.7);
+      const a: Animal = {
+        id: this.nextId++, sp: si, x, z, alt: 0, px: x, pz: z, palt: 0, mode: MODE.Walk, fail1X: NaN, fail1Z: NaN, fail1Until: NaN, fail2X: NaN, fail2Z: NaN, fail2Until: NaN, fail3X: NaN, fail3Z: NaN, fail3Until: NaN, fail4X: NaN, fail4Z: NaN, fail4Until: NaN, heading: r.range(0, 6.283), speed: 0, want: 0, steer: 0, chkT: 0, chkD: 0, stuck: 0, cx: x, cz: z, ctx: x, ctz: z, bestD: Infinity, age,
+        sex: sex ?? (r.chance(0.5) ? 0 : 1), health: 1, hunger: r.range(0.1, 0.5), thirst: r.range(0.05, 0.4), energy: r.range(0.5, 1), stamina: 1, fear: 0, beh: B.Idle,
+        tx: x, tz: z, tAlt: 0, targetId: 0, threatX: x, threatZ: z, pregnantH: 0, cooldownH: 0, homeX, homeZ, group, mother: 0,
+        waterX: NaN, waterZ: NaN, timer: 1, crowd: 0, alive: true, controlled: false, origin: 1, off: true,
+      };
+      this.regional.push(a);
+      this.byId.set(a.id, a);
+      st.initialRegional[si]!++;
+      return a;
+    };
+    // jackals: random sequential packing of territory centres in the ring, same spacing rule as valley floaters
+    const J = SPECIES_INDEX.jackal;
+    const terr = SPECIES[J]!.territory;
+    if (terr) {
+      const rr = terr.spacing / 2;
+      const held = [...this.territories.values()].filter((t) => t.sp === J).map((t) => [t.x, t.z] as [number, number]);
+      for (let k = 0; k < 40000; k++) {
+        const x = r.range(-w, REGION_SIZE + w);
+        const z = r.range(-w, REGION_SIZE + w);
+        const c = edgeSigned(x, z);
+        if (c >= 0 || c < -(w - rr)) continue;
+        if (held.some(([hx, hz]) => Math.hypot(hx - x, hz - z) < terr.spacing)) continue;
+        held.push([x, z]);
+        const u = r.next();
+        if (u >= 0.9) continue; // vacant (pre-registered: pair 0.75, single 0.15, vacant 0.10)
+        const group = this.nextId++;
+        const t: Territory = { group, sp: J, x, z, female: 0, male: 0, sinceH: this.env.timeH };
+        const f = u < 0.75 || r.chance(0.5) ? make(J, x + r.range(-14, 14), z + r.range(-14, 14), group, x, z, true, 0) : null;
+        const m = u < 0.75 || !f ? make(J, x + r.range(-14, 14), z + r.range(-14, 14), group, x, z, true, 1) : null;
+        if (f) t.female = f.id;
+        if (m) t.male = m.id;
+        // a third member as often as populate() makes jackal groups of three
+        if (u < 0.75 && r.range(0.6, 1.3) * 2 >= 2.5) make(J, x + r.range(-14, 14), z + r.range(-14, 14), group, x, z, false, null).mother = 0;
+        this.territories.set(group, t);
+      }
+    }
+    // hares: the valley's initial density x sector suitability x capacity multiplier, in a strip HARE_STRIP deep
+    const H = SPECIES_INDEX.hare;
+    const strip = 4 * REGION_SIZE * HARE_STRIP + Math.PI * HARE_STRIP * HARE_STRIP;
+    const target = Math.round(this.hareDensity() * strip * 0.8 * this.boundary.hareCapacity); // 0.8 = mean of U(0.6, 1)
+    let placed = 0;
+    for (let k = 0; k < 200000 && placed < target; k++) {
+      const x = r.range(-HARE_STRIP, REGION_SIZE + HARE_STRIP);
+      const z = r.range(-HARE_STRIP, REGION_SIZE + HARE_STRIP);
+      const c = edgeSigned(x, z);
+      if (c >= 0 || c < -HARE_STRIP) continue;
+      if (r.next() >= this.sectorSuit[sectorOf(x, z)]!) continue;
+      make(H, x, z, this.nextId++, x, z, false, null);
+      placed++;
+    }
+  }
+
+  /** Physically passable straight crossing from (x, z) along the outward normal, wall to the corridor's outer line. */
+  private crossingOk(sp: SpeciesDef, x: number, z: number, fleeing: boolean): boolean {
+    const [nx, nz] = outwardNormal(x, z);
+    // the point on the wall line straight across from (x, z)
+    const bx = nx === -1 ? EDGE_WALL : nx === 1 ? REGION_SIZE - EDGE_WALL : clamp(x, EDGE_WALL, REGION_SIZE - EDGE_WALL);
+    const bz = nz === -1 ? EDGE_WALL : nz === 1 ? REGION_SIZE - EDGE_WALL : clamp(z, EDGE_WALL, REGION_SIZE - EDGE_WALL);
+    const swim = maySwim(sp, fleeing);
+    let prevH = this.valley.height(bx, bz);
+    for (let s = 2; s <= EDGE_WALL + CORRIDOR; s += 2) {
+      const px = bx + nx * s;
+      const pz = bz + nz * s;
+      const h = this.valley.height(px, pz);
+      if (Math.abs(h - prevH) / 2 > MAX_UP_GRADE) return false;
+      if (!swim && this.valley.waterSurface(pz) + this.env.stage - h > sp.locomotion.wadeDepth) return false;
+      prevH = h;
+    }
+    return true;
+  }
+
+  /** The animal intends to cross: open boundary, migrant, destination beyond the region. */
+  private exitTarget(a: Animal, sp: SpeciesDef): boolean {
+    return this.boundary.open && this.isMigrant(sp) && !a.controlled && !a.transit && !insideRegion(a.tx, a.tz);
+  }
+
+  /**
+   * Start an exit when a migrant heading for a destination beyond the edge reaches the wall at a passable point: it walks
+   * straight out through the corridor (transit -1). A predator chasing prey that is in the corridor may follow it in.
+   */
+  private maybeBeginExit(a: Animal, sp: SpeciesDef, dt: number): void {
+    if (a.transit || a.controlled || a.alt > 0.25 || !this.isMigrant(sp)) return;
+    const chasingOut = a.beh === B.Chase && (this.byId.get(a.targetId)?.transit ?? 0) === -1;
+    if (!chasingOut && insideRegion(a.tx, a.tz)) return;
+    // within reach of the wall this tick (large ticks cover tens of metres: judged by what the animal can cover now)
+    if (edgeSigned(a.x, a.z) > EDGE_WALL + 2.5 + Math.max(a.speed, a.want) * dt) return;
+    const fleeing = a.beh === B.Flee;
+    if (fleeing && !this.boundary.fleeExit) return;
+    if (!this.crossingOk(sp, a.x, a.z, fleeing)) {
+      this.migration!.refused[a.sp]!++;
+      return;
+    }
+    a.transit = -1;
+    const home = !insideRegion(a.homeX, a.homeZ);
+    a.exitKind = fleeing ? 'flee' : chasingOut ? 'excursion' : home && this.territories.has(a.group) ? 'excursion' : home && a.origin === 1 && !a.settled ? 'excursion' : 'emigration';
+    if (!chasingOut) this.aimOut(a);
+  }
+
+  /** Destination straight out to just inside the corridor's outer line (steering never looks beyond it). */
+  private aimOut(a: Animal): void {
+    const [nx, nz] = outwardNormal(a.x, a.z);
+    const s = edgeSigned(a.x, a.z) + CORRIDOR; // the outer line itself (passable for animals in transit)
+    a.tx = a.x + nx * s;
+    a.tz = a.z + nz * s;
+  }
+
+  /** Animals that reached the corridor's outer line leave the valley (after the per-animal loop). */
+  private completeExits(): void {
+    const st = this.migration!;
+    for (const a of this.exiting) {
+      if (!a.alive || a.transit !== -1) continue;
+      // a pursuit in progress continues beyond the observed valley by the same chase rules (owner decision 1)
+      let pred: Animal | null = null;
+      let pd = 95;
+      for (const o of this.animals) {
+        if (!o.alive || o.beh !== B.Chase || o.targetId !== a.id) continue;
+        const d = Math.hypot(o.x - a.x, o.z - a.z);
+        if (d < pd) (pd = d), (pred = o);
+      }
+      const kind = a.exitKind ?? 'emigration';
+      (kind === 'flee' ? st.exitFlee : kind === 'excursion' ? st.exitExcursion : st.exitEmigration)[a.sp]!++;
+      this.leave(a);
+      if (pred) this.continuePursuit(pred, a, pd);
+      // dependent young near the mother follow her out
+      for (const y of this.animals) {
+        if (!y.alive || y.mother !== a.id || y.transit || y.controlled || y.age >= weanDays(SPECIES[y.sp]!) || Math.hypot(y.x - a.x, y.z - a.z) > 80) continue;
+        y.transit = -1;
+        y.exitKind = kind;
+        y.tx = a.x;
+        y.tz = a.z;
+      }
+    }
+    this.exiting.length = 0;
+    this.animals = this.animals.filter((a) => !a.off);
+  }
+
+  private leave(a: Animal): void {
+    a.off = true;
+    a.transit = 0;
+    a.beh = B.Idle;
+    a.speed = 0;
+    a.want = 0;
+    a.alt = 0;
+    this.regional.push(a);
+  }
+
+  /**
+   * Pursuit past the corridor's outer line: the chase continues on open ground by the on-map rules (run speeds, stamina
+   * spent at 1/sprintS per second, a tired prey at half speed, the predator gives up when spent or 95 m behind, the
+   * on-map capture odds when it closes to 1.8 m; no guarding adults). Captured prey dies off-map; the predator follows
+   * it out (its kill is beyond the edge). Otherwise the predator turns back into the valley.
+   */
+  private continuePursuit(pred: Animal, prey: Animal, gap: number): void {
+    const r = this.migRng!;
+    const st = this.migration!;
+    const ps = SPECIES[pred.sp]!;
+    const qs = SPECIES[prey.sp]!;
+    let g = gap;
+    let sp = pred.stamina;
+    let sq = prey.stamina;
+    let captured = false;
+    for (let t = 0; t < 600; t++) {
+      if (sp < 0.04 || g > 95) break;
+      const vp = ps.run;
+      const vq = qs.run * (sq > 0.03 ? 1 : 0.5);
+      sp = Math.max(0, sp - 1 / ps.sprintS);
+      sq = Math.max(0, sq - 1 / qs.sprintS);
+      g += vq - vp;
+      if (g < 1.8) {
+        const mat = maturityDays(qs);
+        const p = qs.id === 'hare' ? 0.5 : prey.age < mat * 0.45 ? 0.6 : 0.28;
+        captured = r.next() < p;
+        break;
+      }
+    }
+    pred.stamina = sp;
+    if (captured) {
+      st.pursuitCaptured[prey.sp]!++;
+      st.offDeathsPredation[prey.sp]!++;
+      prey.alive = false;
+      this.byId.delete(prey.id);
+      pred.transit = -1;
+      pred.exitKind = 'excursion';
+      this.aimOut(pred);
+      pred.beh = B.Wander;
+    } else {
+      st.pursuitEscaped[prey.sp]!++;
+      prey.stamina = sq;
+      pred.beh = B.Rest;
+      pred.want = 0;
+      pred.timer = this.rng.range(15, 30);
+      if (outsideWall(pred.x, pred.z)) {
+        pred.transit = 1;
+        const [nx, nz] = outwardNormal(pred.x, pred.z);
+        pred.tx = pred.x - nx * (CORRIDOR + 20);
+        pred.tz = pred.z - nz * (CORRIDOR + 20);
+        pred.beh = B.Wander;
+      } else pred.transit = 0;
+    }
+  }
+
+  /**
+   * Off-map coarse model, once per game hour, in id order (docs/OPEN_BOUNDARY_DESIGN.md §4): aging, needs relaxing to the
+   * sector equilibrium, the on-map hazards (x offmapHazard), reproduction by the on-map rules, and movement at the
+   * species' own walking pace (per game hour walk x 3600 / TIME_SCALE m, scaled by its activity). Movement into the
+   * valley enters through the corridor; movement out of the landscape is a permanent departure.
+   */
+  private stepRegional(): void {
+    const r = this.migRng!;
+    const st = this.migration!;
+    const w = this.boundary.ringW;
+    const k = 1 - Math.exp(-1 / 12);
+    const list = this.regional;
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i]!;
+      if (!a.alive || !a.off) continue;
+      const sp = SPECIES[a.sp]!;
+      a.age += 1 / 24;
+      const mother = a.mother !== 0 && a.age < weanDays(sp) ? this.byId.get(a.mother) : undefined;
+      const n = this.offNeed(a);
+      a.hunger += (n - a.hunger) * k;
+      a.thirst += (n - a.thirst) * k;
+      if (mother?.alive) {
+        a.hunger = Math.min(a.hunger, mother.hunger + 0.05);
+        a.thirst = Math.min(a.thirst, mother.thirst + 0.05);
+      }
+      const old = a.age / lifeDays(sp);
+      if (old > 0.8) {
+        a.health -= 0.006 * ((old - 0.8) / 0.2);
+        if (a.health <= 0 || old > 1.2) {
+          this.offDeath(a, st.offDeathsAge);
+          continue;
+        }
+      } else if (a.hunger < 0.7 && a.thirst < 0.7 && a.health < 1) a.health = Math.min(1, a.health + 0.006);
+      const juvenile = a.age < maturityDays(sp) * 0.5;
+      let hz = (juvenile ? sp.juvHazard : sp.adultHazard) * this.boundary.offmapHazard;
+      hz *= 1 + this.offCrowding(a) * 4 / Math.max(6, sp.group * 2.5);
+      if (a.health < 0.5) hz *= 2.5;
+      if (juvenile && a.mother !== 0 && !mother?.alive && a.age < weanDays(sp)) hz *= 6;
+      if (r.next() < hz / 24) {
+        this.offDeath(a, st.offDeathsBackground);
+        continue;
+      }
+      if (a.cooldownH > 0) a.cooldownH -= 1;
+      if (a.pregnantH > 0) {
+        a.pregnantH -= 1;
+        if (a.pregnantH <= 0) this.regionalBirth(a, sp);
+      } else if (this.receptiveOff(a, sp) && r.next() < ((0.6 * Math.min(1.6, this.fertility[a.sp]!)) / 24) * (1 - this.offCrowding(a))) {
+        // births scale with crowding against capacity (pre-registered in revision 2, section 4; omitted in the first
+        // implementation, which let off-map hares grow without bound): no conception at or above capacity
+        a.pregnantH = gestationHours(sp);
+      }
+      this.moveRegional(a, sp, mother, w);
+    }
+    this.regional = list.filter((a) => a.alive && a.off);
+  }
+
+  private offDeath(a: Animal, row: number[]): void {
+    a.alive = false;
+    row[a.sp]!++;
+    this.byId.delete(a.id);
+  }
+
+  /** Receptive off-map: the on-map thresholds, a resident pair for territorial species, an adult male nearby for others. */
+  private receptiveOff(a: Animal, sp: SpeciesDef): boolean {
+    if (a.sex !== 0 || a.cooldownH > 0 || a.hunger >= 0.6 || a.health <= 0.55 || a.age <= maturityDays(sp) || !this.seasonOk(sp)) return false;
+    if (sp.territory) {
+      const t = this.territories.get(a.group);
+      if (!t || t.female !== a.id || t.male === 0) return false;
+      const m = this.byId.get(t.male);
+      return !!m && m.alive && !!m.off;
+    }
+    const mat = maturityDays(sp);
+    return this.regional.some((o) => o.alive && o.sp === a.sp && o.sex === 1 && o.age > mat && Math.abs(o.x - a.x) < 400 && Math.abs(o.z - a.z) < 400);
+  }
+
+  private regionalBirth(m: Animal, sp: SpeciesDef): void {
+    const r = this.migRng!;
+    m.pregnantH = 0;
+    m.cooldownH = intervalHours(sp) - gestationHours(sp);
+    const f = this.fertility[m.sp]!;
+    const base = sp.litter[0] + r.int(sp.litter[1] - sp.litter[0] + 1);
+    const cond = m.hunger > 0.75 ? 0.5 : 1;
+    const n = Math.floor(base * Math.min(f, 2) * cond + r.next() * 0.999 * (f > 1 || cond < 1 ? 1 : 0));
+    for (let i = 0; i < n; i++) {
+      const x = m.x + r.range(-1.5, 1.5);
+      const z = m.z + r.range(-1.5, 1.5);
+      const c: Animal = { ...m, id: this.nextId++, x, z, px: x, pz: z, age: 0, sex: r.chance(0.5) ? 0 : 1, health: 1, hunger: m.hunger, thirst: m.thirst, energy: 0.8, stamina: 1, fear: 0, beh: B.Idle, pregnantH: 0, cooldownH: 0, mother: m.id, origin: 1, settled: false, exitKind: undefined, onH: 0, transit: 0,
+        fail1X: NaN, fail1Z: NaN, fail1Until: NaN, fail2X: NaN, fail2Z: NaN, fail2Until: NaN, fail3X: NaN, fail3Z: NaN, fail3Until: NaN, fail4X: NaN, fail4Z: NaN, fail4Until: NaN, waterX: NaN, waterZ: NaN, speed: 0, want: 0 };
+      this.regional.push(c);
+      this.byId.set(c.id, c);
+    }
+    this.migration!.offBirths[m.sp]! += n;
+  }
+
+  private moveRegional(a: Animal, sp: SpeciesDef, mother: Animal | undefined, w: number): void {
+    const r = this.migRng!;
+    const px = a.x;
+    const pz = a.z;
+    if (mother?.alive && mother.off) {
+      // dependent young stay with the mother
+      a.x = mother.x + r.range(-3, 3);
+      a.z = mother.z + r.range(-3, 3);
+    } else {
+      const step = this.activity(sp) * sp.walk * (3600 / TIME_SCALE);
+      const t = sp.territory ? this.territories.get(a.group) : undefined;
+      if (sp.territory && !t) {
+        // floater / disperser: directed travel toward its anchor; a new anchor on arrival
+        const dx = a.homeX - a.x;
+        const dz = a.homeZ - a.z;
+        const d = Math.hypot(dx, dz);
+        if (d <= step) [a.homeX, a.homeZ] = this.anchor(a);
+        const s = Math.min(step, d) / (d || 1);
+        a.x += dx * s;
+        a.z += dz * s;
+      } else {
+        // ranging around the home range centre (territory centre or home), reflected within 1.5 x home range
+        const hx = t ? t.x : a.homeX;
+        const hz = t ? t.z : a.homeZ;
+        const ang = r.range(0, 6.283);
+        let nx = a.x + Math.cos(ang) * step;
+        let nz = a.z + Math.sin(ang) * step;
+        const lim = sp.homeRange * 1.5;
+        const d = Math.hypot(nx - hx, nz - hz);
+        if (d > lim) {
+          nx = hx + ((nx - hx) / d) * lim;
+          nz = hz + ((nz - hz) / d) * lim;
+        }
+        a.x = nx;
+        a.z = nz;
+      }
+    }
+    // the landscape bounds where homes and territory centres exist, not how far a resident ranges around its own home:
+    // a resident of an outer territory may step past the outer line while ranging and is not lost. An animal without a
+    // home range (a floater or disperser) that crosses it has left for good.
+    const hasHome = sp.territory ? !!this.territories.get(a.group) : true;
+    if (!hasHome && !insideLandscape(a.x, a.z, w)) {
+      // left the regional landscape for good: not a death
+      a.alive = false;
+      this.migration!.departed[a.sp]!++;
+      this.byId.delete(a.id);
+      return;
+    }
+    const e = entryPoint(px, pz, a.x, a.z);
+    if (!e) return;
+    // movement carried it to the valley: a crossing attempt at the corridor's outer line
+    const ok = this.crossingOk(sp, e[0], e[1], false);
+    const pass = this.migRng!.next() < this.boundary.connectivity;
+    if (!ok || !pass) {
+      this.migration!.refused[a.sp]!++;
+      a.x = px;
+      a.z = pz;
+      return;
+    }
+    if (!this.boundary.inflow) {
+      this.migration!.suppressed[a.sp]!++;
+      a.x = px;
+      a.z = pz;
+      return;
+    }
+    if (mother?.alive && mother.off) {
+      // young never enter on their own; they come in with the mother
+      a.x = px;
+      a.z = pz;
+      return;
+    }
+    this.enterValley(a, e[0], e[1]);
+    for (const y of this.regional) if (y.alive && y.off && y.mother === a.id && y.age < weanDays(SPECIES[y.sp]!)) this.enterValley(y, e[0] + r.range(-1, 1), e[1] + r.range(-1, 1));
+  }
+
+  private enterValley(a: Animal, x: number, z: number): void {
+    const [nx, nz] = outwardNormal(x, z);
+    a.off = false;
+    a.x = a.px = x;
+    a.z = a.pz = z;
+    a.alt = a.palt = 0;
+    a.transit = 1;
+    a.tx = x - nx * (CORRIDOR + 20);
+    a.tz = z - nz * (CORRIDOR + 20);
+    a.beh = B.Wander;
+    a.want = SPECIES[a.sp]!.walk;
+    a.speed = 0;
+    a.timer = 0.5;
+    a.onH = 0;
+    a.heading = Math.atan2(-nx, -nz);
+    a.mode = MODE.Walk;
+    a.stuck = 0;
+    a.bestD = Infinity;
+    (a.origin === 1 && !a.settled ? this.migration!.entryVisit : this.migration!.entryReturn)[a.sp]!++;
+    this.animals.push(a);
+  }
+
+  /** Hourly on-map bookkeeping for newcomers: a regional-lineage hare whose home is outside settles after HARE_SETTLE_H hours inside. */
+  private settleNewcomers(): void {
+    for (const a of this.animals) {
+      if (!a.alive || a.origin !== 1 || a.settled || a.transit) continue;
+      a.onH = (a.onH ?? 0) + 1;
+      if (SPECIES[a.sp]!.id === 'hare' && a.onH >= HARE_SETTLE_H) {
+        a.homeX = a.x;
+        a.homeZ = a.z;
+        this.markSettled(a);
+      }
+    }
+  }
+
+  /**
+   * An animal in boundary transit that is not fleeing or chasing walks its corridor route: in, until it is inside the
+   * wall; out, to the corridor's outer line (completeExits then moves it off-map). An exit whose destination has come
+   * back inside the valley is abandoned once the animal is back inside the wall.
+   */
+  private updateTransit(a: Animal): void {
+    if (a.transit === 1 && !outsideWall(a.x, a.z)) {
+      a.transit = 0;
+      a.timer = 0;
+      return;
+    }
+    if (a.transit === -2) {
+      a.want = 0;
+      a.timer = 1;
+      return;
+    }
+    if (a.transit === -1 && insideRegion(a.tx, a.tz) && !outsideWall(a.x, a.z)) {
+      a.transit = 0;
+      if (this.migration) this.migration.exitAborted[a.sp]!++;
+      a.exitKind = undefined;
+      a.timer = 0;
+      return;
+    }
+    a.beh = B.Wander;
+    a.want = SPECIES[a.sp]!.walk;
+    a.timer = 0.5;
+  }
+
+  private passable(sp: SpeciesDef, a: Animal | null, x: number, z: number, fromDepth: number, fleeing: boolean): boolean {
+    if (edgeBlocks(a, x, z)) return false;
     if (this.insideBuilding(x, z)) return false;
     // no animal walks deeper than its wade depth unless it may swim; anything can always retreat toward shallower water
     if (!maySwim(sp, fleeing)) {
-      const d = this.valley.waterDepth(x, z, this.env.stage);
+      const d = a?.transit ? this.valley.waterSurface(z) + this.env.stage - this.valley.height(x, z) : this.valley.waterDepth(x, z, this.env.stage);
       if (d > sp.locomotion.wadeDepth && d >= fromDepth) return false;
     }
     return true;
@@ -1539,6 +2115,14 @@ export class Simulation {
     a.palt = a.alt;
     // a flyer about to land on the ground never lands in water deeper than it can stand in, whatever the behaviour
     // chose: the landing point moves back along the approach to the first standable spot (bounded scan)
+    // no destination lies beyond the edge wall: a perch, roost tree or carcass in the outer strip is approached to the
+    // wall and reached there, never chased forever from the wall (B1 follow-up: birds hovered 2 m short of a roost tree
+    // at z = 4 m and starved)
+    // (animals in boundary transit are the exception: their destination is the corridor itself)
+    if (!a.transit && !this.exitTarget(a, sp)) {
+      a.tx = clamp(a.tx, EDGE_WALL, REGION_SIZE - EDGE_WALL);
+      a.tz = clamp(a.tz, EDGE_WALL, REGION_SIZE - EDGE_WALL);
+    }
     if (sp.flies && a.alt > 0.3 && a.beh !== B.Drink && ((a.tAlt < 1 && Math.hypot(a.tx - a.x, a.tz - a.z) < 12) || a.alt < 1.5)) this.safeLanding(a, sp);
     const dx = a.tx - a.x;
     const dz = a.tz - a.z;
@@ -1580,14 +2164,25 @@ export class Simulation {
       if (arriving) a.speed = Math.min(a.speed, Math.max(0.5, TURN * dist * 0.5));
       step = Math.min(a.speed * dt, dist);
       if (dist <= Math.max(step, 0.3)) {
-        a.x = clamp(a.tx, 4, REGION_SIZE - 4);
-        a.z = clamp(a.tz, 4, REGION_SIZE - 4);
+        a.x = clamp(a.tx, EDGE_WALL, REGION_SIZE - EDGE_WALL);
+        a.z = clamp(a.tz, EDGE_WALL, REGION_SIZE - EDGE_WALL);
         return;
       }
       const maxTurn = TURN * dt * (arriving ? 2 : 1);
       a.heading += clamp(angleDiff(a.heading, goal), -maxTurn, maxTurn);
-      a.x = clamp(a.x + Math.sin(a.heading) * step, 4, REGION_SIZE - 4);
-      a.z = clamp(a.z + Math.cos(a.heading) * step, 4, REGION_SIZE - 4);
+      a.x = clamp(a.x + Math.sin(a.heading) * step, EDGE_WALL, REGION_SIZE - EDGE_WALL);
+      a.z = clamp(a.z + Math.cos(a.heading) * step, EDGE_WALL, REGION_SIZE - EDGE_WALL);
+      return;
+    }
+    if (outsideWall(a.x, a.z) && !a.transit) {
+      // defensive (and for saves made before EDGE_WALL applied to flight): an animal on the ground inside the edge
+      // strip walks straight inward, so it can never be trapped where every step is refused
+      const nx = clamp(a.x, EDGE_WALL, REGION_SIZE - EDGE_WALL) - a.x;
+      const nz = clamp(a.z, EDGE_WALL, REGION_SIZE - EDGE_WALL) - a.z;
+      const nl = Math.hypot(nx, nz) || 1;
+      a.heading = Math.atan2(nx, nz);
+      a.x += (nx / nl) * Math.min(step, nl);
+      a.z += (nz / nl) * Math.min(step, nl);
       return;
     }
     if (this.insideBuilding(a.x, a.z)) {
@@ -1622,7 +2217,7 @@ export class Simulation {
       const f = Math.min(factor(depth), factor(ahead));
       const nx = a.x + hx * sub * f;
       const nz = a.z + hz * sub * f;
-      if (!this.passable(sp, nx, nz, depth, fleeing)) {
+      if (!this.passable(sp, a, nx, nz, depth, fleeing)) {
         a.speed = 0; // pressed against an obstacle: stop and keep turning next tick (no instant heading snaps)
         break;
       }
@@ -1703,7 +2298,7 @@ export class Simulation {
     const depth = this.valley.waterDepth(a.x, a.z, this.env.stage);
     // making room never means wading in: the step may not end in water deeper than where the animal stands
     const wet = this.valley.waterDepth(nx, nz, this.env.stage) > Math.max(-0.05, depth);
-    if (!wet && this.passable(sp, nx, nz, depth, false) && this.terrainCost(sp, a, nx, nz, this.valley.heightFast(a.x, a.z), step + 1e-3) < 0.5) {
+    if (!wet && this.passable(sp, a, nx, nz, depth, false) && this.terrainCost(sp, a, nx, nz, this.valley.heightFast(a.x, a.z), step + 1e-3) < 0.5) {
       a.x = nx;
       a.z = nz;
       a.speed = Math.max(a.speed, step / dt); // a real (slow) step: renderers animate legs from speed and distance
@@ -1718,7 +2313,7 @@ export class Simulation {
    * slopes above ~25 degrees cost more and cliffs are refused.
    */
   private terrainCost(sp: SpeciesDef, a: Animal, x: number, z: number, h0: number, dist: number): number {
-    if (x < 6 || z < 6 || x > REGION_SIZE - 6 || z > REGION_SIZE - 6) return Infinity;
+    if (edgeBlocks(a, x, z)) return Infinity;
     if (this.insideBuilding(x, z, 0.9)) return Infinity;
     const h = this.valley.heightFast(x, z);
     const depth = this.valley.waterSurface(z) + this.env.stage - h;
@@ -1776,6 +2371,7 @@ export class Simulation {
       history: this.history.map((h) => ({ ...h, pops: [...h.pops] })), statAcc: this.statAcc, groupAcc: this.groupAcc, rainAcc: this.rainAcc,
       groups: [...this.groups].map(([id, g]) => [id, g.x, g.z, g.n]), eaten: [...this.eaten],
       territories: [...this.territories.values()].map((t) => ({ ...t })), territoryStats: { ...this.territoryStats }, terrAccH: this.terrAccH,
+      ...(this.boundary.open ? { boundary: { ...this.boundary }, regional: this.regional.filter((a) => a.alive).map((a) => ({ ...a })), migRng: this.migRng!.state, migration: JSON.parse(JSON.stringify(this.migration)) as MigrationStats, sectorSuit: [...this.sectorSuit], regAccH: this.regAccH } : {}), founders: this.founders,
     };
   }
 
@@ -1788,10 +2384,11 @@ export class Simulation {
     this.nextId = s.nextId;
     this.env.restore(s.env);
     // fields added after save v1 was defined default sensibly, so older saves load unchanged
-    this.animals = s.animals.map((a) => {
+    const norm = (a: Animal): Animal => {
       const old = a as Partial<Animal> & Animal;
-      return { ...a, mode: old.mode ?? MODE.Walk, fail1X: old.fail1X ?? NaN, fail1Z: old.fail1Z ?? NaN, fail1Until: old.fail1Until ?? NaN, fail2X: old.fail2X ?? NaN, fail2Z: old.fail2Z ?? NaN, fail2Until: old.fail2Until ?? NaN, fail3X: old.fail3X ?? NaN, fail3Z: old.fail3Z ?? NaN, fail3Until: old.fail3Until ?? NaN, fail4X: old.fail4X ?? NaN, fail4Z: old.fail4Z ?? NaN, fail4Until: old.fail4Until ?? NaN, want: old.want ?? a.speed, steer: old.steer ?? 0, chkT: old.chkT ?? 0, chkD: old.chkD ?? 0, stuck: old.stuck ?? 0, cx: old.cx ?? a.x, cz: old.cz ?? a.z, ctx: old.ctx ?? a.tx, ctz: old.ctz ?? a.tz, bestD: old.bestD ?? Infinity };
-    });
+      return { ...a, waterX: old.waterX ?? NaN, waterZ: old.waterZ ?? NaN, mode: old.mode ?? MODE.Walk, fail1X: old.fail1X ?? NaN, fail1Z: old.fail1Z ?? NaN, fail1Until: old.fail1Until ?? NaN, fail2X: old.fail2X ?? NaN, fail2Z: old.fail2Z ?? NaN, fail2Until: old.fail2Until ?? NaN, fail3X: old.fail3X ?? NaN, fail3Z: old.fail3Z ?? NaN, fail3Until: old.fail3Until ?? NaN, fail4X: old.fail4X ?? NaN, fail4Z: old.fail4Z ?? NaN, fail4Until: old.fail4Until ?? NaN, want: old.want ?? a.speed, steer: old.steer ?? 0, chkT: old.chkT ?? 0, chkD: old.chkD ?? 0, stuck: old.stuck ?? 0, cx: old.cx ?? a.x, cz: old.cz ?? a.z, ctx: old.ctx ?? a.tx, ctz: old.ctz ?? a.tz, bestD: old.bestD ?? Infinity };
+    };
+    this.animals = s.animals.map(norm);
     this.byId.clear();
     for (const a of this.animals) this.byId.set(a.id, a);
     this.carcasses = s.carcasses.map((c) => ({ ...c }));
@@ -1807,6 +2404,17 @@ export class Simulation {
     for (const t of s.territories ?? []) this.territories.set(t.group, { ...t });
     if (s.territoryStats) this.territoryStats = { ...s.territoryStats };
     this.terrAccH = s.terrAccH ?? 0;
+    this.founders = s.founders ?? 0;
+    if (s.boundary?.open) {
+      this.boundary = { ...s.boundary };
+      this.migRng = new Rng(0);
+      this.migRng.state = s.migRng!;
+      this.migration = JSON.parse(JSON.stringify(s.migration)) as MigrationStats;
+      this.sectorSuit = [...(s.sectorSuit ?? [])];
+      this.regAccH = s.regAccH ?? 0;
+      this.regional = (s.regional ?? []).map(norm);
+      for (const a of this.regional) this.byId.set(a.id, a);
+    }
     this.groups.clear();
     for (const [id, x, z, n] of s.groups) this.groups.set(id, { x, z, n });
   }
@@ -1827,6 +2435,13 @@ export class Simulation {
     mix(this.env.stage);
     mix(this.rng.state);
     mix(this.envRng.state);
+    if (this.boundary.open) {
+      for (const a of this.regional) {
+        if (!a.alive) continue;
+        mix(a.id); mix(a.x); mix(a.z); mix(a.hunger); mix(a.health);
+      }
+      mix(this.migRng!.state);
+    }
     return h;
   }
 }

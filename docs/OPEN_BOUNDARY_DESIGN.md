@@ -287,3 +287,147 @@ Hare refuges, other species, #12 and #22 are out of scope.
    external.
 3. Accept the off-map coarse model in §4.
 4. Accept the corridor spike as the first commit, with the stop-and-report condition.
+
+---
+
+# Revision 3: as implemented and pre-registered before any open-boundary run
+
+**Status.** Owner decisions on revision 2 (review comment on #29/#30):
+1. Fleeing animals may exit, conditionally, with a paired no-flee-exit control.
+2. Approved: the 1,440 m ring, packing-based territories and the measured territory counts.
+3. Approved: identity-preserving off-map individuals with coarse hourly simulation. The survival-risk uncertainty must
+   be quantified.
+4. Approved: the corridor spike as stage 1, with exact terrain for animals in transit and browser captures.
+
+Implementation: branch `feat/open-boundary`. The parameters below were fixed **before the first evaluation run**
+(commit at the head of this section's push). They are experimental assumptions, not established Indian wildlife values.
+
+## Corrections made before any run, with reasons
+Each correction was found by reading code or by a smoke run that checked mechanics only. None was made after seeing
+outcome metrics.
+
+- **Off-map travel speed.** Revision 2 wrote displacement per hour as `activity × walk × 3,600 s × tortuosity`. That
+  ignores the simulation's time compression: `TIME_SCALE` is 60, so an on-map animal walking at `walk` covers
+  `walk × 60` m per game hour. The off-map step is therefore `activity × walk × 3,600 / TIME_SCALE` m per hour, with a
+  random heading each hour. That heading is the tortuosity, so the separate 0.15 factor is withdrawn. Without this fix,
+  off-map animals would travel about 60× faster than on-map ones, which is physically inconsistent (owner decision 3).
+- **Connectivity.** It is now physical passability (`crossingOk`) times a pre-registered connectivity probability
+  κ = 2/3. κ stands for unmodelled small barriers. Its sensitivity values are 1/3 and 1, since the probability cannot
+  exceed 1. Revision 2's "walkable fraction × habitat suitability" is replaced, following owner decision 1: crossings
+  only at physically passable, connected points.
+- **Exit detection at large ticks.** It is judged against what the animal can cover in the current tick. A smoke run
+  showed that at the 1,000× tick a fleeing hare covers about 24 m per step and was never seen near the wall.
+- **Exit targets and the completion line.** Exit targets are placed on the corridor's outer line; an exit completes
+  2.5 m inside it. Steering never looks beyond the corridor, and walking behaviours count arrival within 2 m of their
+  target.
+
+## Mechanisms (as implemented)
+**Pursuit into the corridor** (decision 1).
+- A migrant predator chasing prey that is in the corridor follows it in. The corridor is real space, and the on-map
+  chase and capture rules apply there.
+- If the prey reaches the outer line while a predator is still chasing within 95 m, the chase continues on open ground
+  under the same rules:
+  - run speeds;
+  - stamina spent at 1/`sprintS` per second;
+  - a tired prey runs at half speed;
+  - the predator gives up when spent or more than 95 m behind;
+  - at 1.8 m the on-map capture odds apply: hare 0.5, young chital or boar 0.6, otherwise 0.28. No guarding adults are
+    counted.
+- A captured prey dies off-map, counted as off-map predation. The predator follows it out. An escaped prey lives
+  off-map, subject to the off-map hazards. The predator turns back.
+- **Exiting never guarantees survival.**
+
+**Aborted exits.** An exit that turns back before the outer line is counted as `exitAborted`. For example, a flight that
+ends once the hare is safe.
+
+**Permanent departure.** Leaving the regional landscape is recorded as `departed`, not as a death. Off-map animals are
+never reflected off the outer boundary.
+
+**Settlement (immigration).**
+- A regional-lineage jackal settles when it joins or claims a territory whose centre is inside the valley, by the #28
+  rules.
+- A regional-lineage hare settles after 48 consecutive game hours on-map, when its home moves inside. Assumed.
+- Until it settles, a regional-lineage animal is a visitor.
+
+**Lineage (`origin`).**
+- 0 is the resident lineage: valley founders, plus young born in the valley to resident-lineage mothers.
+- 1 is the regional lineage: off-map founders, anything born off-map, and the valley-born young of regional-lineage
+  mothers.
+- "Resident persistence without newcomers" is the count of origin-0 animals.
+
+**Off-map conception** (assumed). A receptive female conceives with hourly probability
+`0.6 × min(1.6, fertility) / 24`. That is the on-map mating odds, with one encounter per day. Receptivity uses the
+on-map thresholds. A jackal also needs its territory's male off-map; a hare needs an adult male within 400 m.
+
+**Dependants.**
+- Unweaned young within 80 m follow a mother who leaves.
+- Off-map young stay with the mother and enter only with her.
+
+**Possessed animals never cross.**
+
+## Off-map survival risk (owner concern on decision 3)
+Off-map animals face the on-map background hazard (`juvHazard` / `adultHazard`, with crowding and poor-health
+multipliers) and age-related death. There is **no explicit predation** off-map. On-map, explicit jackal predation comes
+on top of the background hazard. Off-map survival is therefore **not equivalent** and is probably more optimistic.
+
+This is quantified, not assumed away:
+1. Off-map and on-map mortality rates are reported per species, per animal-year.
+2. A pre-registered sensitivity configuration `G` doubles the off-map hazard (`offmapHazard = 2`).
+
+## Configurations (60 paired seeds × 365 days, dt 2, identical weather; the evaluation runner records every counter)
+| Id | Code | Boundary |
+|---|---|---|
+| A | `baseline/m2-b1`: integration with B1 | closed |
+| B | `baseline/memory-b1`: #27 + B1 | closed |
+| C | `baseline/territories-b1`: #28 + B1 | closed (`feat/open-boundary` closed reproduces C hash for hash) |
+| D | `feat/open-boundary` | open, pre-registered parameters |
+| E | `feat/open-boundary` | D with `inflow: false` (zero immigration; exits continue) |
+| F | `feat/open-boundary` | D with `fleeExit: false` (no flee exits) |
+
+**Sensitivity**, 30 seeds each, every one a separate pre-registered configuration:
+
+| Id | Change from D |
+|---|---|
+| S-W720 / S-W2160 | Ring width W ±50% |
+| S-H0.5 / S-H1.5 | Off-map hare capacity ±50% |
+| S-K1/3 / S-K1 | Connectivity κ 1/3 and 1 |
+| S-J720 / S-J1200 | Jackal spacing 720 m and 1,200 m |
+| G | Off-map hazard ×2 |
+
+**Pre-B1 results** (the Gate 2 tables) remain as historical evidence.
+
+**What will be reported:**
+- local abundance and resident-lineage abundance;
+- immigration (settlement), visits, returns, emigration, excursions, flee exits, aborted exits, departures;
+- off-map births and deaths;
+- local extinction (no animals in the valley at day 365);
+- resident-lineage extinction, and recolonisation (presence after a gap);
+- predator-days;
+- edge-cornering: kill share within 60 m of the edge relative to occupancy;
+- deaths by cause;
+- off-map versus on-map mortality.
+
+Paired sign tests are used for D vs C, D vs E and D vs F, plus a seed bootstrap.
+
+## Amendment 3a: two implementation defects found by profiling, fixed before any open-boundary result
+No D, E or F seed had completed when these were found. The `e2246ff` runs produced no output. Nothing was discarded,
+and no valley outcome metric was consulted.
+
+1. **Off-map births did not scale with crowding.**
+   - Revision 2 §4 pre-registers that off-map "births and juvenile survival are scaled by crowding against capacity".
+     The first implementation scaled only the hazard.
+   - At full crowding the needs equilibrium sits just below the breeding threshold, so off-map hares kept breeding:
+     57 → 2,311 by day 210 on seed 1. That is an unlimited stock, which the design forbids, and it slowed the runs
+     about 6×.
+   - Conception is now multiplied by `(1 − crowding)`.
+   - Off-map hares now stay at 25–57 over 365 days (seeds 1–3).
+2. **Ranging residents were counted as departures.**
+   - Outer regional territories may be centred up to `W − r` = 960 m outside the valley, and residents range up to
+     1.5 × home range = 720 m from their centre. Ordinary ranging therefore crossed the landscape's outer line and was
+     recorded as a permanent departure.
+   - The landscape bounds where homes and territory centres exist. A departure is now recorded only for an animal
+     without a home range (a floater or disperser) that crosses the outer line.
+   - Off-map jackals now persist at 4–25 on seeds 1–3.
+
+Regression tests for both are in `tests/unit/open-boundary.test.ts`. The D, E, F and sensitivity runs use the commit that
+adds this amendment.

@@ -14,6 +14,8 @@ const params = new URLSearchParams(location.search);
 const profiling = params.has('profile');
 /** ?scenario=documentary: fixed seed, time and camera for repeatable reviews (src/scenario/documentary.ts). */
 const documentary = params.get('scenario') === 'documentary';
+/** ?boundary=open: experimental open valley boundary for a new world (issue #29; default closed). */
+const openBoundary = params.get('boundary') === 'open';
 // the WebGL object counter must wrap the context before the first one is created
 let glCounts: (() => import('./profile/glCounter').GlCounts) | null = null;
 if (profiling) glCounts = (await import('./profile/glCounter')).installGlCounter();
@@ -96,6 +98,7 @@ function start(seed: number, save?: SaveData): void {
         gfx = { initial, ceiling, auto: true, fps: st.fps ?? assessed.fps, basis: assessed.reasons.join('; '), gpu: gpu.renderer };
       }
       const sim = await world.load(seed, save?.sim);
+      if (openBoundary && !save && sim.tick === 0) sim.configureBoundary({ open: true });
       let scene: import('./scenario/documentary').DocumentaryStart | null = null;
       if (documentary && !save && seed === (await import('./scenario/documentary')).DOCUMENTARY.seed) {
         const d = await import('./scenario/documentary');
