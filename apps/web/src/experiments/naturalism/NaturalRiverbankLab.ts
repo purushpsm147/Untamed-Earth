@@ -642,6 +642,9 @@ export function updateArticulatedChitalRig(
     _tmpWorldAnkle.set(target.worldX, target.ankleWorldY, target.worldZ);
     const localSlopePitch = target.groundSlopePitch - thetaPitch;
 
+    // Clear the previous frame's terminal hoof adjustment before solving IK.
+    limb.hoof.position.set(0, -LOWER_LIMB_LEN, 0);
+
     // The IK solver targets the ankle, not the actual bottom of the hoof. Rotating a
     // 5cm hoof to match the bank slope moves its plantar marker in x/y/z, so a single
     // ankle solve can leave a visibly floating stance hoof even with reachable legs.
@@ -678,8 +681,7 @@ export function updateArticulatedChitalRig(
     // ankle iterations. Correct the *physical hoof transform* in the lower-leg
     // frame, not the diagnostic value or the acceptance threshold. This is a
     // small terminal fetlock adjustment; the limb IK remains authoritative.
-    // Reset it each frame so the adjustment cannot accumulate or drift.
-    limb.hoof.position.set(0, -LOWER_LIMB_LEN, 0);
+    // The offset is reset before the ankle solve each frame.
     limb.hoof.updateMatrixWorld(true);
     for (let contactStep = 0; contactStep < 3; contactStep++) {
       limb.hoofBottom.getWorldPosition(_tmpHoofBottomWorld);
