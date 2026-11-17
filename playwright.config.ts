@@ -23,5 +23,7 @@ export default defineConfig({
     { name: 'documentary', testMatch: 'tests/e2e/documentary.spec.ts', use: { video: 'on' } },
     // opt-in visual evidence for movement modes (not in npm run test:e2e)
     { name: 'locomotion-capture', testMatch: 'tests/e2e/locomotion-capture.spec.ts', use: { video: 'on' } },
+    { name: 'naturalism', testMatch: 'tests/e2e/naturalism-ab.spec.ts' },
+    { name: 'naturalism-v3', testMatch: 'tests/e2e/slice1-naturalism-ab.spec.ts' },
   ],
 });
