@@ -75,8 +75,8 @@ describe('boundary transit corridor (spike)', () => {
       put(j, 30, z, -1, -CORRIDOR - 5);
       for (let i = 0; i < Math.ceil(120 / dt) && j.transit !== -2; i++) sim.step(dt);
       expect(j.transit).toBe(-2);
-      expect(j.x).toBeLessThanOrEqual(-CORRIDOR + 1.5); // arrival is judged at 1 m inside the outer line
-      expect(j.x).toBeGreaterThanOrEqual(-CORRIDOR - 1);
+      expect(j.x).toBeLessThanOrEqual(-CORRIDOR + 2.5); // arrival is judged 2.5 m inside the outer line
+      expect(j.x).toBeGreaterThanOrEqual(-CORRIDOR - 0.01);
     });
   }
 
