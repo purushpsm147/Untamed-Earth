@@ -512,3 +512,34 @@ Extinction, as newly extinct / rescued seeds:
 
 ## Performance
 10k animals: 19.8 ms/tick at 1×, 140 ms/tick at 1000× (#25 final: 19.3 / 144; single runs). No measurable cost.
+
+## 7. Edge wall correction (B1, issue #29 audit)
+The valley boundary audit (`docs/OPEN_BOUNDARY_AUDIT.md`, branch `audit/valley-boundary`) found that flight was clamped
+to 4 m from the edge while ground movement refused anything within 6 m. A bird that landed in the 4–6 m strip could not
+take a single ground step. In seed 21 of the #28 code, 24 mynas died of dehydration and 12 of starvation there.
+
+**Fix.**
+- `EDGE_WALL = 6` now governs every movement mode: `passable`, `terrainCost`, `drinkable` and the flight clamps.
+- Anything on the ground inside the strip walks straight inward. This also covers old saves.
+- Movement destinations are clamped to the wall.
+  - The first commit exposed a second trap: a roost perch at z = 4 m lay beyond the new wall. The bird stopped 2 m
+    short, and `Roost` keeps flying while the remaining distance is over 1 m.
+  - In seed 18, 9 mynas starved hovering there. The destination clamp makes arrival reachable.
+
+**Tests.** `tests/unit/edge-wall.test.ts` has 12 cases: strip escape, flight clamp and roost arrival, each at the 1×,
+10×, 100× and 1000× ticks. Every case fails on the code before its fix.
+
+**Paired check** (8 seeds × 365 days at the 1000× tick, integration before and after; `docs/evidence/b1/`):
+
+| Measure | Before | After |
+|---|---|---|
+| Edge pinning, myna + crow | 265 h | 0 h |
+| Bird deaths within 8 m of the edge | 26 | 8 |
+| Animals outside the region | 0 | 0 |
+
+**What 8 seeds cannot show.**
+- Abundance changes cannot be read from this run. Any bird near an edge now follows a different path, so every
+  seed's trajectory diverges (the hash checkpoints changed; see `hashes-after.txt`).
+- Species totals over 8 seeds moved in both directions. Bird animal-days were higher in 5/8 seeds for myna and 4/8 for
+  crow. Hare and jackal sums also moved, but the seed-level signs were mixed.
+- No population parameter was changed.
