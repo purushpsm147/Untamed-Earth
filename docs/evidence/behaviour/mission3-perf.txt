@@ -1,0 +1,9 @@
+Mission 3 (4-slot memory, on 1 m sweep)
+{"target":250,"alive":250,"dt":0.1,"msPerTick":0.664,"usPerAnimalTick":2.65}
+{"target":250,"alive":249,"dt":2,"msPerTick":1.112,"usPerAnimalTick":4.47}
+{"target":1000,"alive":1001,"dt":0.1,"msPerTick":1.393,"usPerAnimalTick":1.39}
+{"target":1000,"alive":999,"dt":2,"msPerTick":3.12,"usPerAnimalTick":3.12}
+{"target":5000,"alive":4999,"dt":0.1,"msPerTick":6.738,"usPerAnimalTick":1.35}
+{"target":5000,"alive":4991,"dt":2,"msPerTick":32.974,"usPerAnimalTick":6.61}
+{"target":10000,"alive":9999,"dt":0.1,"msPerTick":19.812,"usPerAnimalTick":1.98}
+{"target":10000,"alive":9981,"dt":2,"msPerTick":139.651,"usPerAnimalTick":13.99}

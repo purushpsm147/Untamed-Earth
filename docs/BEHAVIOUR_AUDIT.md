@@ -435,3 +435,80 @@ so differences under ~10% are noise:
 
 The 1 m sweep costs no more than the 8-sub-step version did. Most animals move far less than 1 m per tick, and terrain
 samples are bilinear lookups.
+
+---
+
+# Mission 3, first step: deterministic failed-target memory (`fix/failed-target-memory`, stacked on #25)
+
+## Design
+- **Memory.** Each animal has four fixed slots (position plus game-hour expiry, `FAILED_TARGET_HOURS` = 6) as plain
+  fields:
+  - saved with the animal; old saves load with empty slots;
+  - no allocation, no per-tick work.
+- **What gets recorded.** A destination the progress check gives up on (the animal is pinned, or gets no closer for
+  8 s) fills the slot with the earliest expiry.
+- **What it affects.** While a destination is remembered, nothing within `FAILED_TARGET_RADIUS` (6 m) of it is chosen
+  again:
+  - carcasses;
+  - water sites (a `findWater` filter, with no closure per call);
+  - herd regroup (when the herd centre is the failed spot);
+  - forage patches;
+  - rest spots;
+  - wander points (≤ 3 redraws; extra random draws only when a failure is remembered).
+- **Why four slots, not two.** The 1× audit found a hare pinned at a ruin corner with three water sites behind it.
+  With two slots it cycled the three for hours (395 retries in 10 days). With four, every nearby site is remembered,
+  the water search finds none, and the hare wanders off (2 retries).
+- **What it does not do.** No planning, no path search, no per-animal map. The animal still finds the way only
+  through the existing steering; it simply stops choosing what it just failed to reach.
+
+## Tests (`tests/unit/failed-target-memory.test.ts`)
+- A hungry jackal and a carcass inside a ruin's walls: **38 re-targets** in ~5.4 game hours without the memory
+  (mutation check), **0** with it.
+- Decay after `FAILED_TARGET_HOURS`; radius.
+- Four slots with oldest-first replacement; save/load.
+
+## Audit (seeds 1–3, 10 days; per 100 animal-days): Mission 1 baseline → #25 final → Mission 3
+| Retry loops | 1× | 10× | 100× | 1000× |
+|---|---|---|---|---|
+| Jackal (carcass loops) | 3,244 → 619 → **71** | 1,579 → 1,859 → **18** | 953 → 876 → **3** | 1,608 → 2,846 → **11** |
+| Hare | 0.2 → 5.9 → **0.1** | 0.7 → 7.4 → **0.05** | 0 → 14.6 → **0** | 0.05 → 0.1 → **0.05** |
+| Chital | 9.8 → 16.7 → **4.1** | 12.1 → 7.7 → **4.7** | 8.7 → 6.2 → **3.3** | 4.0 → 2.5 → **2.6** |
+| Boar | 17.0 → 7.0 → **7.3** | 20.1 → 12.0 → **6.3** | 10.7 → 7.3 → **4.0** | 7.6 → 3.5 → **3.2** |
+| Crow | 5.6 → 0.4 → **0** | 83 → 4.2 → **0** | 110 → 6.8 → **0.3** | 3.6 → 0.2 → **0** |
+
+- **Jackal stuck time** (% of time): 4.27 → 1.67 → 0.53 at 1×; 1.16 → 2.44 → 0.28 at 10×.
+- **Unchanged from #25:** species-aware water-crossing violations stay 0 at every speed, and birds in water stay 0.
+- **Remaining retries.** Most of the remaining jackal retries at 1× (71) are carcass re-targets after the 6 h memory
+  expires, or carcasses that move in and out of reach as the river level changes. The memory is bounded and decays by
+  design.
+
+## Ecology, paired seeds (15 seeds × 365 days, identical weather): #25 final → Mission 3
+| Measure | median #25 → M3 | seeds higher / lower / tied | sign test p |
+|---|---|---|---|
+| Jackal-days | 1,390 → 3,668 | 14 / 1 / 0 | **0.001** |
+| Jackal end population | 0 → 7 | 11 / 2 / 2 | **0.022** |
+| Total kills | 232 → 349 | 12 / 3 / 0 | **0.035** |
+| Kills per jackal-day | 0.157 → 0.106 | 2 / 13 / 0 | **0.007** |
+| Hare end population | 5 → 0 | 3 / 10 / 2 | 0.092 |
+| Chital dehydration deaths | 1 → 0 | 1 / 8 / 6 | **0.039** |
+| Chital / boar / hare starvation | 62 / 84 / 139 → 38 / 58 / 86 | 5 / 10 each | 0.30 |
+
+Extinction, as newly extinct / rescued seeds:
+- **Jackal:** 9 → 3 of 15 (rescued in 7 seeds, newly extinct in 1; p = 0.07).
+- **Hare:** 4 → 9 of 15 (newly extinct in 7, rescued in 2; p = 0.18).
+- **Chital:** 2 → 4 (newly extinct in 4, rescued in 2).
+
+**Interpretation (findings, not tuning).**
+- **Each jackal hunts less, but there are many more jackals.**
+  - Jackals no longer lose hours pacing at carcasses they cannot reach.
+  - So they survive and persist (jackal-days up in 14 of 15 seeds).
+  - Each jackal kills less often (13 of 15 lower), but total predation rises (12 of 15 higher).
+- **Hares pay for it.** Hare extinctions rise from 4 to 9 of 15 (not significant at n = 15; the direction is clear).
+- **This is report finding 5 again.** Removing an artificial jackal handicap shows that nothing regulates jackal
+  numbers.
+- **This is the paired evidence the review asked for before territories.** Territorial breeding (Gate 2, social) is
+  the regulator this result calls for. It should be the next ecological change, rather than any re-tuning of jackal
+  hunting.
+
+## Performance
+10k animals: 19.8 ms/tick at 1×, 140 ms/tick at 1000× (#25 final: 19.3 / 144; single runs). No measurable cost.
