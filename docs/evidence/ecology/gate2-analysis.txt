@@ -1,0 +1,105 @@
+main seeds 60 ; sensitivity seeds 30
+
+== distributions (median [IQR]) over 60 paired seeds
+jackal-days                          M2: 1372.5 [1021, 2123] | M2+memory: 3591.5 [2352, 5438] | M2+memory+territories: 1859.0 [1466, 2703] | sensitivity: spacing 720 m: 2266.5 [1598, 2912]
+jackal end population                M2: 0.0 [0, 1] | M2+memory: 5.5 [1, 13] | M2+memory+territories: 1.0 [0, 2] | sensitivity: spacing 720 m: 0.5 [0, 2]
+kills per jackal-day                 M2: 0.174 [0.145, 0.228] | M2+memory: 0.129 [0.085, 0.161] | M2+memory+territories: 0.187 [0.141, 0.222] | sensitivity: spacing 720 m: 0.163 [0.123, 0.196]
+total predation (chital+boar+hare)   M2: 253.0 [191, 335] | M2+memory: 402.5 [318, 499] | M2+memory+territories: 340.0 [278, 404] | sensitivity: spacing 720 m: 350.5 [251, 441]
+jackal litters                       M2: 5.5 [4, 9] | M2+memory: 15.5 [9, 26] | M2+memory+territories: 4.5 [3, 7] | sensitivity: spacing 720 m: 6.5 [4, 10]
+hare end population                  M2: 54.5 [1, 120] | M2+memory: 0.5 [0, 50] | M2+memory+territories: 3.5 [0, 59] | sensitivity: spacing 720 m: 6.0 [0, 44]
+hare min after day 30                M2: 24.5 [1, 56] | M2+memory: 0.5 [0, 31] | M2+memory+territories: 3.5 [0, 20] | sensitivity: spacing 720 m: 2.0 [0, 15]
+chital end population                M2: 5.0 [2, 12] | M2+memory: 7.5 [3, 13] | M2+memory+territories: 10.5 [5, 17] | sensitivity: spacing 720 m: 12.0 [4, 17]
+chital min after day 30              M2: 4.5 [2, 9] | M2+memory: 6.5 [3, 12] | M2+memory+territories: 10.0 [4, 15] | sensitivity: spacing 720 m: 8.5 [3, 13]
+
+== extinction frequency (of 60 )
+chital  {'M2': '11/60', 'M2+memory': '10/60', 'M2+memory+territories': '3/60', 'sensitivity: spacing 720 m': '4/30'}
+boar    {'M2': '1/60', 'M2+memory': '1/60', 'M2+memory+territories': '1/60', 'sensitivity: spacing 720 m': '0/30'}
+jackal  {'M2': '38/60', 'M2+memory': '11/60', 'M2+memory+territories': '25/60', 'sensitivity: spacing 720 m': '15/30'}
+hare    {'M2': '13/60', 'M2+memory': '30/60', 'M2+memory+territories': '24/60', 'sensitivity: spacing 720 m': '14/30'}
+crow    {'M2': '0/60', 'M2+memory': '0/60', 'M2+memory+territories': '0/60', 'sensitivity: spacing 720 m': '0/30'}
+myna    {'M2': '0/60', 'M2+memory': '0/60', 'M2+memory+territories': '0/60', 'sensitivity: spacing 720 m': '0/30'}
+all six persist {'M2': '11/60', 'M2+memory': '20/60', 'M2+memory+territories': '16/60', 'sensitivity: spacing 720 m': '8/30'}
+
+== paired comparisons (sign tests): higher/lower/ties, p
+  M2 -> M2+memory (n=60)
+    jackal-days                          56/ 4/ 0  p 0.0000
+    jackal end population                45/ 7/ 8  p 0.0000
+    kills per jackal-day                 11/49/ 0  p 0.0000
+    total predation (chital+boar+hare)   52/ 8/ 0  p 0.0000
+    jackal litters                       47/ 7/ 6  p 0.0000
+    hare end population                  17/36/ 7  p 0.0127
+    hare min after day 30                16/37/ 7  p 0.0055
+    chital end population                34/24/ 2  p 0.2370
+    chital min after day 30              35/22/ 3  p 0.1112
+    extinction chital  newly extinct  9 rescued 10  p 1.0000
+    extinction jackal  newly extinct  4 rescued 31  p 0.0000
+    extinction hare    newly extinct 23 rescued  6  p 0.0023
+  M2+memory -> M2+memory+territories (n=60)
+    jackal-days                          13/47/ 0  p 0.0000
+    jackal end population                10/43/ 7  p 0.0000
+    kills per jackal-day                 44/16/ 0  p 0.0004
+    total predation (chital+boar+hare)   22/38/ 0  p 0.0519
+    jackal litters                        8/51/ 1  p 0.0000
+    hare end population                  27/21/12  p 0.4709
+    hare min after day 30                28/20/12  p 0.3123
+    chital end population                35/19/ 6  p 0.0402
+    chital min after day 30              33/21/ 6  p 0.1337
+    extinction chital  newly extinct  0 rescued  7  p 0.0156
+    extinction jackal  newly extinct 21 rescued  7  p 0.0125
+    extinction hare    newly extinct 12 rescued 18  p 0.3616
+  M2 -> M2+memory+territories (n=60)
+    jackal-days                          40/20/ 0  p 0.0135
+    jackal end population                25/17/18  p 0.2800
+    kills per jackal-day                 34/26/ 0  p 0.3663
+    total predation (chital+boar+hare)   43/17/ 0  p 0.0011
+    jackal litters                       25/32/ 3  p 0.4270
+    hare end population                  17/37/ 6  p 0.0091
+    hare min after day 30                14/39/ 7  p 0.0008
+    chital end population                39/17/ 4  p 0.0046
+    chital min after day 30              37/19/ 4  p 0.0222
+    extinction chital  newly extinct  2 rescued 10  p 0.0386
+    extinction jackal  newly extinct 10 rescued 23  p 0.0351
+    extinction hare    newly extinct 18 rescued  7  p 0.0433
+  M2+memory+territories -> sensitivity: spacing 720 m (n=30)
+    jackal-days                          20/10/ 0  p 0.0987
+    jackal end population                13/ 8/ 9  p 0.3833
+    kills per jackal-day                 12/18/ 0  p 0.3616
+    total predation (chital+boar+hare)   21/ 8/ 1  p 0.0241
+    jackal litters                       23/ 7/ 0  p 0.0052
+    hare end population                  14/ 9/ 7  p 0.4049
+    hare min after day 30                13/10/ 7  p 0.6776
+    chital end population                11/15/ 4  p 0.5572
+    chital min after day 30              12/16/ 2  p 0.5716
+    extinction chital  newly extinct  3 rescued  1  p 0.6250
+    extinction jackal  newly extinct  7 rescued  8  p 1.0000
+    extinction hare    newly extinct  7 rescued  5  p 0.7744
+
+== territory metrics (territorial configurations)
+  M2+memory+territories
+     median mean occupied territories : 1.82
+     median mean full pairs : 0.72
+     median mean helpers : 0.6
+     median mean floaters : 0.97
+     median share of days with >=1 territory : 1.0
+     litters per full-pair life-year : 0.794
+     pups born : 1123
+     pups survived to maturity / resolved : 404/1116
+     events (sum over seeds) : {'dispersed': 289, 'claimed': 219, 'joined': 167, 'inherited': 30, 'vacated': 170}
+  sensitivity: spacing 720 m
+     median mean occupied territories : 2.31
+     median mean full pairs : 1.04
+     median mean helpers : 0.81
+     median mean floaters : 0.31
+     median share of days with >=1 territory : 0.995
+     litters per full-pair life-year : 0.834
+     pups born : 656
+     pups survived to maturity / resolved : 242/640
+     events (sum over seeds) : {'dispersed': 163, 'claimed': 167, 'joined': 92, 'inherited': 14, 'vacated': 106}
+  M2: jackal litters total 420, median 5.5
+  M2+memory: jackal litters total 1055, median 15.5
+
+== hare extinctions: cause context
+  M2: 13 hare extinctions; with no jackals in the 30 days before: 1; hare deaths by cause (sum) {'predation': 10596, 'starvation': 13736, 'dehydration': 42, 'background': 63636, 'age': 592}
+  M2+memory: 30 hare extinctions; with no jackals in the 30 days before: 0; hare deaths by cause (sum) {'predation': 15052, 'starvation': 6258, 'dehydration': 39, 'background': 38467, 'age': 408}
+  M2+memory+territories: 24 hare extinctions; with no jackals in the 30 days before: 0; hare deaths by cause (sum) {'predation': 13026, 'starvation': 5701, 'dehydration': 26, 'background': 33560, 'age': 347}
+  sensitivity: spacing 720 m: 14 hare extinctions; with no jackals in the 30 days before: 0; hare deaths by cause (sum) {'predation': 6061, 'starvation': 2852, 'dehydration': 12, 'background': 14811, 'age': 140}
