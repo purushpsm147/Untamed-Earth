@@ -4,6 +4,7 @@ import { Animal, SPECIES, Simulation, behaviorFamily, maturityDays } from '@unta
 import { AnimalModel, buildAnimalModels } from './animalGeo';
 import { blob } from './geo';
 import { PoseState, newPose, stepPose } from './animalPose';
+import { AnimalVisibility } from './AnimalVisibility';
 
 interface Batch {
   mesh: THREE.InstancedMesh;
@@ -22,6 +23,29 @@ interface Vis extends PoseState {
 }
 
 const MAX = 700;
+
+/** Research-only switch: production follows the unchanged baseline path. */
+export type AnimalCullingMode = 'baseline' | 'camera-shadow';
+export interface AnimalCullingFrame {
+  mode: AnimalCullingMode;
+  candidates: number;
+  culled: number;
+  shadowOnly: number;
+  rendered: number;
+  overflow: number;
+  animalUpdateMs: number;
+}
+export interface AnimalCullingSample {
+  mode: AnimalCullingMode;
+  frames: number;
+  averageCandidates: number;
+  averageCulled: number;
+  averageShadowOnly: number;
+  averageRendered: number;
+  totalOverflow: number;
+  averageAnimalUpdateMs: number;
+}
+
 
 function animatedMaterial(): THREE.MeshStandardMaterial {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0 });
@@ -57,6 +81,8 @@ export class AnimalView {
   private readonly groupRings: THREE.InstancedMesh;
   private readonly vis = new Map<number, Vis>();
   private frame = 0;
+  private lastCulling: AnimalCullingFrame = { mode: 'baseline', candidates: 0, culled: 0, shadowOnly: 0, rendered: 0, overflow: 0, animalUpdateMs: 0 };
+  private cullingSample: { frames: number; candidates: number; culled: number; shadowOnly: number; rendered: number; overflow: number; animalUpdateMs: number } | null = null;
   private readonly m = new THREE.Matrix4();
   private readonly q = new THREE.Quaternion();
   private readonly e = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -65,7 +91,7 @@ export class AnimalView {
   /** Interpolated world position of each rendered animal this frame (for picking and cameras). */
   readonly pos = new Map<number, THREE.Vector3>();
 
-  constructor(private readonly sim: Simulation) {
+  constructor(private readonly sim: Simulation, readonly cullingMode: AnimalCullingMode = 'baseline') {
     const models = buildAnimalModels();
     const mat = animatedMaterial();
     for (const [name, model] of Object.entries(models)) {
@@ -101,8 +127,14 @@ export class AnimalView {
     this.group.add(this.marker);
   }
 
-  update(cam: THREE.Vector3, alpha: number, dt: number, time: number, maxDist: number, selected: number, highlightGroup = 0): void {
+  update(cam: THREE.Vector3, alpha: number, dt: number, time: number, maxDist: number, selected: number, highlightGroup = 0, visibility?: AnimalVisibility): void {
+    const started = performance.now();
+    const culling = this.cullingMode === 'camera-shadow' ? visibility : undefined;
     let rings = 0;
+    let candidates = 0;
+    let culled = 0;
+    let shadowOnly = 0;
+    let overflow = 0;
     const sim = this.sim;
     const valley = sim.valley;
     this.frame++;
@@ -115,10 +147,24 @@ export class AnimalView {
       const z = a.pz + (a.z - a.pz) * alpha;
       const d2 = (x - cam.x) ** 2 + (z - cam.z) ** 2;
       if (d2 > max2) continue;
+      candidates++;
+      if (culling) {
+        // Broad conservative proxy: preserve full animal motion, flying altitude, heightfield
+        // interpolation error, and any rise from flooding. Never cull selected animals.
+        const approxGround = valley.heightFast(x, z);
+        const approxAlt = a.palt + (a.alt - a.palt) * alpha;
+        const floodRise = Math.max(0, valley.waterSurface(z) + sim.env.stage - approxGround);
+        const visibilityResult = culling.classify(x, approxGround + approxAlt + 0.8, z, 5 + floodRise);
+        if (visibilityResult === 'culled' && a.id !== selected) {
+          culled++;
+          continue;
+        }
+        if (visibilityResult === 'shadow') shadowOnly++;
+      }
       const sp = SPECIES[a.sp]!;
       const adult = a.age > maturityDays(sp);
       const b = this.batches[sp.id === 'chital' && adult && a.sex === 1 ? 'stag' : sp.id]!;
-      if (b.n >= MAX) continue;
+      if (b.n >= MAX) { overflow++; continue; }
       let v = this.vis.get(a.id);
       if (!v) this.vis.set(a.id, (v = { ...newPose(), phase: (a.id * 1.7) % 6.28, yaw: a.heading, seen: 0, off: NaN }));
       v.seen = this.frame;
@@ -172,11 +218,27 @@ export class AnimalView {
     }
     this.groupRings.count = rings;
     this.groupRings.instanceMatrix.needsUpdate = true;
+    let rendered = 0;
     for (const b of Object.values(this.batches)) {
       b.mesh.count = b.n;
+      rendered += b.n;
       b.mesh.instanceMatrix.needsUpdate = true;
       b.anim.needsUpdate = true;
       b.pose.needsUpdate = true;
+    }
+    this.lastCulling = {
+      mode: this.cullingMode, candidates, culled, shadowOnly, rendered, overflow,
+      animalUpdateMs: performance.now() - started,
+    };
+    if (this.cullingSample) {
+      const s = this.cullingSample;
+      s.frames++;
+      s.candidates += candidates;
+      s.culled += culled;
+      s.shadowOnly += shadowOnly;
+      s.rendered += rendered;
+      s.overflow += overflow;
+      s.animalUpdateMs += this.lastCulling.animalUpdateMs;
     }
     // carcasses shrink as they are eaten and decompose
     let cn = 0;
@@ -198,6 +260,31 @@ export class AnimalView {
         }
       }
     }
+  }
+
+  /** A/B diagnostics; does not read or mutate ecological state. */
+  debugCulling(): AnimalCullingFrame {
+    return { ...this.lastCulling };
+  }
+
+  beginCullingSample(): void {
+    this.cullingSample = { frames: 0, candidates: 0, culled: 0, shadowOnly: 0, rendered: 0, overflow: 0, animalUpdateMs: 0 };
+  }
+
+  endCullingSample(): AnimalCullingSample {
+    const s = this.cullingSample;
+    this.cullingSample = null;
+    const frames = s?.frames ?? 0;
+    const avg = (n: number): number => frames ? Math.round(n / frames * 100) / 100 : 0;
+    return {
+      mode: this.cullingMode, frames,
+      averageCandidates: avg(s?.candidates ?? 0),
+      averageCulled: avg(s?.culled ?? 0),
+      averageShadowOnly: avg(s?.shadowOnly ?? 0),
+      averageRendered: avg(s?.rendered ?? 0),
+      totalOverflow: s?.overflow ?? 0,
+      averageAnimalUpdateMs: avg(s?.animalUpdateMs ?? 0),
+    };
   }
 
   /** QA: the drawn pose of one animal this frame (presentation state only), or null if not drawn. */
