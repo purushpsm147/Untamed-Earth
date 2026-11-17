@@ -23,7 +23,7 @@ export type Mode = 'observer' | 'wildlife' | 'experiment' | 'curiosity';
 export interface SaveData {
   worldId: string;
   sim: SimSnapshot;
-  cam: { x: number; y: number; z: number; yaw: number; pitch: number };
+  cam: { x: number; y: number; z: number; yaw: number; pitch: number; roll?: number; fov?: number };
 }
 /** Graphics start-up decision: an explicit player choice, or Auto from the hardware assessment. */
 export interface GraphicsChoice {
@@ -88,7 +88,7 @@ export class Game {
   /** Ticks actually simulated per real second (diagnostics; reveals when 1000x is CPU-bound). */
   achievedRate = 1;
   ready = false;
-  private readonly cam = { x: 770, y: 30, z: 640, yaw: 2.2, pitch: -0.12, fly: 14, dist: 9 };
+  private readonly cam = { x: 770, y: 30, z: 640, yaw: 2.2, pitch: -0.12, roll: 0, fly: 14, dist: 9 };
   /** Curiosity Mode look-at point (the camera eases toward subjects rather than snapping). */
   private readonly look = { x: 0, y: 0, z: 0 };
   /** Bounded record of notable events seen this session, for the Social Lens. Not simulation state. */
@@ -126,7 +126,11 @@ export class Game {
     this.curiosity = new Curiosity(this.sim);
     this.engine.auto = gfx.auto;
     this.setFps(gfx.fps);
-    if (save) Object.assign(this.cam, save.cam);
+    if (save) {
+      Object.assign(this.cam, save.cam);
+      this.engine.camera.fov = clamp(save.cam.fov ?? 62, 24, 85);
+      this.engine.camera.updateProjectionMatrix();
+    }
     else {
       this.cam.y = this.sim.valley.height(this.cam.x, this.cam.z) + 9;
     }
@@ -398,6 +402,7 @@ export class Game {
     if (this.following) {
       const a = this.sim.byId.get(this.selected);
       this.cam.dist = a && SPECIES[a.sp]!.mass < 5 ? 4 : 9;
+      this.cam.roll = 0;
     }
     this.refreshButtons();
   }
@@ -428,6 +433,7 @@ export class Game {
     this.sim.setControlled(a.id);
     this.mode = 'wildlife';
     this.cam.dist = 7;
+    this.cam.roll = 0;
     if (this.speed > 10 || this.speed === 0) this.setSpeed(1);
     $('inspect').classList.add('hidden');
     this.refreshButtons();
@@ -452,6 +458,7 @@ export class Game {
       this.cam.yaw = Math.atan2(dx, dz);
       this.cam.pitch = clamp(Math.atan2(dy, Math.hypot(dx, dz)), -1.4, 1.4);
       this.curiosity.stop();
+      this.cam.roll = 0;
     }
     if (m === 'curiosity' && this.mode !== 'curiosity') {
       const cp = Math.cos(this.cam.pitch);
@@ -460,6 +467,7 @@ export class Game {
       this.look.z = this.cam.z + Math.cos(this.cam.yaw) * cp * 30;
       this.curiosity.start({ x: this.cam.x, y: this.cam.y, z: this.cam.z, tx: this.look.x, ty: this.look.y, tz: this.look.z });
       this.following = false;
+      this.cam.roll = 0;
       if (this.input.captured) this.input.toggleCapture();
       if (this.speed > 10 || this.speed === 0) this.setSpeed(1);
     }
@@ -481,7 +489,7 @@ export class Game {
   // ---------------------------------------------------------------- persistence
   async save(silent: boolean): Promise<void> {
     try {
-      const data: SaveData = { worldId: this.worldId, sim: this.sim.snapshot(), cam: { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch } };
+      const data: SaveData = { worldId: this.worldId, sim: this.sim.snapshot(), cam: { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch, roll: this.cam.roll, fov: this.engine.camera.fov } };
       await this.store.put(SAVE_SLOT, sealEnvelope(data, SAVE_FORMAT, SAVE_VERSION, Date.now()));
       $('mSaveInfo').textContent = `Saved ${new Date().toLocaleTimeString()} (day ${this.sim.env.day})`;
       if (!silent) toast('World saved to this browser.');
@@ -530,6 +538,11 @@ export class Game {
     if (i.pressed('curiosity')) this.setMode(this.mode === 'curiosity' ? 'observer' : 'curiosity');
     if (i.pressed('skip') && this.mode === 'curiosity') this.curiosity.skip();
     if (i.pressed('help')) this.setMenu(true);
+    if (i.pressed('levelCamera') && (this.mode === 'observer' || this.mode === 'experiment')) {
+      this.cam.roll = 0;
+      this.engine.camera.fov = 62;
+      this.engine.camera.updateProjectionMatrix();
+    }
     if (i.pressed('capture') && this.mode !== 'wildlife') this.input.toggleCapture();
     if (i.pressed('speedUp')) this.setSpeed(SPEEDS[Math.min(SPEEDS.length - 1, SPEEDS.indexOf(this.speed) + 1)]!);
     if (i.pressed('speedDown')) this.setSpeed(SPEEDS[Math.max(0, SPEEDS.indexOf(this.speed) - 1)]!);
@@ -613,7 +626,15 @@ export class Game {
       this.following = false;
       if (!this.sim.byId.get(this.selected)?.alive) this.select(0);
     }
-    // free flight
+    // Free observer/experiment flight: yaw, pitch and roll (bank) are independent.
+    // Rolling the camera only changes its view; world-up translation and terrain safety remain stable.
+    c.roll += i.roll;
+    if (c.roll > Math.PI) c.roll -= Math.PI * 2;
+    if (c.roll < -Math.PI) c.roll += Math.PI * 2;
+    if (i.lensZoom) {
+      camera.fov = clamp(camera.fov * (1 + i.lensZoom * 0.1), 24, 85);
+      camera.updateProjectionMatrix();
+    }
     if (i.zoom) c.fly = clamp(c.fly * (1 - i.zoom * 0.15), 2, 160);
     const sp = c.fly * (i.fast ? 3.5 : 1) * dt;
     // free-flight speed commanded this frame (m/s), for diagnostics and frame-rate-independent tests
@@ -635,6 +656,7 @@ export class Game {
     c.y = clamp(c.y, floor, 420);
     camera.position.set(c.x, c.y, c.z);
     camera.lookAt(c.x + fx, c.y + fy, c.z + fz);
+    camera.rotateZ(c.roll);
   }
 
   private frame = (now: number): void => {
@@ -987,11 +1009,13 @@ export class Game {
     return this.engine.animals.debugPose(id);
   }
   /** Place the free camera (scenario start). Observer mode; nothing in the simulation changes. */
-  setCameraPose(p: { x: number; y: number; z: number; yaw: number; pitch: number }): void {
-    Object.assign(this.cam, p);
+  setCameraPose(p: { x: number; y: number; z: number; yaw: number; pitch: number; roll?: number; fov?: number }): void {
+    Object.assign(this.cam, p, { roll: p.roll ?? 0 });
+    this.engine.camera.fov = clamp(p.fov ?? 62, 24, 85);
+    this.engine.camera.updateProjectionMatrix();
   }
-  debugCamera(): { x: number; y: number; z: number; yaw: number; pitch: number; ground: number; speed: number } {
-    return { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch, ground: this.sim.valley.height(this.cam.x, this.cam.z), speed: this.camSpeed };
+  debugCamera(): { x: number; y: number; z: number; yaw: number; pitch: number; roll: number; fov: number; ground: number; speed: number } {
+    return { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch, roll: this.cam.roll, fov: this.engine.camera.fov, ground: this.sim.valley.height(this.cam.x, this.cam.z), speed: this.camSpeed };
   }
   /** Step the paused simulation to an exact tick with the standard 1x step and return its state hash. */
   debugStepTo(tick: number): number {
@@ -1020,7 +1044,9 @@ export class Game {
   }
   debugCam(x: number, z: number, above: number, yaw: number, pitch: number): void {
     this.following = false;
-    Object.assign(this.cam, { x, z, y: this.sim.valley.height(x, z) + above, yaw, pitch });
+    Object.assign(this.cam, { x, z, y: this.sim.valley.height(x, z) + above, yaw, pitch, roll: 0 });
+    this.engine.camera.fov = 62;
+    this.engine.camera.updateProjectionMatrix();
   }
   /** Select and follow the animal of a species nearest to the camera. */
   debugFollow(id: SpeciesId, dist = 6): boolean {
