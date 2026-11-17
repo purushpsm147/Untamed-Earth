@@ -25,11 +25,13 @@ export interface Animal {
   /** Movement mode computed by the simulation each tick (MODE): walk, wade, swim, fly or perched. Renderers read it. */
   mode: number;
   /**
-   * Failed-target memory: the last two destinations the animal gave up on as unreachable, and the game hour until which
-   * each is avoided (NaN = empty). Bounded (two slots), decays, saved with the animal.
+   * Failed-target memory: the last four destinations the animal gave up on as unreachable, and the game hour until
+   * which each is avoided (NaN = empty). Bounded (four slots), decays, saved with the animal.
    */
   fail1X: number; fail1Z: number; fail1Until: number;
   fail2X: number; fail2Z: number; fail2Until: number;
+  fail3X: number; fail3Z: number; fail3Until: number;
+  fail4X: number; fail4Z: number; fail4Until: number;
   heading: number;
   /** Actual speed, m/s (changes within acceleration limits). */
   speed: number;
@@ -275,7 +277,7 @@ export class Simulation {
       z = lerp(z, homeZ, 0.5);
     }
     const a: Animal = {
-      id: this.nextId++, sp, x, z, alt: 0, px: x, pz: z, palt: 0, mode: MODE.Walk, fail1X: NaN, fail1Z: NaN, fail1Until: NaN, fail2X: NaN, fail2Z: NaN, fail2Until: NaN, heading: this.rng.range(0, 6.283), speed: 0, want: 0, steer: 0, chkT: 0, chkD: 0, stuck: 0, cx: x, cz: z, ctx: x, ctz: z, bestD: Infinity, age,
+      id: this.nextId++, sp, x, z, alt: 0, px: x, pz: z, palt: 0, mode: MODE.Walk, fail1X: NaN, fail1Z: NaN, fail1Until: NaN, fail2X: NaN, fail2Z: NaN, fail2Until: NaN, fail3X: NaN, fail3Z: NaN, fail3Until: NaN, fail4X: NaN, fail4Z: NaN, fail4Until: NaN, heading: this.rng.range(0, 6.283), speed: 0, want: 0, steer: 0, chkT: 0, chkD: 0, stuck: 0, cx: x, cz: z, ctx: x, ctz: z, bestD: Infinity, age,
       sex: this.rng.chance(0.5) ? 0 : 1, health: 1, hunger: 0.2, thirst: 0.2, energy: 0.8, stamina: 1, fear: 0, beh: B.Idle,
       tx: x, tz: z, tAlt: 0, targetId: 0, threatX: x, threatZ: z, pregnantH: 0, cooldownH: 0, homeX, homeZ, group, mother,
       waterX: NaN, waterZ: NaN, timer: this.rng.range(0, 3), crowd: 0, alive: true, controlled: false,
@@ -1312,30 +1314,31 @@ export class Simulation {
     return this.bldCell[this.env.cellIndex(x, z)] === 1 && this.valley.blocked(x, z, margin);
   }
 
-  /** Remember a destination the animal gave up on (replaces the expired or older slot). */
+  /** Remember a destination the animal gave up on (replaces an expired slot, else the oldest). */
   private rememberFailure(a: Animal, x: number, z: number): void {
-    const now = this.env.timeH;
-    const until = now + FAILED_TARGET_HOURS;
-    const free1 = !(a.fail1Until > now);
-    const free2 = !(a.fail2Until > now);
-    if (free1 || (!free2 && a.fail1Until <= a.fail2Until)) {
-      a.fail1X = x;
-      a.fail1Z = z;
-      a.fail1Until = until;
-    } else {
-      a.fail2X = x;
-      a.fail2Z = z;
-      a.fail2Until = until;
-    }
+    const until = this.env.timeH + FAILED_TARGET_HOURS;
+    // the slot with the earliest expiry (NaN = empty, treated as earliest)
+    const u1 = Number.isNaN(a.fail1Until) ? -Infinity : a.fail1Until;
+    const u2 = Number.isNaN(a.fail2Until) ? -Infinity : a.fail2Until;
+    const u3 = Number.isNaN(a.fail3Until) ? -Infinity : a.fail3Until;
+    const u4 = Number.isNaN(a.fail4Until) ? -Infinity : a.fail4Until;
+    const m = Math.min(u1, u2, u3, u4);
+    if (u1 === m) ((a.fail1X = x), (a.fail1Z = z), (a.fail1Until = until));
+    else if (u2 === m) ((a.fail2X = x), (a.fail2Z = z), (a.fail2Until = until));
+    else if (u3 === m) ((a.fail3X = x), (a.fail3Z = z), (a.fail3Until = until));
+    else ((a.fail4X = x), (a.fail4Z = z), (a.fail4Until = until));
   }
 
   /** Did the animal recently give up on a destination within FAILED_TARGET_RADIUS of (x, z)? */
   recentlyFailed(a: Animal, x: number, z: number): boolean {
     const now = this.env.timeH;
     const r2 = FAILED_TARGET_RADIUS * FAILED_TARGET_RADIUS;
-    if (a.fail1Until > now && (x - a.fail1X) ** 2 + (z - a.fail1Z) ** 2 < r2) return true;
-    if (a.fail2Until > now && (x - a.fail2X) ** 2 + (z - a.fail2Z) ** 2 < r2) return true;
-    return false;
+    return (
+      (a.fail1Until > now && (x - a.fail1X) ** 2 + (z - a.fail1Z) ** 2 < r2) ||
+      (a.fail2Until > now && (x - a.fail2X) ** 2 + (z - a.fail2Z) ** 2 < r2) ||
+      (a.fail3Until > now && (x - a.fail3X) ** 2 + (z - a.fail3Z) ** 2 < r2) ||
+      (a.fail4Until > now && (x - a.fail4X) ** 2 + (z - a.fail4Z) ** 2 < r2)
+    );
   }
 
   /** findWater filter for the animal currently deciding: drinkable and not recently given up on (no closure per call). */
@@ -1667,7 +1670,7 @@ export class Simulation {
     // fields added after save v1 was defined default sensibly, so older saves load unchanged
     this.animals = s.animals.map((a) => {
       const old = a as Partial<Animal> & Animal;
-      return { ...a, mode: old.mode ?? MODE.Walk, fail1X: old.fail1X ?? NaN, fail1Z: old.fail1Z ?? NaN, fail1Until: old.fail1Until ?? NaN, fail2X: old.fail2X ?? NaN, fail2Z: old.fail2Z ?? NaN, fail2Until: old.fail2Until ?? NaN, want: old.want ?? a.speed, steer: old.steer ?? 0, chkT: old.chkT ?? 0, chkD: old.chkD ?? 0, stuck: old.stuck ?? 0, cx: old.cx ?? a.x, cz: old.cz ?? a.z, ctx: old.ctx ?? a.tx, ctz: old.ctz ?? a.tz, bestD: old.bestD ?? Infinity };
+      return { ...a, mode: old.mode ?? MODE.Walk, fail1X: old.fail1X ?? NaN, fail1Z: old.fail1Z ?? NaN, fail1Until: old.fail1Until ?? NaN, fail2X: old.fail2X ?? NaN, fail2Z: old.fail2Z ?? NaN, fail2Until: old.fail2Until ?? NaN, fail3X: old.fail3X ?? NaN, fail3Z: old.fail3Z ?? NaN, fail3Until: old.fail3Until ?? NaN, fail4X: old.fail4X ?? NaN, fail4Z: old.fail4Z ?? NaN, fail4Until: old.fail4Until ?? NaN, want: old.want ?? a.speed, steer: old.steer ?? 0, chkT: old.chkT ?? 0, chkD: old.chkD ?? 0, stuck: old.stuck ?? 0, cx: old.cx ?? a.x, cz: old.cz ?? a.z, ctx: old.ctx ?? a.tx, ctz: old.ctz ?? a.tz, bestD: old.bestD ?? Infinity };
     });
     this.byId.clear();
     for (const a of this.animals) this.byId.set(a.id, a);

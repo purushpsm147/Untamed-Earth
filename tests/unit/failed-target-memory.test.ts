@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { B, FAILED_TARGET_HOURS, SPECIES, SPECIES_INDEX, Simulation, maturityDays, type Animal } from '@untamed/ecology';
 
-// Mission 3, first step: a destination given up on as unreachable is remembered (two decaying slots per animal) and not
+// Mission 3, first step: a destination given up on as unreachable is remembered (four decaying slots per animal) and not
 // chosen again until the memory expires (docs/BEHAVIOUR_AUDIT.md, finding 9: jackals re-chose an unreachable carcass
 // 10-32 times per day).
 
@@ -55,15 +55,16 @@ describe('failed-target memory', () => {
     expect(sim.recentlyFailed(j, 103, 202)).toBe(false);
   });
 
-  it('keeps two slots, replacing the older, and survives save/load', () => {
+  it('keeps four slots, replacing the oldest, and survives save/load', () => {
     const sim = new Simulation(3);
     const j = adult(sim, SPECIES_INDEX.jackal);
     const remember = (x: number, z: number): void => (sim as unknown as { rememberFailure(a: Animal, x: number, z: number): void }).rememberFailure(j, x, z);
-    remember(100, 100);
-    sim.env.timeH += 1;
-    remember(300, 300);
-    sim.env.timeH += 1;
-    remember(500, 500); // replaces (100, 100), the older
+    for (const p of [100, 200, 300, 400]) {
+      remember(p, p);
+      sim.env.timeH += 0.5;
+    }
+    for (const p of [100, 200, 300, 400]) expect(sim.recentlyFailed(j, p, p)).toBe(true);
+    remember(500, 500); // replaces (100, 100), the oldest
     expect(sim.recentlyFailed(j, 100, 100)).toBe(false);
     expect(sim.recentlyFailed(j, 300, 300)).toBe(true);
     expect(sim.recentlyFailed(j, 500, 500)).toBe(true);
