@@ -33,6 +33,11 @@ jobs:
         run: npm run build
       - name: Install Chromium for browser smoke tests
         run: npx playwright install --with-deps chromium
+      # The opt-in naturalism branch exercises both 720p and 1080p in Playwright.
+      # Do not interpret software rasterizer frame pacing as physical GPU timing.
+      - name: Visual naturalism 720p/1080p A/B screenshots (SwiftShader)
+        if: github.head_ref == 'experiment/gemini-natural-riverbank' || github.ref_name == 'experiment/gemini-natural-riverbank'
+        run: npx playwright test --project=naturalism --project=naturalism-v3
       - name: Browser smoke, reliability and gameplay suites (software renderer)
         run: npm run test:e2e -- --trace retain-on-failure
       - name: Upload Playwright reports, if produced
@@ -42,5 +47,7 @@ jobs:
           name: playwright-reports
           path: |
             test-artifacts/playwright/
+            test-results/naturalism-slice/
+            docs/evidence/slice1-v3/
           if-no-files-found: ignore
           retention-days: 7
