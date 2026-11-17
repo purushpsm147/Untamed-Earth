@@ -19,8 +19,8 @@ test('capture swimming, wading and take-off from real simulation state', async (
   // conditions on the simulation's own state; species 4 and 5 are the flying species (crow, myna)
   const want: [string, string][] = [
     ['swim', `a.mode === ${MODE.Swim}`],
-    ['wade', `a.mode === ${MODE.Wade} && a.sp < 4 && depth > 0.15`],
-    ['takeoff', `a.mode === ${MODE.Fly} && a.alt > 0.5 && a.alt < 3 && a.speed > 2`],
+    ['wade', `a.mode === ${MODE.Wade} && a.sp < 4 && depth > 0.15 && depth < 0.4`],
+    ['takeoff', `a.mode === ${MODE.Fly} && a.alt > 0.5 && a.alt < 3 && a.alt > a.palt`],
   ];
   const report: Record<string, unknown> = {};
   for (const [name, cond] of want) {
@@ -31,7 +31,7 @@ test('capture swimming, wading and take-off from real simulation state', async (
         G.debugStepTo(sim.tick + 50);
         let best = null; let bd = 1e18;
         for (const a of sim.animals) {
-          if (!a.alive) continue;
+          if (!a.alive || sim.env.daylight() < 0.5) continue;
           const depth = sim.valley.waterDepth(a.x, a.z, sim.env.stage);
           if (!(${cond})) continue;
           const d = (a.x - G.cam.x) ** 2 + (a.z - G.cam.z) ** 2;
@@ -42,17 +42,20 @@ test('capture swimming, wading and take-off from real simulation state', async (
     }
     expect(found, `found an animal to show (${name})`).not.toBeNull();
     const id = found!.id;
-    await g(page, (G) => G.setSpeed(1));
+    // pause the simulation at the moment found (rendering continues), so the camera reaches the animal in exactly the
+    // state the simulation reported; then capture and resume
+    await g(page, (G) => G.setSpeed(0));
     await page.evaluate((i) => { const G = window.__untamed; G.select(i); G.following = true; }, id);
-    await frames(page, 90);
+    await frames(page, 150);
     const state = await page.evaluate((i) => {
       const G = window.__untamed;
       const a = G.debugAnimal(i);
       const sim = G.sim;
-      return a ? { id: i, sp: a.sp, mode: a.mode, alt: a.alt, beh: a.beh, ground: a.ground, rendered: a.rendered, waterSurface: sim.valley.waterSurface(a.z) + sim.env.stage, depth: sim.valley.waterDepth(a.x, a.z, sim.env.stage) } : null;
+      return a ? { id: i, sp: a.sp, mode: a.mode, alt: a.alt, palt: a.palt, beh: a.beh, daylight: sim.env.daylight(), ground: a.ground, rendered: a.rendered, waterSurface: sim.valley.waterSurface(a.z) + sim.env.stage, depth: sim.valley.waterDepth(a.x, a.z, sim.env.stage) } : null;
     }, id);
     await page.screenshot({ path: `${OUT}/${name}.png` });
     report[name] = { found, atCapture: state };
+    await g(page, (G) => G.setSpeed(1));
   }
   const fs = await import('node:fs');
   fs.mkdirSync(OUT, { recursive: true });
