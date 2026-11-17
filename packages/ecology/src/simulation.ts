@@ -1376,6 +1376,11 @@ export class Simulation {
     a.palt = a.alt;
     // a flyer about to land on the ground never lands in water deeper than it can stand in, whatever the behaviour
     // chose: the landing point moves back along the approach to the first standable spot (bounded scan)
+    // no destination lies beyond the edge wall: a perch, roost tree or carcass in the outer strip is approached to the
+    // wall and reached there, never chased forever from the wall (B1 follow-up: birds hovered 2 m short of a roost tree
+    // at z = 4 m and starved)
+    a.tx = clamp(a.tx, EDGE_WALL, REGION_SIZE - EDGE_WALL);
+    a.tz = clamp(a.tz, EDGE_WALL, REGION_SIZE - EDGE_WALL);
     if (sp.flies && a.alt > 0.3 && a.beh !== B.Drink && ((a.tAlt < 1 && Math.hypot(a.tx - a.x, a.tz - a.z) < 12) || a.alt < 1.5)) this.safeLanding(a, sp);
     const dx = a.tx - a.x;
     const dz = a.tz - a.z;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { B, EDGE_WALL, SPECIES, SPECIES_INDEX, Simulation, type Animal } from '@untamed/ecology';
+import { B, EDGE_WALL, MODE, SPECIES, SPECIES_INDEX, Simulation, type Animal } from '@untamed/ecology';
 import { REGION_SIZE } from '@untamed/worlds';
 
 // Finding B1 (docs/OPEN_BOUNDARY_AUDIT.md): flight clamped at 4 m from the edge, ground movement refused anything
@@ -52,6 +52,22 @@ describe('region edge wall (B1)', () => {
       }
       expect(minZ).toBeGreaterThanOrEqual(EDGE_WALL);
       expect(minZ).toBeLessThan(EDGE_WALL + 1); // it did press against the edge
+    });
+  }
+
+  for (const dt of SPEEDS) {
+    it(`a bird flying to a roost beyond the wall reaches it at the wall and settles (tick ${dt} s)`, () => {
+      const sim = new Simulation(18);
+      const b = myna(sim);
+      Object.assign(b, { x: 619, z: 40, px: 619, pz: 40, alt: 6, palt: 6, speed: 3, want: 3, beh: B.Roost, tx: 619, tz: 4, tAlt: 5.7, timer: 1e9 });
+      for (let i = 0; i < Math.ceil(120 / dt); i++) {
+        Object.assign(b, { tAlt: 5.7, beh: B.Roost, timer: 1e9 }); // stays committed to the roost chosen beyond the wall
+        sim.step(dt);
+      }
+      expect(b.z).toBeGreaterThanOrEqual(EDGE_WALL);
+      expect(Math.hypot(b.x - 619, b.z - EDGE_WALL)).toBeLessThan(1.05); // at the wall below the roost (Roost arrival tolerance is 1 m)
+      expect(Math.hypot(b.tx - b.x, b.tz - b.z)).toBeLessThanOrEqual(1); // and arrived at its destination (it used to stay 2 m short for ever)
+      expect(b.mode).toBe(MODE.Perch);
     });
   }
 });
