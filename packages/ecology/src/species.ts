@@ -4,6 +4,25 @@ export const LIFE_COMPRESSION = 365 / 48;
 export type SpeciesId = 'chital' | 'boar' | 'jackal' | 'hare' | 'crow' | 'myna';
 export type Activity = 'diurnal' | 'crepuscular' | 'nocturnal';
 
+/**
+ * Physical capabilities in and around water. One table for every species replaces scattered special cases.
+ * - wadeDepth: water depth the animal walks through freely (about belly height). Deeper than this it wades slowly,
+ *   and beyond swimDepth (2 x wadeDepth, about shoulder height) it must swim.
+ * - swim: 'none' never enters water deeper than wadeDepth; 'escape' only while fleeing; 'capable' / 'strong' may swim.
+ * - swimSpeed: fraction of the step length while swimming. waterAversion: route cost of deep water (steering).
+ * - wallows: may rest in shallow water (<= wadeDepth).
+ * - evidence: where each value comes from. 'body size' = derived from body proportions, not a field measurement;
+ *   'assumption' = no source found yet (docs/BEHAVIOUR_AUDIT.md).
+ */
+export interface Locomotion {
+  wadeDepth: number;
+  swim: 'none' | 'escape' | 'capable' | 'strong';
+  swimSpeed: number;
+  waterAversion: number;
+  wallows: boolean;
+  evidence: string;
+}
+
 export interface SpeciesDef {
   id: SpeciesId;
   name: string;
@@ -53,6 +72,7 @@ export interface SpeciesDef {
   juvHazard: number;
   adultHazard: number;
   playable: boolean;
+  locomotion: Locomotion;
   /** Species-level natural history (general knowledge, not derived from this simulation). */
   note: string;
   /** How the model groups this species; shown in the Social Lens. */
@@ -71,6 +91,7 @@ export const SPECIES: SpeciesDef[] = [
     diet: { veg: 1, invert: 0, fauna: 0, carrion: 0 }, prey: [], predators: ['jackal'], adultFearless: false, fleeDist: 38,
     group: 10, homeRange: 230, flies: false, habitat: { forest: 0.5, meadow: 1, wetland: 0.5, settlement: 0.25, dump: 0 },
     initial: 52, juvHazard: 0.006, adultHazard: 0.0012, playable: true,
+    locomotion: { wadeDepth: 0.45, swim: 'capable', swimSpeed: 0.4, waterAversion: 0.6, wallows: false, evidence: 'wade depth: body size; swimming: assumption (no source found)' },
     note: 'Chital live in fluid herds that merge and split; an alarm bark from one animal puts the rest on alert.', groupNoun: 'herd',
   },
   {
@@ -80,6 +101,7 @@ export const SPECIES: SpeciesDef[] = [
     diet: { veg: 0.7, invert: 0.5, fauna: 0.08, carrion: 0.5 }, prey: [], predators: ['jackal'], adultFearless: true, fleeDist: 25,
     group: 6, homeRange: 300, flies: false, habitat: { forest: 1, meadow: 0.4, wetland: 0.8, settlement: 0.3, dump: 0.3 },
     initial: 20, juvHazard: 0.016, adultHazard: 0.0018, playable: false,
+    locomotion: { wadeDepth: 0.35, swim: 'strong', swimSpeed: 0.45, waterAversion: 0.5, wallows: true, evidence: 'wade depth: body size; strong swimmer and wallower: secondary sources' },
     note: 'Wild boar sows and their young form sounders; adult males are often solitary. They root in soil for tubers and invertebrates.', groupNoun: 'sounder',
   },
   {
@@ -89,6 +111,7 @@ export const SPECIES: SpeciesDef[] = [
     diet: { veg: 0.12, invert: 0.3, fauna: 0.9, carrion: 1 }, prey: ['hare', 'chital', 'boar'], predators: [], adultFearless: true, fleeDist: 0,
     group: 2, pairBreeding: true, homeRange: 480, flies: false, habitat: { forest: 0.5, meadow: 0.8, wetland: 0.3, settlement: 0.9, dump: 0.9 },
     initial: 6, juvHazard: 0.026, adultHazard: 0.0025, playable: false,
+    locomotion: { wadeDepth: 0.22, swim: 'capable', swimSpeed: 0.4, waterAversion: 1.4, wallows: false, evidence: 'wade depth: body size; swimming: assumption; aversion: existing Living Valley value' },
     note: 'Golden jackals usually live as a mated pair with their young; older offspring sometimes stay on as helpers.', groupNoun: 'family',
   },
   {
@@ -98,6 +121,7 @@ export const SPECIES: SpeciesDef[] = [
     diet: { veg: 1, invert: 0, fauna: 0, carrion: 0 }, prey: [], predators: ['jackal'], adultFearless: false, fleeDist: 30,
     group: 0, homeRange: 130, flies: false, habitat: { forest: 0.3, meadow: 1, wetland: 0.2, settlement: 0.6, dump: 0.1 },
     initial: 64, juvHazard: 0.02, adultHazard: 0.004, playable: false,
+    locomotion: { wadeDepth: 0.15, swim: 'escape', swimSpeed: 0.35, waterAversion: 3, wallows: false, evidence: 'wade depth: body size; swims mainly to escape, water a last resort (high aversion): non-authoritative sources' },
     note: 'Indian hares are largely solitary and rest by day in a shallow form in the grass.', groupNoun: 'loose neighbourhood',
   },
   {
@@ -107,6 +131,7 @@ export const SPECIES: SpeciesDef[] = [
     diet: { veg: 0.3, invert: 0.7, fauna: 0.5, carrion: 1 }, prey: [], predators: ['jackal'], adultFearless: false, fleeDist: 14,
     group: 8, homeRange: 420, flies: true, habitat: { forest: 0.2, meadow: 0.4, wetland: 0.3, settlement: 1, dump: 1 },
     initial: 30, juvHazard: 0.012, adultHazard: 0.0035, playable: false,
+    locomotion: { wadeDepth: 0.05, swim: 'none', swimSpeed: 0, waterAversion: 0, wallows: false, evidence: 'drinks at the edge or in shallows; does not swim' },
     note: 'House crows are closely tied to human settlements and gather in communal roosts at night.', groupNoun: 'roost flock',
   },
   {
@@ -116,6 +141,7 @@ export const SPECIES: SpeciesDef[] = [
     diet: { veg: 0.45, invert: 1, fauna: 0, carrion: 0.1 }, prey: [], predators: ['jackal'], adultFearless: false, fleeDist: 12,
     group: 6, homeRange: 260, flies: true, habitat: { forest: 0.3, meadow: 0.9, wetland: 0.4, settlement: 1, dump: 0.4 },
     initial: 44, juvHazard: 0.02, adultHazard: 0.007, playable: false,
+    locomotion: { wadeDepth: 0.04, swim: 'none', swimSpeed: 0, waterAversion: 0, wallows: false, evidence: 'drinks at the edge or in shallows; does not swim' },
     note: 'Common mynas nest in cavities, including holes in buildings, and forage on the ground in small parties.', groupNoun: 'foraging party',
   },
 ];

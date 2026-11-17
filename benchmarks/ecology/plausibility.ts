@@ -30,7 +30,8 @@ export const AUDIT_CATEGORIES = [
   'insideBuilding', // within a building footprint below 2 m altitude
   'passThroughBuilding', // ground step whose path crosses a footprint although both ends are outside
   'gradeExceeded', // ground step steeper than the steering limits
-  'shorelineSkip', // ground step that crosses deep water although both ends are in shallow water or dry
+  'shorelineSkip', // ground step that went > 1 m beyond what the species could cover through that water in one tick, or crossed water it may not enter
+  'shorelineSkipLegacy', // the Mission 1 definition: crosses water deeper than a fixed 0.45 m, both ends <= 0.3 m (species-blind)
   'groundRoost', // bird settled to roost below 1 m altitude
   'stuckHour', // trying to move (want > 0) for most of a game hour but net displacement < 3 m
   'retryLoop', // re-chose (within 3 m) a destination it abandoned unreached within the past 2 game hours
@@ -170,7 +171,32 @@ export class PlausibilityAudit {
             if (endsOutside && !crossed && v.blocked(x, z, 0)) crossed = true;
           }
           if (crossed) this.hit('passThroughBuilding', a, 0, true, depth, `step ${stepLen.toFixed(1)} m`);
-          if (!sp.flies && d0 <= 0.3 && depth <= 0.3 && maxDepth > SWIM_DEPTH) this.hit('shorelineSkip', a, 0, true, depth, `step ${stepLen.toFixed(1)} m over ${maxDepth.toFixed(2)} m deep`);
+          if (!sp.flies && d0 <= 0.3 && depth <= 0.3 && maxDepth > SWIM_DEPTH) this.hit('shorelineSkipLegacy', a, 0, true, depth, `step ${stepLen.toFixed(1)} m over ${maxDepth.toFixed(2)} m deep`);
+          // species-aware: did the step cross water faster than the species can move through it, or cross water it
+          // may not enter? (A narrow band crossed at swimming speed within one tick is legitimate.)
+          const loco = (sp as { locomotion?: { wadeDepth: number; swim: string; swimSpeed: number } }).locomotion;
+          if (!sp.flies && loco) {
+            const maySwim = loco.swim === 'capable' || loco.swim === 'strong' || (loco.swim === 'escape' && a.beh === B.Flee);
+            const m = Math.min(128, Math.ceil(stepLen / 0.5));
+            const piece = stepLen / m;
+            const dtS = (hours * 3600) / TIME_SCALE;
+            // how far the animal could have got this tick through this depth profile at full running speed
+            let t = 0;
+            let reach = stepLen;
+            let forbiddenLen = 0;
+            for (let i = 0; i < m; i++) {
+              const f = (i + 0.5) / m;
+              const d = this.depthAt(a.px + (a.x - a.px) * f, a.pz + (a.z - a.pz) * f);
+              if (d > loco.wadeDepth + 0.01 && !maySwim && d > Math.min(d0, depth) + 0.01) forbiddenLen += piece;
+              const v = sp.run * Math.max(d > loco.wadeDepth * 2 ? loco.swimSpeed : d > loco.wadeDepth ? 0.6 : 1, 1e-3);
+              if (reach === stepLen && t + piece / v > dtS) reach = i * piece + (dtS - t) * v;
+              t += piece / v;
+            }
+            // judged at the movement sweep's resolution (1 m): a sub-metre excess is sampling, not a skip
+            const excess = stepLen - reach;
+            const forbidden = forbiddenLen > 1;
+            if (forbidden || excess > 1) this.hit('shorelineSkip', a, 0, true, depth, `step ${stepLen.toFixed(1)} m over ${maxDepth.toFixed(2)} m deep: ${forbidden ? 'forbidden water' : `${excess.toFixed(1)} m beyond reach`}`);
+          }
           const grade = (v.heightFast(a.x, a.z) - v.heightFast(a.px, a.pz)) / stepLen;
           if (!sp.flies && (grade > MAX_UP || grade < -MAX_DOWN)) this.hit('gradeExceeded', a, 0, true, depth, `grade ${grade.toFixed(2)} over ${stepLen.toFixed(1)} m`);
         }

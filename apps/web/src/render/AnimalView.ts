@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { angleDiff } from '@untamed/core';
-import { Animal, SPECIES, Simulation, behaviorFamily, maturityDays } from '@untamed/ecology';
+import { Animal, MODE, SPECIES, Simulation, behaviorFamily, maturityDays } from '@untamed/ecology';
 import { AnimalModel, buildAnimalModels } from './animalGeo';
 import { blob } from './geo';
 import { PoseState, newPose, stepPose } from './animalPose';
@@ -137,10 +137,12 @@ export class AnimalView {
       const lie = stepPose(v, { family: behaviorFamily(a), moving, running: run, flying, flier: sp.flies, fear: a.fear, time, seed: a.id }, dt);
       const g = sim.growth(a, sp);
       const sc = (0.42 + 0.58 * g) * (sp.id === 'chital' && a.sex === 1 && adult ? 1.12 : 1) * (0.94 + ((a.id * 37) % 13) / 100);
-      // swimming animals ride at the surface with only head and back showing
+      // the simulation decides the movement mode (walk / wade / swim / fly / perch); the renderer only draws it.
+      // Swimming animals ride at the surface with only head and back showing; waders stand on the bed.
+      const swimming = !flying && a.mode === MODE.Swim;
       let y = ground + alt - lie * b.model.lie * sc;
-      if (!flying && wd > 0.45 * sc) y = ground + wd - b.model.height * sc * 0.72;
-      v.off = flying || wd > 0.45 * sc || v.lie > 0.02 || d2 >= 300 * 300 ? NaN : y - ground;
+      if (swimming) y = ground + Math.max(wd, 0) - b.model.height * sc * 0.72;
+      v.off = flying || swimming || v.lie > 0.02 || d2 >= 300 * 300 ? NaN : y - ground;
       const pitch = flying ? -0.15 : run ? Math.sin(v.phase) * 0.05 : 0;
       this.e.set(pitch, v.yaw, 0);
       this.p.set(x, y + (run && !flying ? Math.abs(Math.sin(v.phase)) * 0.06 * sc : 0), z);

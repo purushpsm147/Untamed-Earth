@@ -1,0 +1,27 @@
+baseline 5cf7b4a
+{"target":250,"alive":250,"dt":0.1,"msPerTick":0.661,"usPerAnimalTick":2.64}
+{"target":250,"alive":249,"dt":2,"msPerTick":1.135,"usPerAnimalTick":4.56}
+{"target":1000,"alive":1001,"dt":0.1,"msPerTick":1.659,"usPerAnimalTick":1.66}
+{"target":1000,"alive":998,"dt":2,"msPerTick":2.91,"usPerAnimalTick":2.92}
+{"target":5000,"alive":5000,"dt":0.1,"msPerTick":6.205,"usPerAnimalTick":1.24}
+{"target":5000,"alive":4993,"dt":2,"msPerTick":33.395,"usPerAnimalTick":6.69}
+{"target":10000,"alive":9998,"dt":0.1,"msPerTick":18.908,"usPerAnimalTick":1.89}
+{"target":10000,"alive":9980,"dt":2,"msPerTick":151.083,"usPerAnimalTick":15.14}
+first #25 cb80568
+{"target":250,"alive":250,"dt":0.1,"msPerTick":0.848,"usPerAnimalTick":3.39}
+{"target":250,"alive":249,"dt":2,"msPerTick":1.116,"usPerAnimalTick":4.48}
+{"target":1000,"alive":1001,"dt":0.1,"msPerTick":1.531,"usPerAnimalTick":1.53}
+{"target":1000,"alive":1000,"dt":2,"msPerTick":3.339,"usPerAnimalTick":3.34}
+{"target":5000,"alive":4999,"dt":0.1,"msPerTick":6.674,"usPerAnimalTick":1.33}
+{"target":5000,"alive":4994,"dt":2,"msPerTick":34.02,"usPerAnimalTick":6.81}
+{"target":10000,"alive":10000,"dt":0.1,"msPerTick":21.395,"usPerAnimalTick":2.14}
+{"target":10000,"alive":9982,"dt":2,"msPerTick":154.173,"usPerAnimalTick":15.45}
+final #25 eea57e1 (1 m sweep)
+{"target":250,"alive":250,"dt":0.1,"msPerTick":0.675,"usPerAnimalTick":2.7}
+{"target":250,"alive":249,"dt":2,"msPerTick":0.991,"usPerAnimalTick":3.98}
+{"target":1000,"alive":1001,"dt":0.1,"msPerTick":1.215,"usPerAnimalTick":1.21}
+{"target":1000,"alive":1000,"dt":2,"msPerTick":3.083,"usPerAnimalTick":3.08}
+{"target":5000,"alive":4999,"dt":0.1,"msPerTick":6.464,"usPerAnimalTick":1.29}
+{"target":5000,"alive":4988,"dt":2,"msPerTick":31.024,"usPerAnimalTick":6.22}
+{"target":10000,"alive":9999,"dt":0.1,"msPerTick":19.314,"usPerAnimalTick":1.93}
+{"target":10000,"alive":9974,"dt":2,"msPerTick":143.61,"usPerAnimalTick":14.4}

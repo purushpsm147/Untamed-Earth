@@ -22,6 +22,8 @@ export interface Animal {
   sp: number;
   x: number; z: number; alt: number;
   px: number; pz: number; palt: number;
+  /** Movement mode computed by the simulation each tick (MODE): walk, wade, swim, fly or perched. Renderers read it. */
+  mode: number;
   heading: number;
   /** Actual speed, m/s (changes within acceleration limits). */
   speed: number;
@@ -130,6 +132,22 @@ const MAX_UP_GRADE = 0.95;
 const MAX_DOWN_GRADE = 1.3;
 /** Thirst above which the emergency layer sends an animal to water (thirst saturates ~5 h later, then health drains). */
 export const CRITICAL_THIRST = 0.85;
+
+/** Movement modes (Animal.mode). */
+export const MODE = { Walk: 0, Wade: 1, Swim: 2, Fly: 3, Perch: 4 } as const;
+export const MODE_NAMES = ['walking', 'wading', 'swimming', 'flying', 'perched'];
+/** Depth above which an animal must swim: about shoulder height, twice the wade (belly) depth. */
+export const swimDepth = (sp: SpeciesDef): number => sp.locomotion.wadeDepth * 2;
+/** May this animal be in water deeper than its wade depth right now? */
+const maySwim = (sp: SpeciesDef, fleeing: boolean): boolean =>
+  sp.locomotion.swim === 'capable' || sp.locomotion.swim === 'strong' || (sp.locomotion.swim === 'escape' && fleeing);
+/**
+ * Bounded continuous sweep: a ground step is walked in samples of at most SWEEP_M metres, at most SWEEP_SAMPLES_MAX per
+ * tick. The longest ground step at any current speed is ~25 m (12.5 m/s at the 2 s tick), so every step is checked at
+ * 1 m resolution; only a step longer than 32 m (none today) would be sampled more coarsely. Work per animal is bounded.
+ */
+const SWEEP_M = 1;
+const SWEEP_SAMPLES_MAX = 32;
 /** Daylight below which a diurnal animal settled on its roost/rest site waits for first light before going to water. */
 const DARK = 0.1;
 
@@ -248,7 +266,7 @@ export class Simulation {
       z = lerp(z, homeZ, 0.5);
     }
     const a: Animal = {
-      id: this.nextId++, sp, x, z, alt: 0, px: x, pz: z, palt: 0, heading: this.rng.range(0, 6.283), speed: 0, want: 0, steer: 0, chkT: 0, chkD: 0, stuck: 0, cx: x, cz: z, ctx: x, ctz: z, bestD: Infinity, age,
+      id: this.nextId++, sp, x, z, alt: 0, px: x, pz: z, palt: 0, mode: MODE.Walk, heading: this.rng.range(0, 6.283), speed: 0, want: 0, steer: 0, chkT: 0, chkD: 0, stuck: 0, cx: x, cz: z, ctx: x, ctz: z, bestD: Infinity, age,
       sex: this.rng.chance(0.5) ? 0 : 1, health: 1, hunger: 0.2, thirst: 0.2, energy: 0.8, stamina: 1, fear: 0, beh: B.Idle,
       tx: x, tz: z, tAlt: 0, targetId: 0, threatX: x, threatZ: z, pregnantH: 0, cooldownH: 0, homeX, homeZ, group, mother,
       waterX: NaN, waterZ: NaN, timer: this.rng.range(0, 3), crowd: 0, alive: true, controlled: false,
@@ -336,6 +354,7 @@ export class Simulation {
       if (a.controlled) this.actControlled(a, sp, dt, dtH);
       else this.act(a, sp, dt, dtH);
       this.move(a, sp, dt);
+      this.updateMode(a, sp);
     }
     this.stepCarcasses(dtH);
     if (this.dead) this.sweep();
@@ -396,12 +415,14 @@ export class Simulation {
   // ------------------------------------------------------------------ physiology
   private physiology(a: Animal, sp: SpeciesDef, dt: number, dtH: number): void {
     const resting = a.beh === B.Rest || (a.beh === B.Roost && a.speed === 0);
-    const sprinting = a.beh === B.Flee || a.beh === B.Chase;
+    // swimming is effortful (hunger and energy as for sprinting); it is also no place to recover
+    const swimming = a.mode === MODE.Swim;
+    const sprinting = a.beh === B.Flee || a.beh === B.Chase || swimming;
     const prevAgeH = Math.floor(a.age * 24);
     a.age += dtH / 24;
     a.hunger += dtH * (0.5 / 24) * (sprinting ? 1.6 : resting ? 0.7 : 1) * (a.pregnantH > 0 ? 1.15 : 1);
     a.thirst += (dtH / 34) * (1 + Math.max(0, this.env.temperature - 24) / 18) * (sprinting ? 1.5 : 1);
-    a.energy = clamp01(a.energy + (resting ? 0.13 : -0.045) * dtH);
+    a.energy = clamp01(a.energy + (resting && !swimming ? 0.13 : swimming ? -0.15 : -0.045) * dtH);
     if (!sprinting) a.stamina = Math.min(1, a.stamina + dt / 45);
     a.fear *= Math.exp(-dt / 14);
     if (a.cooldownH > 0) a.cooldownH -= dtH;
@@ -543,6 +564,15 @@ export class Simulation {
       a.tx = wx;
       a.tz = wz;
       a.tAlt = 0;
+      // a bird lands at the water's edge (no deeper than it can stand in), never in the channel: walk back from the
+      // water point toward the bird to the first point shallow enough (bounded: at most 60 one-metre samples)
+      if (sp.flies) {
+        const p = this.nearestStandable(sp, wx, wz, a.x - wx, a.z - wz);
+        if (p) {
+          a.tx = p.x;
+          a.tz = p.z;
+        }
+      }
     }
   }
 
@@ -642,10 +672,11 @@ export class Simulation {
     a.timer = rng.range(2, 4) * (far ? 2.5 : 1);
     if (a.controlled) return;
 
-    // ---- rising water: a small ground animal caught by a flood makes for the shallowest ground it can sense ----
-    if (sp.mass < 5 && !sp.flies) {
+    // ---- water it should not be in (rising flood, or a non-swimmer that got there): make for the shallowest ground ----
+    if (a.alt < 0.3) {
       const here = this.valley.waterDepth(a.x, a.z, env.stage);
-      if (here > 0.2) {
+      // (a flyer tolerates up to twice its standing depth before leaving, so a small rise at the edge does not flush it)
+      if (here > sp.locomotion.wadeDepth * (sp.flies ? 2 : 1) && !maySwim(sp, false)) {
         let bd = here;
         for (let k = 0; k < 8; k++) {
           const ang = (k / 8) * 6.283;
@@ -731,9 +762,11 @@ export class Simulation {
     if (sp.diet.carrion > 0 && a.hunger > 0.25 && this.carcasses.length > 0) {
       const reach = sp.smell * (a.alt > 2 || !sp.flies ? 1 : 0.5);
       let bd = reach * reach;
+      const reachDepth = maySwim(sp, false) ? Infinity : sp.locomotion.wadeDepth;
       for (const c of this.carcasses) {
         const d2 = (c.x - a.x) ** 2 + (c.z - a.z) ** 2;
-        if (d2 < bd && c.kg > 0.05) {
+        // food lying in water the animal may not enter is out of reach, not a target
+        if (d2 < bd && c.kg > 0.05 && this.valley.waterDepth(c.x, c.z, env.stage) <= reachDepth) {
           bd = d2;
           carc = c;
         }
@@ -756,7 +789,11 @@ export class Simulation {
         const reach = Math.min(Math.max(vis, 25), 70);
         // a bird perched on a roof must not choose to "forage right here": that would land it inside the walls
         const onRoof = this.insideBuilding(a.x, a.z, 1);
-        let bs = onRoof ? -1e9 : this.foodScore(sp, a.x, a.z) * 1.1;
+        // nor graze where it stands if that is in water deeper than the patches it would consider elsewhere
+        // feeding in shallow water is fine, but never deeper than the animal can stand in (0.15 m for the mammals)
+        const feedDepth = Math.min(0.15, sp.locomotion.wadeDepth);
+        const hereInvalid = onRoof || this.valley.waterDepth(a.x, a.z, env.stage) > feedDepth;
+        let bs = hereInvalid ? -1e9 : this.foodScore(sp, a.x, a.z) * 1.1;
         let bx = a.x;
         let bz = a.z;
         for (let i = 0; i < 5; i++) {
@@ -766,7 +803,7 @@ export class Simulation {
             x = lerp(x, g.x, 0.5);
             z = lerp(z, g.z, 0.5);
           }
-          if (!this.valley.inBounds(x, z, 12) || this.valley.waterDepth(x, z, env.stage) > 0.15 || this.insideBuilding(x, z, 1)) continue;
+          if (!this.valley.inBounds(x, z, 12) || this.valley.waterDepth(x, z, env.stage) > feedDepth || this.insideBuilding(x, z, 1)) continue;
           const homePull = Math.hypot(x - a.homeX, z - a.homeZ) / (sp.homeRange * 3);
           const s = this.foodScore(sp, x, z) - Math.hypot(x - a.x, z - a.z) * 0.0015 - homePull * homePull * 0.4;
           if (s > bs) {
@@ -775,7 +812,7 @@ export class Simulation {
             bz = z;
           }
         }
-        if (onRoof && bx === a.x && bz === a.z) {
+        if (hereInvalid && bx === a.x && bz === a.z) {
           this.startWander(a, sp, 1);
           break;
         }
@@ -790,18 +827,27 @@ export class Simulation {
         a.want = 0;
         a.tx = a.x;
         a.tz = a.z;
-        // ground animals do not lie down in water: from a wet spot (e.g. after drinking) walk a few metres to dry,
-        // open ground first. Directions are tried in a fixed order, so the choice is deterministic.
-        if (!sp.flies && this.valley.waterDepth(a.x, a.z, this.env.stage) > -0.1) {
-          search: for (const r of [3, 6, 10]) {
+        // ground animals do not lie down in water (wallowing species may in shallow water): from a wet spot walk to
+        // dry, open ground first; failing that, to the shallowest spot found. Fixed search order: deterministic.
+        const restDepth = sp.locomotion.wallows ? sp.locomotion.wadeDepth : -0.1;
+        let here = this.valley.waterDepth(a.x, a.z, this.env.stage);
+        if (!sp.flies && here > restDepth) {
+          search: for (const r of [3, 6, 10, 20, 35]) {
             for (let k = 0; k < 8; k++) {
               const ang = a.heading + Math.PI + (k * Math.PI) / 4;
               const x = a.x + Math.sin(ang) * r;
               const z = a.z + Math.cos(ang) * r;
-              if (this.valley.waterDepth(x, z, this.env.stage) < -0.2 && !this.insideBuilding(x, z, 1) && this.valley.inBounds(x, z, 8)) {
+              if (this.insideBuilding(x, z, 1) || !this.valley.inBounds(x, z, 8)) continue;
+              const d = this.valley.waterDepth(x, z, this.env.stage);
+              if (d < -0.2) {
                 a.tx = x;
                 a.tz = z;
                 break search;
+              }
+              if (d < here) {
+                here = d;
+                a.tx = x;
+                a.tz = z;
               }
             }
           }
@@ -969,13 +1015,19 @@ export class Simulation {
         if (a.alt < 0.3) {
           // probe the ground ahead metre by metre so animals stop and drink at the water's edge
           const reach = Math.min(dist, a.speed * dt) + 1.2;
-          const ux = dist > 0.01 ? dx / dist : 0;
-          const uz = dist > 0.01 ? dz / dist : 0;
+          // at the edge target, look toward the remembered water itself
+          const pdx = dist < 1.5 && !Number.isNaN(a.waterX) ? a.waterX - a.x : dx;
+          const pdz = dist < 1.5 && !Number.isNaN(a.waterX) ? a.waterZ - a.z : dz;
+          const pd = Math.hypot(pdx, pdz);
+          const ux = pd > 0.01 ? pdx / pd : 0;
+          const uz = pd > 0.01 ? pdz / pd : 0;
           for (let s = 0; s <= reach; s += 1) {
             const wx = a.x + ux * s;
             const wz = a.z + uz * s;
             if (this.env.waterHere(wx, wz)) {
-              const back = Math.max(0, s - 0.6);
+              // stop at the edge: just short of the water, and never where it is deeper than the animal can stand
+              let back = Math.max(0, s - 0.6);
+              while (back > 0 && this.valley.waterDepth(a.x + ux * back, a.z + uz * back, this.env.stage) > sp.locomotion.wadeDepth) back = Math.max(0, back - 0.25);
               a.x += ux * back;
               a.z += uz * back;
               a.beh = B.Drink;
@@ -1242,13 +1294,71 @@ export class Simulation {
     return this.bldCell[this.env.cellIndex(x, z)] === 1 && this.valley.blocked(x, z, margin);
   }
 
-  private passable(sp: SpeciesDef, x: number, z: number, fromDepth: number): boolean {
+  /**
+   * The nearest point a species can stand at (water no deeper than its wade depth, not inside walls, in bounds) to
+   * (x, z): first along the preferred direction (dx, dz) up to 60 m, then 8 directions out to 60 m. Bounded: at most
+   * 108 terrain samples; called on decisions and landings only.
+   */
+  private nearestStandable(sp: SpeciesDef, x: number, z: number, dx: number, dz: number): { x: number; z: number } | null {
+    const stage = this.env.stage;
+    const wade = sp.locomotion.wadeDepth;
+    const ok = (px: number, pz: number): boolean => this.valley.waterDepth(px, pz, stage) <= wade && !this.insideBuilding(px, pz) && this.valley.inBounds(px, pz, 6);
+    if (ok(x, z)) return { x, z };
+    const dl = Math.hypot(dx, dz);
+    if (dl > 0.5) {
+      const ux = dx / dl;
+      const uz = dz / dl;
+      for (let s = 1; s <= Math.min(60, dl + 1); s += 1) if (ok(x + ux * s, z + uz * s)) return { x: x + ux * s, z: z + uz * s };
+    }
+    for (const r of [2, 4, 8, 16, 32, 60]) {
+      for (let k = 0; k < 8; k++) {
+        const px = x + Math.sin((k * Math.PI) / 4) * r;
+        const pz = z + Math.cos((k * Math.PI) / 4) * r;
+        if (ok(px, pz)) return { x: px, z: pz };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * A flyer low over water it cannot stand in, or about to land in it, gets a standable landing point and the intent
+   * to reach it (a bird never hovers over the water with nowhere to go).
+   */
+  private safeLanding(a: Animal, sp: SpeciesDef): void {
+    const stage = this.env.stage;
+    const wade = sp.locomotion.wadeDepth;
+    const overWater = a.alt < 1.5 && this.valley.waterDepth(a.x, a.z, stage) > wade;
+    const targetWet = this.valley.waterDepth(a.tx, a.tz, stage) > wade;
+    if (!targetWet && !overWater) return;
+    if (targetWet) {
+      const p = this.nearestStandable(sp, a.tx, a.tz, a.x - a.tx, a.z - a.tz);
+      if (p) {
+        a.tx = p.x;
+        a.tz = p.z;
+      } else {
+        a.tAlt = Math.max(a.tAlt, 3); // nothing to stand on nearby: stay airborne
+      }
+    }
+    if (overWater) a.want = Math.max(a.want, sp.walk * 2);
+  }
+
+  /** The movement mode renderers and diagnostics read: what the animal is physically doing this tick. */
+  private updateMode(a: Animal, sp: SpeciesDef): void {
+    if (a.alt > 0.25) {
+      a.mode = a.beh === B.Roost && a.speed < 0.05 && a.alt > 1 ? MODE.Perch : MODE.Fly;
+      return;
+    }
+    const d = this.valley.waterDepth(a.x, a.z, this.env.stage);
+    a.mode = !sp.flies && d > swimDepth(sp) ? MODE.Swim : d > 0.02 ? MODE.Wade : MODE.Walk;
+  }
+
+  private passable(sp: SpeciesDef, x: number, z: number, fromDepth: number, fleeing: boolean): boolean {
     if (x < 6 || z < 6 || x > REGION_SIZE - 6 || z > REGION_SIZE - 6) return false;
     if (this.insideBuilding(x, z)) return false;
-    if (sp.mass < 5) {
-      // small mammals will not wade deeper than their belly, but can always retreat toward shallower ground
+    // no animal walks deeper than its wade depth unless it may swim; anything can always retreat toward shallower water
+    if (!maySwim(sp, fleeing)) {
       const d = this.valley.waterDepth(x, z, this.env.stage);
-      if (d > 0.3 && d >= fromDepth) return false;
+      if (d > sp.locomotion.wadeDepth && d >= fromDepth) return false;
     }
     return true;
   }
@@ -1257,6 +1367,9 @@ export class Simulation {
     a.px = a.x;
     a.pz = a.z;
     a.palt = a.alt;
+    // a flyer about to land on the ground never lands in water deeper than it can stand in, whatever the behaviour
+    // chose: the landing point moves back along the approach to the first standable spot (bounded scan)
+    if (sp.flies && a.alt > 0.3 && a.beh !== B.Drink && ((a.tAlt < 1 && Math.hypot(a.tx - a.x, a.tz - a.z) < 12) || a.alt < 1.5)) this.safeLanding(a, sp);
     const dx = a.tx - a.x;
     const dz = a.tz - a.z;
     const dist = Math.hypot(dx, dz);
@@ -1270,7 +1383,9 @@ export class Simulation {
       // climb when travelling, descend on approach. Decided from this tick's speed: using the previous tick's speed
       // left a bird that was blocked on the ground (speed reset to 0) unable ever to take off, which at large ticks
       // pinned birds on river banks until they died of thirst (docs/ECOLOGICAL_STABILITY_REPORT.md, "Ground-pinned birds")
-      const want = a.speed > sp.walk * 1.5 && dist > 9 ? Math.max(a.tAlt, 7 + (a.id % 9)) : dist < 9 ? a.tAlt : a.alt;
+      let want = a.speed > sp.walk * 1.5 && dist > 9 ? Math.max(a.tAlt, 7 + (a.id % 9)) : dist < 9 ? a.tAlt : a.alt;
+      // no touching down on water deeper than it can stand in: keep flying until over standable ground
+      if (want < 1.2 && this.valley.waterDepth(a.x, a.z, this.env.stage) > sp.locomotion.wadeDepth) want = Math.max(1.2, Math.min(a.alt, 1.2));
       a.alt += clamp(want - a.alt, -6 * dt, 5 * dt);
       if (a.alt < 0.05) a.alt = 0;
       // roofs are perches (tAlt > 0); nothing lands on the floor inside a ruin
@@ -1288,7 +1403,18 @@ export class Simulation {
     const goal = Math.atan2(dx, dz);
     let step = Math.min(a.speed * dt, dist);
     if (a.alt > 1) {
-      const maxTurn = 2.2 * dt;
+      // arrival: inside twice its turning radius a flyer slows (so the circle it can turn shrinks to half the distance)
+      // and turns harder, instead of orbiting a nearby target forever (docs/BEHAVIOUR_AUDIT.md, finding 8)
+      const TURN = 2.2;
+      const arriving = dist < (2 * a.speed) / TURN;
+      if (arriving) a.speed = Math.min(a.speed, Math.max(0.5, TURN * dist * 0.5));
+      step = Math.min(a.speed * dt, dist);
+      if (dist <= Math.max(step, 0.3)) {
+        a.x = clamp(a.tx, 4, REGION_SIZE - 4);
+        a.z = clamp(a.tz, 4, REGION_SIZE - 4);
+        return;
+      }
+      const maxTurn = TURN * dt * (arriving ? 2 : 1);
       a.heading += clamp(angleDiff(a.heading, goal), -maxTurn, maxTurn);
       a.x = clamp(a.x + Math.sin(a.heading) * step, 4, REGION_SIZE - 4);
       a.z = clamp(a.z + Math.cos(a.heading) * step, 4, REGION_SIZE - 4);
@@ -1302,20 +1428,37 @@ export class Simulation {
     }
     // ---- steering: look ahead along a fixed set of headings and take the cheapest; turn toward it smoothly ----
     const look = clamp(a.speed * 1.2, a.steer !== 0 ? 4 : 2.5, 12) + step;
-    const steered = this.steer(a, sp, goal, look);
+    const steered = this.steer(a, sp, goal, look, dist);
     const desired = Number.isNaN(steered) ? a.heading + Math.PI : steered; // everything blocked: turn around
     // turning rate falls with speed (a sprinting deer arcs; a walking one can pivot) and with body size
     const maxTurn = (loco.agility * 4.5 * dt) / (1 + a.speed / 6);
     a.heading += clamp(angleDiff(a.heading, desired), -maxTurn, maxTurn);
-    const depth = this.valley.waterDepth(a.x, a.z, this.env.stage);
-    if (depth > 0.45) step *= 0.4; // wading / swimming
-    const nx = a.x + Math.sin(a.heading) * step;
-    const nz = a.z + Math.cos(a.heading) * step;
-    if (this.passable(sp, nx, nz, depth)) {
+    // continuous sweep: the step is walked in samples of at most SWEEP_M (bounded by SWEEP_SAMPLES_MAX; no distance is
+    // lost). Each sample is checked for walls, region edge and water the species may not enter, and the speed factor
+    // follows the depth at each sample, so a large tick neither jumps a shoreline or wall corner nor crosses deep
+    // water at walking speed (docs/BEHAVIOUR_AUDIT.md, findings 5-6).
+    const fleeing = a.beh === B.Flee;
+    const hx = Math.sin(a.heading);
+    const hz = Math.cos(a.heading);
+    const n = Math.min(SWEEP_SAMPLES_MAX, Math.max(1, Math.ceil(step / SWEEP_M)));
+    const sub = step / n;
+    const water = sp.locomotion;
+    const swimD = swimDepth(sp);
+    let depth = this.valley.waterDepth(a.x, a.z, this.env.stage);
+    const factor = (d: number): number => (d > swimD ? water.swimSpeed : d > water.wadeDepth ? 0.6 : 1);
+    for (let i = 0; i < n; i++) {
+      // the slower of the sample's start and end: entering deeper water slows the animal at once
+      const ahead = this.valley.waterDepth(a.x + hx * sub, a.z + hz * sub, this.env.stage);
+      const f = Math.min(factor(depth), factor(ahead));
+      const nx = a.x + hx * sub * f;
+      const nz = a.z + hz * sub * f;
+      if (!this.passable(sp, nx, nz, depth, fleeing)) {
+        a.speed = 0; // pressed against an obstacle: stop and keep turning next tick (no instant heading snaps)
+        break;
+      }
       a.x = nx;
       a.z = nz;
-    } else {
-      a.speed = 0; // pressed against an obstacle: stop and keep turning next tick (no instant heading snaps)
+      depth = this.valley.waterDepth(a.x, a.z, this.env.stage);
     }
     // ---- progress check: give up on destinations the animal genuinely cannot reach ----
     // Two signals, checked every 4 s: the animal itself has not moved (pinned, whatever its goal is doing), or its
@@ -1388,7 +1531,7 @@ export class Simulation {
     const depth = this.valley.waterDepth(a.x, a.z, this.env.stage);
     // making room never means wading in: the step may not end in water deeper than where the animal stands
     const wet = this.valley.waterDepth(nx, nz, this.env.stage) > Math.max(-0.05, depth);
-    if (!wet && this.passable(sp, nx, nz, depth) && this.terrainCost(sp, a, nx, nz, this.valley.heightFast(a.x, a.z), step + 1e-3) < 0.5) {
+    if (!wet && this.passable(sp, nx, nz, depth, false) && this.terrainCost(sp, a, nx, nz, this.valley.heightFast(a.x, a.z), step + 1e-3) < 0.5) {
       a.x = nx;
       a.z = nz;
       a.speed = Math.max(a.speed, step / dt); // a real (slow) step: renderers animate legs from speed and distance
@@ -1408,9 +1551,12 @@ export class Simulation {
     const h = this.valley.heightFast(x, z);
     const depth = this.valley.waterSurface(z) + this.env.stage - h;
     let cost = 0;
-    if (depth > 0.3) {
-      if (sp.mass < 5) return Infinity;
-      if (depth > 0.45) cost += (sp.id === 'jackal' ? 1.4 : 0.6) * (a.beh === B.Flee ? 0.35 : 1);
+    const loco = sp.locomotion;
+    if (depth > loco.wadeDepth) {
+      const fleeing = a.beh === B.Flee;
+      if (!maySwim(sp, fleeing)) return Infinity;
+      // deep wading costs a little; swimming costs the species' aversion (less when escaping)
+      cost += loco.waterAversion * (depth > swimDepth(sp) ? 1 : 0.25) * (fleeing ? 0.35 : 1);
     }
     const grade = (h - h0) / dist;
     if (grade > MAX_UP_GRADE || grade < -MAX_DOWN_GRADE) return Infinity;
@@ -1418,7 +1564,7 @@ export class Simulation {
   }
 
   /** Bounded look-ahead steering with deterministic tie-breaking and side hysteresis. Returns NaN if fully blocked. */
-  private steer(a: Animal, sp: SpeciesDef, goal: number, look: number): number {
+  private steer(a: Animal, sp: SpeciesDef, goal: number, look: number, goalDist = Infinity): number {
     const h0 = this.valley.heightFast(a.x, a.z);
     let best = NaN;
     let bestCost = Infinity;
@@ -1431,7 +1577,10 @@ export class Simulation {
       const sx = Math.sin(h);
       const sz = Math.cos(h);
       // a near sample (just beyond this tick's step) stops far samples skipping over a building corner
-      for (const d of [1.2, look * 0.5, look]) {
+      // never judge a heading by ground beyond the destination itself (a target at the water's edge must not look
+      // blocked by the water behind it)
+      for (const d0 of [1.2, look * 0.5, look]) {
+        const d = Math.max(0.3, Math.min(d0, goalDist));
         const c = this.terrainCost(sp, a, a.x + sx * d, a.z + sz * d, h0, d);
         cost += c;
         if (cost === Infinity) break;
@@ -1468,7 +1617,7 @@ export class Simulation {
     // fields added after save v1 was defined default sensibly, so older saves load unchanged
     this.animals = s.animals.map((a) => {
       const old = a as Partial<Animal> & Animal;
-      return { ...a, want: old.want ?? a.speed, steer: old.steer ?? 0, chkT: old.chkT ?? 0, chkD: old.chkD ?? 0, stuck: old.stuck ?? 0, cx: old.cx ?? a.x, cz: old.cz ?? a.z, ctx: old.ctx ?? a.tx, ctz: old.ctz ?? a.tz, bestD: old.bestD ?? Infinity };
+      return { ...a, mode: old.mode ?? MODE.Walk, want: old.want ?? a.speed, steer: old.steer ?? 0, chkT: old.chkT ?? 0, chkD: old.chkD ?? 0, stuck: old.stuck ?? 0, cx: old.cx ?? a.x, cz: old.cz ?? a.z, ctx: old.ctx ?? a.tx, ctz: old.ctz ?? a.tz, bestD: old.bestD ?? Infinity };
     });
     this.byId.clear();
     for (const a of this.animals) this.byId.set(a.id, a);
