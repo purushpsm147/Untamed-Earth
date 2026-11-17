@@ -408,3 +408,26 @@ This is quantified, not assumed away:
 - off-map versus on-map mortality.
 
 Paired sign tests are used for D vs C, D vs E and D vs F, plus a seed bootstrap.
+
+## Amendment 3a: two implementation defects found by profiling, fixed before any open-boundary result
+No D, E or F seed had completed when these were found. The `e2246ff` runs produced no output. Nothing was discarded,
+and no valley outcome metric was consulted.
+
+1. **Off-map births did not scale with crowding.**
+   - Revision 2 §4 pre-registers that off-map "births and juvenile survival are scaled by crowding against capacity".
+     The first implementation scaled only the hazard.
+   - At full crowding the needs equilibrium sits just below the breeding threshold, so off-map hares kept breeding:
+     57 → 2,311 by day 210 on seed 1. That is an unlimited stock, which the design forbids, and it slowed the runs
+     about 6×.
+   - Conception is now multiplied by `(1 − crowding)`.
+   - Off-map hares now stay at 25–57 over 365 days (seeds 1–3).
+2. **Ranging residents were counted as departures.**
+   - Outer regional territories may be centred up to `W − r` = 960 m outside the valley, and residents range up to
+     1.5 × home range = 720 m from their centre. Ordinary ranging therefore crossed the landscape's outer line and was
+     recorded as a permanent departure.
+   - The landscape bounds where homes and territory centres exist. A departure is now recorded only for an animal
+     without a home range (a floater or disperser) that crosses the outer line.
+   - Off-map jackals now persist at 4–25 on seeds 1–3.
+
+Regression tests for both are in `tests/unit/open-boundary.test.ts`. The D, E, F and sensitivity runs use the commit that
+adds this amendment.
