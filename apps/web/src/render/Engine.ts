@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { clamp01 } from '@untamed/core';
 import { Simulation } from '@untamed/ecology';
 import { AnimalView } from './AnimalView';
+import { AnimalVisibility } from './AnimalVisibility';
 import { GrassView } from './GrassView';
 import { buildLandmarks } from './landmarks';
 import { QUALITY, QualityName, QualityPreset } from './quality';
@@ -62,6 +63,7 @@ export class Engine {
   readonly grass: GrassView;
   readonly water: WaterView;
   readonly animals: AnimalView;
+  private readonly animalVisibility = new AnimalVisibility();
   readonly weather: WeatherFx;
   quality: QualityPreset;
   readonly governor: QualityGovernor;
@@ -108,7 +110,8 @@ export class Engine {
     this.scatter = new ScatterView(valley);
     this.grass = new GrassView(valley, sim.env, QUALITY[quality].grassCount);
     this.water = new WaterView(valley);
-    this.animals = new AnimalView(sim);
+    const cullingMode = new URLSearchParams(window.location.search).get('animalCulling') === 'B' ? 'camera-shadow' : 'baseline';
+    this.animals = new AnimalView(sim, cullingMode);
     this.weather = new WeatherFx(QUALITY.ultra.rain);
     const lm = new THREE.Mesh(buildLandmarks(valley), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0.05, flatShading: true }));
     lm.castShadow = true;
@@ -271,7 +274,12 @@ export class Engine {
     this.grass.update(cam, env.timeH);
     const day = env.daylight();
     this.water.update(env.stage, env.rain, this.sky, this.quality.waterDetail, day);
-    this.animals.update(cam, alpha, dtReal, time, Math.min(this.quality.viewDist, 900), selected, highlightGroup);
+    if (this.animals.cullingMode === 'camera-shadow') {
+      // Sky.update has positioned the sun; classify before rendering and match Three's shadow camera.
+      this.animalVisibility.prepare(this.camera, this.sky.sun.castShadow ? this.sky.sun : undefined);
+    }
+    this.animals.update(cam, alpha, dtReal, time, Math.min(this.quality.viewDist, 900), selected, highlightGroup,
+      this.animals.cullingMode === 'camera-shadow' ? this.animalVisibility : undefined);
     this.weather.update(cam, env.rain, env.wind, env.windDir, day);
     this.renderer.render(this.scene, this.camera);
   }
