@@ -24,6 +24,12 @@ export interface Animal {
   px: number; pz: number; palt: number;
   /** Movement mode computed by the simulation each tick (MODE): walk, wade, swim, fly or perched. Renderers read it. */
   mode: number;
+  /**
+   * Failed-target memory: the last two destinations the animal gave up on as unreachable, and the game hour until which
+   * each is avoided (NaN = empty). Bounded (two slots), decays, saved with the animal.
+   */
+  fail1X: number; fail1Z: number; fail1Until: number;
+  fail2X: number; fail2Z: number; fail2Until: number;
   heading: number;
   /** Actual speed, m/s (changes within acceleration limits). */
   speed: number;
@@ -148,6 +154,9 @@ const maySwim = (sp: SpeciesDef, fleeing: boolean): boolean =>
  */
 const SWEEP_M = 1;
 const SWEEP_SAMPLES_MAX = 32;
+/** A destination given up as unreachable is avoided for this many game hours, within this radius (m). */
+export const FAILED_TARGET_HOURS = 6;
+export const FAILED_TARGET_RADIUS = 6;
 /** Daylight below which a diurnal animal settled on its roost/rest site waits for first light before going to water. */
 const DARK = 0.1;
 
@@ -266,7 +275,7 @@ export class Simulation {
       z = lerp(z, homeZ, 0.5);
     }
     const a: Animal = {
-      id: this.nextId++, sp, x, z, alt: 0, px: x, pz: z, palt: 0, mode: MODE.Walk, heading: this.rng.range(0, 6.283), speed: 0, want: 0, steer: 0, chkT: 0, chkD: 0, stuck: 0, cx: x, cz: z, ctx: x, ctz: z, bestD: Infinity, age,
+      id: this.nextId++, sp, x, z, alt: 0, px: x, pz: z, palt: 0, mode: MODE.Walk, fail1X: NaN, fail1Z: NaN, fail1Until: NaN, fail2X: NaN, fail2Z: NaN, fail2Until: NaN, heading: this.rng.range(0, 6.283), speed: 0, want: 0, steer: 0, chkT: 0, chkD: 0, stuck: 0, cx: x, cz: z, ctx: x, ctz: z, bestD: Infinity, age,
       sex: this.rng.chance(0.5) ? 0 : 1, health: 1, hunger: 0.2, thirst: 0.2, energy: 0.8, stamina: 1, fear: 0, beh: B.Idle,
       tx: x, tz: z, tAlt: 0, targetId: 0, threatX: x, threatZ: z, pregnantH: 0, cooldownH: 0, homeX, homeZ, group, mother,
       waterX: NaN, waterZ: NaN, timer: this.rng.range(0, 3), crowd: 0, alive: true, controlled: false,
@@ -549,9 +558,13 @@ export class Simulation {
     const env = this.env;
     let wx = a.waterX;
     let wz = a.waterZ;
+    if (!Number.isNaN(wx) && this.recentlyFailed(a, wx, wz)) wx = wz = a.waterX = a.waterZ = NaN;
     if (Number.isNaN(wx) || this.rng.chance(0.15)) {
-      // look for water within sensory range; otherwise fall back on the group's traditional knowledge
-      const site = env.findWater(a.x, a.z, Math.max(vis * 1.5, 140), this.drinkable) ?? (a.thirst > 0.55 ? env.findWater(a.x, a.z, sp.homeRange * 2.5 + 250, this.drinkable) : null);
+      // look for water within sensory range; otherwise fall back on the group's traditional knowledge (skipping sites
+      // recently given up on as unreachable)
+      this.deciding = a;
+      const site = env.findWater(a.x, a.z, Math.max(vis * 1.5, 140), this.waterFor) ?? (a.thirst > 0.55 ? env.findWater(a.x, a.z, sp.homeRange * 2.5 + 250, this.waterFor) : null);
+      this.deciding = null;
       if (site) {
         wx = a.waterX = site.x;
         wz = a.waterZ = site.z;
@@ -756,7 +769,7 @@ export class Simulation {
     const grp = sp.group > 2 && !sp.flies ? this.groups.get(a.group) : undefined;
     if (grp && grp.n > 1) {
       const dg = Math.hypot(grp.x - a.x, grp.z - a.z);
-      if (dg > 30) consider(B.Regroup, clamp((dg - 30) / 60, 0, 0.55) + 0.12);
+      if (dg > 30 && !this.recentlyFailed(a, grp.x, grp.z)) consider(B.Regroup, clamp((dg - 30) / 60, 0, 0.55) + 0.12);
     }
     let carc: Carcass | null = null;
     if (sp.diet.carrion > 0 && a.hunger > 0.25 && this.carcasses.length > 0) {
@@ -766,7 +779,7 @@ export class Simulation {
       for (const c of this.carcasses) {
         const d2 = (c.x - a.x) ** 2 + (c.z - a.z) ** 2;
         // food lying in water the animal may not enter is out of reach, not a target
-        if (d2 < bd && c.kg > 0.05 && this.valley.waterDepth(c.x, c.z, env.stage) <= reachDepth) {
+        if (d2 < bd && c.kg > 0.05 && this.valley.waterDepth(c.x, c.z, env.stage) <= reachDepth && !this.recentlyFailed(a, c.x, c.z)) {
           bd = d2;
           carc = c;
         }
@@ -803,7 +816,7 @@ export class Simulation {
             x = lerp(x, g.x, 0.5);
             z = lerp(z, g.z, 0.5);
           }
-          if (!this.valley.inBounds(x, z, 12) || this.valley.waterDepth(x, z, env.stage) > feedDepth || this.insideBuilding(x, z, 1)) continue;
+          if (!this.valley.inBounds(x, z, 12) || this.valley.waterDepth(x, z, env.stage) > feedDepth || this.insideBuilding(x, z, 1) || this.recentlyFailed(a, x, z)) continue;
           const homePull = Math.hypot(x - a.homeX, z - a.homeZ) / (sp.homeRange * 3);
           const s = this.foodScore(sp, x, z) - Math.hypot(x - a.x, z - a.z) * 0.0015 - homePull * homePull * 0.4;
           if (s > bs) {
@@ -837,7 +850,7 @@ export class Simulation {
               const ang = a.heading + Math.PI + (k * Math.PI) / 4;
               const x = a.x + Math.sin(ang) * r;
               const z = a.z + Math.cos(ang) * r;
-              if (this.insideBuilding(x, z, 1) || !this.valley.inBounds(x, z, 8)) continue;
+              if (this.insideBuilding(x, z, 1) || !this.valley.inBounds(x, z, 8) || this.recentlyFailed(a, x, z)) continue;
               const d = this.valley.waterDepth(x, z, this.env.stage);
               if (d < -0.2) {
                 a.tx = x;
@@ -913,6 +926,11 @@ export class Simulation {
     a.beh = B.Wander;
     a.tx = clamp(ax + this.rng.range(-r, r), 10, REGION_SIZE - 10);
     a.tz = clamp(az + this.rng.range(-r, r), 10, REGION_SIZE - 10);
+    // avoid a spot recently given up on (at most 3 redraws; extra random draws happen only when one is remembered)
+    for (let k = 0; k < 3 && this.recentlyFailed(a, a.tx, a.tz); k++) {
+      a.tx = clamp(ax + this.rng.range(-r, r), 10, REGION_SIZE - 10);
+      a.tz = clamp(az + this.rng.range(-r, r), 10, REGION_SIZE - 10);
+    }
     if (this.insideBuilding(a.tx, a.tz, 1)) {
       a.tx = a.x;
       a.tz = a.z;
@@ -1294,6 +1312,36 @@ export class Simulation {
     return this.bldCell[this.env.cellIndex(x, z)] === 1 && this.valley.blocked(x, z, margin);
   }
 
+  /** Remember a destination the animal gave up on (replaces the expired or older slot). */
+  private rememberFailure(a: Animal, x: number, z: number): void {
+    const now = this.env.timeH;
+    const until = now + FAILED_TARGET_HOURS;
+    const free1 = !(a.fail1Until > now);
+    const free2 = !(a.fail2Until > now);
+    if (free1 || (!free2 && a.fail1Until <= a.fail2Until)) {
+      a.fail1X = x;
+      a.fail1Z = z;
+      a.fail1Until = until;
+    } else {
+      a.fail2X = x;
+      a.fail2Z = z;
+      a.fail2Until = until;
+    }
+  }
+
+  /** Did the animal recently give up on a destination within FAILED_TARGET_RADIUS of (x, z)? */
+  recentlyFailed(a: Animal, x: number, z: number): boolean {
+    const now = this.env.timeH;
+    const r2 = FAILED_TARGET_RADIUS * FAILED_TARGET_RADIUS;
+    if (a.fail1Until > now && (x - a.fail1X) ** 2 + (z - a.fail1Z) ** 2 < r2) return true;
+    if (a.fail2Until > now && (x - a.fail2X) ** 2 + (z - a.fail2Z) ** 2 < r2) return true;
+    return false;
+  }
+
+  /** findWater filter for the animal currently deciding: drinkable and not recently given up on (no closure per call). */
+  private deciding: Animal | null = null;
+  private readonly waterFor = (x: number, z: number): boolean => this.drinkable(x, z) && !(this.deciding !== null && this.recentlyFailed(this.deciding, x, z));
+
   /**
    * The nearest point a species can stand at (water no deeper than its wade depth, not inside walls, in bounds) to
    * (x, z): first along the preferred direction (dx, dz) up to 60 m, then 8 directions out to 60 m. Bounded: at most
@@ -1491,6 +1539,8 @@ export class Simulation {
         a.timer = 0;
         if (a.beh === B.Flee) this.startFlee(a, sp);
         else {
+          // remember what could not be reached, so the next decision does not choose it again at once
+          this.rememberFailure(a, a.tx, a.tz);
           if (a.beh === B.SeekWater) a.waterX = a.waterZ = NaN; // remembered water is out of reach from here
           a.beh = B.Idle;
           a.want = 0;
@@ -1617,7 +1667,7 @@ export class Simulation {
     // fields added after save v1 was defined default sensibly, so older saves load unchanged
     this.animals = s.animals.map((a) => {
       const old = a as Partial<Animal> & Animal;
-      return { ...a, mode: old.mode ?? MODE.Walk, want: old.want ?? a.speed, steer: old.steer ?? 0, chkT: old.chkT ?? 0, chkD: old.chkD ?? 0, stuck: old.stuck ?? 0, cx: old.cx ?? a.x, cz: old.cz ?? a.z, ctx: old.ctx ?? a.tx, ctz: old.ctz ?? a.tz, bestD: old.bestD ?? Infinity };
+      return { ...a, mode: old.mode ?? MODE.Walk, fail1X: old.fail1X ?? NaN, fail1Z: old.fail1Z ?? NaN, fail1Until: old.fail1Until ?? NaN, fail2X: old.fail2X ?? NaN, fail2Z: old.fail2Z ?? NaN, fail2Until: old.fail2Until ?? NaN, want: old.want ?? a.speed, steer: old.steer ?? 0, chkT: old.chkT ?? 0, chkD: old.chkD ?? 0, stuck: old.stuck ?? 0, cx: old.cx ?? a.x, cz: old.cz ?? a.z, ctx: old.ctx ?? a.tx, ctz: old.ctz ?? a.tz, bestD: old.bestD ?? Infinity };
     });
     this.byId.clear();
     for (const a of this.animals) this.byId.set(a.id, a);
