@@ -224,12 +224,12 @@ None of this is implemented here. The audit changes no simulation behaviour.
 | Flooding | Any grounded animal in water it may not be in heads for the shallowest ground. Birds tolerate up to 2 × `wadeDepth` so small rises at the edge don't flush them. | Small mammals only |
 | Birds and water | Water-seeking birds target the first standable point on the way to the water. No flyer touches down on water deeper than it can stand in. A flyer with no standable landing point within 60 m gives the destination up rather than hovering. | Landing at the channel centre |
 | Reachability | Animals don't choose a carcass lying in water they may not enter. | |
-| Swept movement | Each ground step is integrated in ≤ 8 sub-steps (nominally 1 m), each checked for walls, region edge and water entry. Work per animal per tick is bounded. | End-point-only check |
+| Swept movement | **Continuous sweep (after review):** each ground step is walked in samples of ≤ 1 m, at most 32 per tick, each checked for walls, region edge and forbidden water, using the slower of the depth speed factors at its start and end. The longest step at any current speed is ~25 m, so every step is checked at 1 m resolution; only a step over 32 m (none today) would be sampled more coarsely. *(The first version used ≤ 8 sub-steps that lengthened at extreme ticks; see below.)* | End-point-only check |
 | Steering | Never samples ground beyond the destination, so a target at the water's edge isn't judged blocked by the water behind it. | |
 | Flight arrival | Inside twice its turning radius a flyer slows (radius halves) and turns harder, then snaps to a target within one step. | Constant-speed orbiting |
 
-**Deviation from the approved proposal (sub-step length).** The proposal said that if a step needs more than 8 × 1 m,
-the remainder is lost.
+**Deviation from the approved proposal (sub-step length) — superseded by the continuous sweep.** The proposal said that
+if a step needs more than 8 × 1 m, the remainder is lost.
 - Implemented instead: always ≤ 8 sub-steps, but at extreme ticks each sub-step is longer, up to ~3 m for a running
   jackal at 1000×.
 - Reason: discarding the remainder caps every runner at 4 m/s at 1000× (jackal 11.5 → 4, hare 12 → 4). That would
@@ -335,3 +335,103 @@ Residuals, for Mission 3 rather than for this PR:
 - The 1000× cost at 10k animals is dominated by existing per-tick work, not movement.
 - No new per-tick allocations: sub-steps use locals; the landing search allocates a small result object only on
   landing decisions.
+
+
+---
+
+# Review response (PR #25, November 17)
+Owner review on #25: keep the longer steps rather than a speed cap, but provide a real boundary check for the residual
+1000× crossings, quantify the navigation loops, evaluate ecology with paired seeds, and capture visual evidence.
+
+## 1. Residual high-speed crossings: bounded continuous sweep and a regression
+- **The residual cases were** fleeing chital crossing a band only 0.45–0.47 m deep. With ~3 m sub-steps, the
+  deep-wading slowdown was applied only from the start of each sub-step, so part of the crossing ran at full speed.
+- **Movement now uses a continuous sweep:** ≤ 1 m samples, at most 32 per tick, with each sample's speed set by the
+  slower of its start and end depth. No distance is lost and work stays bounded.
+- **The audit detector is now physical and species-aware.** `shorelineSkip` flags:
+  - a step that went more than 1 m (the sweep's resolution) beyond what the species could cover through that depth
+    profile in one tick at full running speed;
+  - more than 1 m of water the species may not enter.
+
+  The Mission 1 fixed-0.45 m definition is kept as `shorelineSkipLegacy`.
+- **Regression** (`tests/unit/locomotion.test.ts`, seed 3 at 1000× for 10 days, the residual case):
+
+  | Build | Violations |
+  |---|---|
+  | 8-sub-step build | **37** (hares, chital and jackals entering or leaving the river faster than their wading or swimming speed allows) |
+  | Continuous sweep | **0** |
+
+- **Final audit** (seeds 1–3, 10 days, all four speeds): species-aware violations are **0** at every speed.
+  `shorelineSkipLegacy` still counts 0.19 per 100 chital-days at 1000×. Those are chital deep-wading 0.45–0.47 m water
+  at the correct 0.6× speed, which their capabilities allow.
+- **Remaining limitation (stated, not claimed away):**
+  - Resolution is 1 m, so a band of forbidden or swimming-depth water narrower than 1 m can still be crossed within one
+    sample.
+  - A step longer than 32 m would be sampled more coarsely. No current speed produces one.
+
+## 2. Navigation loops
+This PR's stricter water rules raised retry loops: hares 0.2 → 28 per 100 hare-days at 1×, chital 10 → 45, jackal carcass
+loops at 10–1000×. These are addressed by the Mission 3 PR (failed-target memory, stacked on this one), not by
+loosening the rules. See that PR for the numbers.
+
+## 3. Ecology with paired seeds
+`benchmarks/ecology-paired.ts` compares per seed (same seeds, identical weather) and uses sign tests. Final build
+(`eea57e1`) against integration `5cf7b4a`, 15 seeds × 365 days:
+
+| Measure | baseline → this PR (median) | seeds higher / lower / tied | sign test p |
+|---|---|---|---|
+| Hare end population | 9 → 5 (paired median diff 0) | 7 / 7 / 1 | 1.0 |
+| Hare minimum after day 30 | 5 → 3 | 6 / 8 / 1 | 0.79 |
+| Kills per jackal-day | 0.149 → 0.157 | 10 / 5 / 0 | 0.30 |
+| Jackal-days | 1,943 → 1,390 | 6 / 9 / 0 | 0.61 |
+| Crow end population | 67 → 80 | 10 / 5 / 0 | 0.30 |
+| Myna dehydration deaths | 0 → 1 | 7 / 1 / 7 | 0.07 |
+
+Extinction, as newly extinct / rescued seeds:
+- **Chital:** 3 → 2 of 15 (newly extinct [7], rescued [3, 14]).
+- **Jackal:** 8 → 9 (newly extinct [1, 6, 14], rescued [13, 15]).
+- **Hare:** 4 → 4 (newly extinct [11, 14, 15], rescued [6, 9, 13]).
+
+**Correction to the earlier Results section.**
+- The first report said hares were "better off" (median end 9 → 36). That came from an earlier build, and comparing
+  medians of independent samples hid seed-to-seed swings.
+- With the final build and paired seeds, no ecological measure changes significantly at n = 15.
+- Kills per jackal-day are higher in 10 of 15 seeds. That is a tendency toward more predator access, not an established
+  effect.
+
+## 4. Visual evidence (normal game route, real simulation state)
+`tests/e2e/locomotion-capture.spec.ts` (opt-in project `locomotion-capture`, not in `test:e2e`):
+- advances the real simulation until it finds an animal swimming, wading in 0.15–0.4 m of water, or climbing after
+  take-off, in daylight;
+- pauses the simulation at that moment so the camera reaches the animal in exactly that state;
+- takes a screenshot, and records the simulation mode against rendered height, water surface and ground.
+
+Images: `docs/evidence/behaviour/screens/`.
+
+| Capture | Simulation state | Rendered | Assessment |
+|---|---|---|---|
+| `swim.png` | chital, mode swim, 1.31 m deep | body centre 0.18 m below the surface; head and back above | Plausible. Behaviour label "Foraging" (crossing to a patch) may read oddly to players |
+| `wade.png` | chital, mode wade, 0.25 m deep | standing on the bed, body 0.4 m above the water, legs in it | Plausible |
+| `takeoff.png` | myna, mode fly, climbing 0.5 → 1.0 m by the bank | correct height | State correct, but the follow camera frames a 25 cm bird too far away to judge take-off motion. A close-up framing would be needed |
+
+Not verified: animation continuity across mode changes (wade → swim → wade), which needs a video review by the owner.
+The project records video, but nobody has reviewed it.
+
+## 5. Integration
+- Integration (including #19's geometry-accounting fix) was merged into #24's branch and then into this one, by merge
+  rather than force-push.
+- #24 is still undecided by the owner, so this PR still targets it.
+
+## 6. Performance after the continuous sweep
+`node --import tsx benchmarks/locomotion-bench.ts`, ms per tick; single runs, same container, run one after another,
+so differences under ~10% are noise:
+
+| Animals | baseline `5cf7b4a` 1× / 1000× | first #25 build (8 sub-steps) 1× / 1000× | final (1 m sweep, ≤ 32 samples) 1× / 1000× |
+|---|---|---|---|
+| 250 | 0.66 / 1.14 | 0.85 / 1.12 | 0.68 / 0.99 |
+| 1,000 | 1.66 / 2.91 | 1.53 / 3.34 | 1.22 / 3.08 |
+| 5,000 | 6.21 / 33.4 | 6.67 / 34.0 | 6.46 / 31.0 |
+| 10,000 | 18.9 / 151 | 21.4 / 154 | 19.3 / 144 |
+
+The 1 m sweep costs no more than the 8-sub-step version did. Most animals move far less than 1 m per tick, and terrain
+samples are bilinear lookups.
