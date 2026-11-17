@@ -504,8 +504,10 @@ export class Simulation {
    * Territorial pair breeding (species with `territory`), run once per game hour. No population cap: how many
    * territories exist follows from space (centres at least `spacing` apart) and from who is alive to hold them.
    *  1. A territory with no living adult member is vacated; a dead breeder leaves its slot vacant.
-   *  2. With both slots vacant, the oldest adult member inherits its own sex's slot (natal inheritance); with one
-   *     breeder left, the other slot waits for an outsider (offspring do not pair with a parent).
+   *  2. A founder (no recorded mother) fills a vacant slot of its sex in its own group. A natal adult takes a slot
+   *     only when both are vacant (inheritance after both parents are gone); while one parent still breeds, the
+   *     other slot waits for an outsider, so offspring never pair with a surviving parent (fathers are not
+   *     recorded, so this rule is the model's inbreeding avoidance).
    *  3. A non-breeding adult member stays as a helper for `helperYears`, then disperses as a floater.
    *  4. An adult floater joins a territory it is inside if that territory lacks a breeder of its sex; otherwise it
    *     claims where it stands if that is at least `spacing` from every held centre; otherwise it keeps exploring
@@ -546,11 +548,12 @@ export class Simulation {
         a.homeZ = t.z;
         if (a.age <= mat) continue;
         if (t.female === a.id || t.male === a.id) continue;
-        if (t.female === 0 && t.male === 0) {
-          // natal inheritance: the first (oldest-listed) adult takes its own sex's slot
+        const mySlotFree = a.sex === 0 ? t.female === 0 : t.male === 0;
+        const founder = a.mother === 0;
+        if (mySlotFree && (founder || (t.female === 0 && t.male === 0))) {
           if (a.sex === 0) t.female = a.id;
           else t.male = a.id;
-          this.territoryStats.inherited++;
+          if (!founder) this.territoryStats.inherited++;
           continue;
         }
         // helper: disperse after the helper period
@@ -570,7 +573,7 @@ export class Simulation {
         if (o.sp !== a.sp) continue;
         const d = Math.hypot(o.x - a.x, o.z - a.z);
         if (d < terr.spacing) clear = false;
-        if (d < terr.spacing * 0.5 && (a.sex === 0 ? o.female === 0 : o.male === 0) && !inside) inside = o;
+        if (d < terr.spacing * 0.5 && (a.sex === 0 ? o.female === 0 : o.male === 0) && !inside && o.female !== a.mother) inside = o;
       }
       if (inside) {
         a.group = inside.group;
