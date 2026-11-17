@@ -225,4 +225,23 @@ describe('open boundary', () => {
     expect(h.x).toBeGreaterThanOrEqual(5.99);
     void (h as Animal);
   });
+
+  it('off-map hares stay bounded: births scale with crowding against capacity (no unlimited stock)', () => {
+    const sim = open(1, { inflow: false });
+    const h0 = sim.regional.filter((a) => a.sp === H).length;
+    for (let h = 0; h < 200 * 24; h++) priv(sim).stepRegional();
+    const h1 = sim.regional.filter((a) => a.alive && a.sp === H).length;
+    expect(h1).toBeLessThanOrEqual(3 * h0); // the first implementation reached 2,311 from 57 by day 210
+  });
+
+  it('a resident of an outer territory ranging past the outer line is not counted as a departure', () => {
+    const sim = open(3);
+    const w = sim.boundary.ringW;
+    const j = sim.regional.find((a) => a.sp === J && sim.territories.has(a.group))!;
+    const t = sim.territories.get(j.group)!;
+    Object.assign(t, { x: -(w - 500), z: 700 });
+    Object.assign(j, { x: -(w - 10), z: 700, homeX: t.x, homeZ: t.z });
+    for (let h = 0; h < 200 && j.alive; h++) priv(sim).stepRegional();
+    expect(sim.migration!.departed[J]).toBe(0);
+  });
 });

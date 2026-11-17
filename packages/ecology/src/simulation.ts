@@ -1912,7 +1912,11 @@ export class Simulation {
       if (a.pregnantH > 0) {
         a.pregnantH -= 1;
         if (a.pregnantH <= 0) this.regionalBirth(a, sp);
-      } else if (this.receptiveOff(a, sp) && r.next() < (0.6 * Math.min(1.6, this.fertility[a.sp]!)) / 24) a.pregnantH = gestationHours(sp);
+      } else if (this.receptiveOff(a, sp) && r.next() < ((0.6 * Math.min(1.6, this.fertility[a.sp]!)) / 24) * (1 - this.offCrowding(a))) {
+        // births scale with crowding against capacity (pre-registered in revision 2, section 4; omitted in the first
+        // implementation, which let off-map hares grow without bound): no conception at or above capacity
+        a.pregnantH = gestationHours(sp);
+      }
       this.moveRegional(a, sp, mother, w);
     }
     this.regional = list.filter((a) => a.alive && a.off);
@@ -1993,7 +1997,11 @@ export class Simulation {
         a.z = nz;
       }
     }
-    if (!insideLandscape(a.x, a.z, w)) {
+    // the landscape bounds where homes and territory centres exist, not how far a resident ranges around its own home:
+    // a resident of an outer territory may step past the outer line while ranging and is not lost. An animal without a
+    // home range (a floater or disperser) that crosses it has left for good.
+    const hasHome = sp.territory ? !!this.territories.get(a.group) : true;
+    if (!hasHome && !insideLandscape(a.x, a.z, w)) {
       // left the regional landscape for good: not a death
       a.alive = false;
       this.migration!.departed[a.sp]!++;
