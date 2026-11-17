@@ -36,10 +36,10 @@ export function watch(page: Page): Problems {
   return p;
 }
 
-export async function enter(page: Page, opts: { quality?: string; seed?: number | string; qa?: boolean; settings?: Record<string, unknown> } = {}): Promise<void> {
+export async function enter(page: Page, opts: { quality?: string; seed?: number | string; qa?: boolean; settings?: Record<string, unknown>; query?: string } = {}): Promise<void> {
   // saved preferences are injected before the app reads them
   if (opts.settings) await page.addInitScript((st) => localStorage.setItem('untamed.settings', JSON.stringify(st)), opts.settings);
-  await page.goto(opts.qa ? '/?qa=1' : '/');
+  await page.goto(opts.query ?? (opts.qa ? '/?qa=1' : '/'));
   await page.selectOption('#startQuality', opts.quality ?? 'low');
   await page.fill('#seed', String(opts.seed ?? 1));
   await page.click('#btnNew');
