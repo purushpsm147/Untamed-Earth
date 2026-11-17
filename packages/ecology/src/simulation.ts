@@ -147,6 +147,13 @@ const maySwim = (sp: SpeciesDef, fleeing: boolean): boolean =>
  * 1 m resolution; only a step longer than 32 m (none today) would be sampled more coarsely. Work per animal is bounded.
  */
 const SWEEP_M = 1;
+/**
+ * The region edge is a wall this far inside the map for every movement mode. Flight used to clamp at 4 m while ground
+ * movement refused anything closer than 6 m, so a bird that landed in the 4-6 m strip could not take a single ground
+ * step and died there of thirst or hunger (docs/OPEN_BOUNDARY_AUDIT.md, finding B1).
+ */
+export const EDGE_WALL = 6;
+const outsideWall = (x: number, z: number): boolean => x < EDGE_WALL || z < EDGE_WALL || x > REGION_SIZE - EDGE_WALL || z > REGION_SIZE - EDGE_WALL;
 const SWEEP_SAMPLES_MAX = 32;
 /** Daylight below which a diurnal animal settled on its roost/rest site waits for first light before going to water. */
 const DARK = 0.1;
@@ -1288,7 +1295,7 @@ export class Simulation {
    * unreachable site, give up, and re-find the same site until it died of thirst (ECOLOGICAL_STABILITY_REPORT.md).
    */
   private readonly drinkable = (x: number, z: number): boolean =>
-    x >= 6 && z >= 6 && x <= REGION_SIZE - 6 && z <= REGION_SIZE - 6 && !this.insideBuilding(x, z);
+    !outsideWall(x, z) && !this.insideBuilding(x, z);
 
   private insideBuilding(x: number, z: number, margin = 0.6): boolean {
     return this.bldCell[this.env.cellIndex(x, z)] === 1 && this.valley.blocked(x, z, margin);
@@ -1353,7 +1360,7 @@ export class Simulation {
   }
 
   private passable(sp: SpeciesDef, x: number, z: number, fromDepth: number, fleeing: boolean): boolean {
-    if (x < 6 || z < 6 || x > REGION_SIZE - 6 || z > REGION_SIZE - 6) return false;
+    if (outsideWall(x, z)) return false;
     if (this.insideBuilding(x, z)) return false;
     // no animal walks deeper than its wade depth unless it may swim; anything can always retreat toward shallower water
     if (!maySwim(sp, fleeing)) {
@@ -1369,6 +1376,11 @@ export class Simulation {
     a.palt = a.alt;
     // a flyer about to land on the ground never lands in water deeper than it can stand in, whatever the behaviour
     // chose: the landing point moves back along the approach to the first standable spot (bounded scan)
+    // no destination lies beyond the edge wall: a perch, roost tree or carcass in the outer strip is approached to the
+    // wall and reached there, never chased forever from the wall (B1 follow-up: birds hovered 2 m short of a roost tree
+    // at z = 4 m and starved)
+    a.tx = clamp(a.tx, EDGE_WALL, REGION_SIZE - EDGE_WALL);
+    a.tz = clamp(a.tz, EDGE_WALL, REGION_SIZE - EDGE_WALL);
     if (sp.flies && a.alt > 0.3 && a.beh !== B.Drink && ((a.tAlt < 1 && Math.hypot(a.tx - a.x, a.tz - a.z) < 12) || a.alt < 1.5)) this.safeLanding(a, sp);
     const dx = a.tx - a.x;
     const dz = a.tz - a.z;
@@ -1410,14 +1422,25 @@ export class Simulation {
       if (arriving) a.speed = Math.min(a.speed, Math.max(0.5, TURN * dist * 0.5));
       step = Math.min(a.speed * dt, dist);
       if (dist <= Math.max(step, 0.3)) {
-        a.x = clamp(a.tx, 4, REGION_SIZE - 4);
-        a.z = clamp(a.tz, 4, REGION_SIZE - 4);
+        a.x = clamp(a.tx, EDGE_WALL, REGION_SIZE - EDGE_WALL);
+        a.z = clamp(a.tz, EDGE_WALL, REGION_SIZE - EDGE_WALL);
         return;
       }
       const maxTurn = TURN * dt * (arriving ? 2 : 1);
       a.heading += clamp(angleDiff(a.heading, goal), -maxTurn, maxTurn);
-      a.x = clamp(a.x + Math.sin(a.heading) * step, 4, REGION_SIZE - 4);
-      a.z = clamp(a.z + Math.cos(a.heading) * step, 4, REGION_SIZE - 4);
+      a.x = clamp(a.x + Math.sin(a.heading) * step, EDGE_WALL, REGION_SIZE - EDGE_WALL);
+      a.z = clamp(a.z + Math.cos(a.heading) * step, EDGE_WALL, REGION_SIZE - EDGE_WALL);
+      return;
+    }
+    if (outsideWall(a.x, a.z)) {
+      // defensive (and for saves made before EDGE_WALL applied to flight): an animal on the ground inside the edge
+      // strip walks straight inward, so it can never be trapped where every step is refused
+      const nx = clamp(a.x, EDGE_WALL, REGION_SIZE - EDGE_WALL) - a.x;
+      const nz = clamp(a.z, EDGE_WALL, REGION_SIZE - EDGE_WALL) - a.z;
+      const nl = Math.hypot(nx, nz) || 1;
+      a.heading = Math.atan2(nx, nz);
+      a.x += (nx / nl) * Math.min(step, nl);
+      a.z += (nz / nl) * Math.min(step, nl);
       return;
     }
     if (this.insideBuilding(a.x, a.z)) {
@@ -1546,7 +1569,7 @@ export class Simulation {
    * slopes above ~25 degrees cost more and cliffs are refused.
    */
   private terrainCost(sp: SpeciesDef, a: Animal, x: number, z: number, h0: number, dist: number): number {
-    if (x < 6 || z < 6 || x > REGION_SIZE - 6 || z > REGION_SIZE - 6) return Infinity;
+    if (outsideWall(x, z)) return Infinity;
     if (this.insideBuilding(x, z, 0.9)) return Infinity;
     const h = this.valley.heightFast(x, z);
     const depth = this.valley.waterSurface(z) + this.env.stage - h;
