@@ -1,251 +1,289 @@
-# Open valley boundary: design proposal (issue #29, step 2)
+# Open valley boundary: design (issue #29), revision 2
 
-Status: **design only, for owner review.**
-- No migration code exists.
+Status: **design only. Revised after the owner's review of PR #30.** No migration code exists.
 - The audit this design rests on is `docs/OPEN_BOUNDARY_AUDIT.md`.
-- Every parameter below is **pre-registered**: it is fixed before any open-boundary run and is not adjusted afterwards
-  to improve outcomes. Each one is labelled either *field-supported* or *assumed*.
+- Finding B1, birds stranded at the edge, is fixed in its own PR from integration (`fix/b1-bird-edge`).
 
-## 1. What the model must represent
-Three different things happen when an animal crosses a real valley edge. The closed model cannot tell them apart.
+**Owner decisions on revision 1:**
+1. Identity-preserving regional individuals are approved in principle, with coarse off-map simulation allowed.
+2. Jackals and hares only, for now.
+3. Movement across the boundary must be simulation-authoritative; investigate a narrow transit corridor (§5).
+4. The parameter table needs the corrections listed below.
+5. B1 is fixed first.
 
-| Event | Example | What it is |
-|---|---|---|
-| **Excursion** | A jackal whose territory straddles the ridge goes over it to hunt and returns | Movement within a home range. Neither emigration nor death; the animal keeps its ID, needs and relationships |
-| **Emigration** | A dispersing young jackal leaves and does not come back | The animal leaves the local population but stays alive in the region |
-| **Immigration** | A floater from a neighbouring territory arrives and takes a vacant breeder slot | A recruit from a finite regional population; it is not a birth |
+**What revision 2 changes:**
+- **Ring geometry contradiction resolved** (§3). Revision 1 put a second territory row 1,440 m outside a ring only
+  960 m wide. The ring is now 1,440 m wide, and the territory counts are checked geometrically.
+- **The "10 straddling slots" claim is withdrawn.** It came from a lattice argument that ignored two things:
+  - A centre 480 m outside the edge has an exclusive disc that only *touches* the map.
+  - Spacing must hold against the valley's own territories.
+- **Straddling and fully external territories are defined and reported separately.**
+- **Off-map hunger, thirst, reproduction, mortality and travel time are specified** (§4).
+- **Feasibility of a simulation-authoritative transit corridor**, with measurements (§5).
+- **Immigration is now purely movement-driven.** It cannot be triggered by low counts or vacancies (§5.4).
+- **Uncertainty is stated for territory spacing, initial occupancy and hare density** (§8).
 
-An animal that comes in and leaves again is a **visitor**. It becomes an **immigrant** only when it establishes local
-residence. For a jackal, residence means taking a territory slot whose centre lies in the valley; for a hare, it means
-settling a home range in the valley.
+## 1. Events the model must distinguish
+| Event | What it is |
+|---|---|
+| **Excursion** | A resident of a straddling territory crosses the edge and comes back. It is movement within its home range: not emigration, not death |
+| **Emigration** | An animal whose home is in the valley, or who has none (a floater or disperser), leaves. It stays alive in the region |
+| **Visit** | An off-map animal enters the valley and leaves again without settling |
+| **Immigration** | An off-map animal enters and then establishes residence. A jackal does so by taking a territory slot whose centre is in the valley; a hare by settling a home in the valley |
+| **Return** | A former valley resident comes back |
 
-## 2. Alternatives considered
-**A. Closed boundary (status quo).**
-- What it does: a hard wall 6 m from each edge, and no world beyond it.
-- Problem: the audit shows edge cornering, a bird-stranding defect, and territories truncated against the wall. Every
-  vacancy must be filled from inside.
+## 2. Approach (approved in principle)
+**Regional individuals.**
+- Off-map animals are ordinary `Animal` records with `offmap = true`. They keep ID, sex, age, mother, group, needs,
+  failed-target memory and territory relations.
+- Off-map they are advanced by a coarse, deterministic hourly model (§4) that uses the same species parameters.
+- They are not rendered.
+- They cross the boundary only by movement, through a narrow simulation-authoritative transit corridor (§5).
 
-**B. Anonymous finite pools per edge sector.**
-- What it does: each edge sector keeps a count, or a sex/age histogram, of animals beyond it. Emigrants increment it;
-  arrivals decrement it and are created as new animals at the edge.
-- Pros: simple and cheap.
-- Problems:
-  - It cannot preserve identity. A jackal that steps over the ridge and returns would come back as a different animal,
-    which breaks the invariant that IDs, needs and relationships are preserved.
-  - It cannot represent a territory that straddles the edge.
-  - It cannot separate visitors from immigrants or returns from new arrivals.
-- **Rejected as the main model.**
+**Rejected alternatives:**
+- anonymous pools, because they cannot preserve identity;
+- a renderer-only illusion, because the owner rejected it;
+- a full-resolution larger world, because it changes every budget.
 
-**C. Identity-preserving regional individuals, with regional territories that straddle the edge (recommended).**
-- The neighbouring landscape is populated with real `Animal` records flagged off-map, plus regional jackal territories.
-  Each record keeps ID, sex, age, mother, group, needs and failed-target memory.
-- Off-map animals have no physical position. They are advanced once per game hour by a coarse demographic model (§4)
-  using the same species parameters as on-map animals.
-- An off-map jackal whose territory overlaps the valley makes excursions into it: it materialises at the edge with its
-  own ID, behaves as an ordinary animal, and returns to the off-map record when it walks back out.
-- The regional population is finite because it is made of individuals. It is replenished only by births among those
-  individuals.
+## 3. Regional landscape geometry (verified)
+**Landscape.**
+- The landscape is the valley (1,440 m square) plus a ring of width `W = 1,440 m`, giving a 4,320 m square of
+  18.7 km², 9× the valley.
+- The ring is the only off-map space. Nothing exists beyond it.
 
-**D. Simulate a larger region at full fidelity.**
-- What it would mean: a 3.4 km × 3.4 km world, 5.4× the area.
-- This is the faithful reference, but it changes `REGION_SIZE`, the terrain, rendering and memory budgets for everything.
-- **Rejected for the product.** It is worth considering later, headless only, as a validation reference for C.
+**Why 1,440 m.** It is the smallest ring that holds a row of territories that do not touch the map:
+- The exclusive radius is `r = spacing / 2 = 480 m`.
+- A territory is **straddling** if its centre is outside the map at a distance `c` from the edge with `0 < c < r`, so its
+  disc overlaps the map.
+- A territory is **fully external** if `r ≤ c ≤ W − r`.
+- With `W = 960 m`, only straddling territories fit (`c < 480`). The external source population would then exist only
+  where it touches the valley, which is not a neighbouring population in any useful sense.
 
-**Recommendation: C, scoped to jackals and hares first.**
-- These are the two species the Gate 2 result is about.
-- Chital, boar and birds keep the closed edge. The bird-stranding defect (audit finding B1) is fixed separately as a
-  correctness change, not as migration.
+**Territory placement.**
+- Regional centres are placed at world creation by the **same rule valley floaters use**: a candidate is accepted only if
+  it is at least `spacing` from every held centre, valley and regional alike.
+- Candidates are drawn uniformly over the ring from `migRng`; the rule is random sequential packing.
+- After creation, regional floaters claim new regional territories by the same rule, so the regional territory count is
+  dynamic, as it is in the valley.
+- No lattice is used.
 
-## 3. Geometry of the regional landscape
-**Regional ring.** The off-map landscape is a ring of width `W` around the valley.
-- `W` is one jackal territory spacing, 960 m (assumed). The ring's outer square is 3,360 m on a side, an area of
-  9.2 km², or 4.4× the valley.
-- **Hard limit:** nothing exists outside the ring. There is no infinite stock.
+**Geometric check.** `benchmarks/regional-geometry.ts`, 60 seeds, using the #28 world-start valley territories. Values
+are median [10–90%]:
 
-**Regional jackal territory slots.**
-- Slots are fixed at world creation from the seed: centres on a lattice with `spacing` 960 m, offset 480 m outside each
-  edge, so each exclusive disc straddles the boundary.
-- That gives 10 straddling slots. A second lattice row 1,440 m outside the edge adds slots entirely off-map.
-- Spacing is enforced across the boundary. A valley floater cannot claim a centre within 960 m of a held regional centre,
-  and the converse also holds.
-- With 960 m spacing and 480 m offsets, an in-valley centre must lie at least 480 m from every edge. The valley then
-  holds about one interior territory and shares about ten with neighbours. This follows from the stated geometry; it is
-  not a target.
+| Ring W | Spacing | In-valley (start) | Straddling | Fully external | Regional total |
+|---|---|---|---|---|---|
+| 1,440 m | **960 m (pre-registered)** | 1 [1–2] | **2 [1–3]** | **7 [6–9]** | **9 [8–10]** |
+| 1,440 m | 720 m (−25%) | | 4 [2–6] | 14 [12–15] | 18 [16–20] |
+| 1,440 m | 1,200 m (+25%) | | 2 [1–3] | 4 [3–6] | 6 [5–7] |
+| 960 m (rev. 1) | 960 m | | 5 [4–6] | 0 | 5 [4–6] |
 
-**Connectivity of each edge sector (derived, not hand-set).**
-- Connectivity is computed from the valley's own terrain: the walkable fraction and habitat suitability of the edge band
-  in that sector.
-- The border ridges reduce forage capacity by up to 60%, and no home site is placed within about 113 m of an edge (audit
-  §2). Hares therefore connect mainly through the river corridor, where the generator keeps the ridges open. Jackals
-  cross ridges freely: their habitat weight for forest is 0.6, and they are not excluded.
-
-**Regional habitat suitability.**
-- The ring has no terrain, so suitability is a per-sector scalar.
-- It is drawn once from the seed: uniform 0.6–1.0 of the valley's mean habitat value (assumed). It follows the valley's
-  seasons and does not invent weather.
-
-## 4. Off-map demography (coarse, hourly, deterministic)
-**General rules.**
-- Off-map animals use the same species parameters as everyone else: aging, background hazard (`adultHazard` /
-  `juvHazard`), breeding season, gestation, litter size and maturity.
-- What is simplified: individual hunger and thirst are not simulated off-map. The sector's suitability, crowded against
-  its capacity, scales survival and fertility instead.
-- **Capacity governs off-map demography only. It never governs arrivals.**
-- **Random numbers.** All off-map draws come from a new stream, `migRng = hash3(seed, 99, 3)`. With the boundary
-  closed, the stream is never drawn from, so configuration C reproduces #28's hashes exactly.
-
-**Jackals.**
-- A regional slot holds a pair, a helper or a vacancy, with the same rules as in the valley.
-- Breeding follows the valley's rules, scaled by sector suitability.
-- Pups follow the valley's juvenile hazard.
-- Helpers disperse at the same age. A disperser picks a direction uniformly at random:
-  - toward the valley with probability equal to the angle the valley subtends from its slot, times the sector's
-    connectivity;
-  - otherwise it moves around the ring and may join or claim a regional slot.
-- Floaters off-map face the same hazards. They never count as "residents".
+**Consequences, stated plainly.**
+- At 960 m spacing the valley is touched by only about two straddling regional territories, plus its own one or two. Its
+  jackal neighbourhood is a few pairs, not ten.
+- Any visiting jackals come mainly from about two straddling pairs. Any immigrants come from dispersers born across
+  about nine regional territories.
+- These counts follow from the spacing assumption. Spacing is the largest single uncertainty (§8), which is why it has a
+  sensitivity run.
 
 **Hares.**
-- Regional hares are individuals in an edge strip 260 m deep, two home ranges.
-- Sector capacity is the strip's area times the valley's initial hare density (64 hares over the valley's walkable area)
-  times suitability. This is assumed: an Indian density figure was not available, see §8.
-- Births and juvenile survival are scaled by crowding against capacity.
-- Off-map predation is folded into the existing background hazard. It is not a separate rescue term.
+- Off-map hares live in the ring strip within 260 m of the edge (two home ranges, assumed). Hares farther out cannot
+  reach the valley within the run and are not represented.
+- Strip area: 4 × 1,440 × 260 + 4 × π × 260² / 4 ≈ 1.71 km².
 
-## 5. Crossing the edge (on-map ↔ off-map)
-**Exits.**
-- An animal of an open-boundary species may choose a target beyond the edge in three situations:
-  - a jackal's wander target inside its own territory disc;
-  - a disperser's travel direction;
-  - a flee direction toward the open side.
-- When its continuous movement sweep crosses the 6 m line outward with such a target, it becomes off-map. It keeps the
-  same record; only an `offmap` flag and an edge sector change.
-- An exit is classified, and the classification is recorded:
-  - an **excursion** if the animal's territory or home range overlaps the outside;
-  - **emigration** otherwise.
-- An animal leaving while pregnant or with dependants is allowed. Its dependants follow under the existing regroup
-  rules, or stay; nothing is deleted.
+**Edge-sector connectivity.** Derived from terrain, not tuned.
+- For each 120 m edge sector, connectivity is the walkable fraction of the 0–120 m band in the valley times the band's
+  mean habitat suitability for the species.
+- The river corridor sectors connect hares best, because the generator keeps the ridges open there (audit B2).
 
-**Entries.**
-- An off-map animal enters through the edge sector nearest its target: inside its own territory for an excursion,
-  toward the valley for a disperser.
-- It appears 6–8 m inside the edge, facing inward, with its own ID and its state at the time it left.
-- Entry location and time come only from simulation state and `migRng`, never from the camera.
+## 4. Off-map coarse model (hourly, deterministic, `migRng`)
+**Random numbers.**
+- All off-map draws use `migRng = Rng(hash3(seed, 99, 3))`. With the boundary closed it is never constructed or drawn
+  from, so configuration C reproduces #28's frozen hashes (audit §5).
+- The step order is fixed: off-map animals are updated by ascending ID once per game hour, after the on-map step that
+  completes the hour.
 
-**Pop-in.** Two options for the owner to choose between (decision point 3):
-1. **Renderer only:** an animal that has just entered is drawn walking in from the 192 m terrain apron for its first
-   seconds. The simulation is unchanged.
-2. **Simulation transit band:** entry starts outside the region in a short transit band. This changes the physical
-   invariants and is not recommended.
+**Coarse position and travel time.**
+- Every off-map animal has a coarse position on the 4,320 m landscape.
+- Each hour it moves by a bounded random walk, or by directed travel.
+- **Hourly random walk** (ordinary daily ranging). Hourly displacement is `activity(hour) × speed × 3,600 s ×
+  tortuosity`:
+  - `activity` is the species' own diel activity curve, the same one used on-map;
+  - `speed` is the species' walking speed;
+  - `tortuosity` is 0.15 (assumed), turning metres walked into net displacement per hour;
+  - the walk is reflected so the animal stays within `1.5 × homeRange` of its home centre, the same pull distance used
+    on-map.
+- **Directed travel**, for dispersers and floaters: up to `activity × walk × 3,600 s × 0.5` toward the current travel
+  target.
+- Travel time is therefore explicit. A disperser born 1.5 km outside needs game hours to days to reach the edge, and
+  cannot appear in the valley the hour it is born.
 
-**Constraints that always hold.**
-- A controlled (possessed) animal never exits. For the player the edge stays a wall.
-- A breeder vacancy is filled only by an ordinary adult arriving through these rules. There is no direct assignment.
-- Arrivals are never triggered or rate-adjusted by local abundance. There is no rescue rule.
+**Hunger and thirst.**
+- They are not frozen. They relax toward a sector equilibrium `n* = 0.25 + 0.35 × (1 − suitability × (1 − crowding))`
+  with a 12 game-hour time constant (assumed).
+- `crowding` is local density over sector capacity, 0–1.
+- On entry, the animal carries its current values into the full on-map physiology.
 
-## 6. Bookkeeping and metrics (kept separate)
-**Counters.** Emitted as events and kept as saved counters, per species:
-- local births and deaths by cause;
-- emigrations;
-- excursion exits and returns;
-- immigrations (an arrival that later settles);
-- visitor arrivals;
-- returns of former residents;
-- off-map births and deaths;
-- off-map abundance by sector;
-- jackal territory occupancy, split into in-valley-centred, straddling and fully regional.
+**Mortality.**
+- Off-map animals have the same hourly background hazard as on-map animals (`juvHazard` / `adultHazard`, with the same
+  crowding and poor-health multipliers).
+- Starvation and dehydration are represented by health: health falls at the on-map rate while `n* > 0.7`, and recovers
+  as on-map otherwise. An animal dies when health reaches 0, with the cause recorded as starvation or dehydration,
+  whichever need is higher.
+- Age follows the on-map rule.
+- **No predation term is added off-map.** Unmodelled predation is already part of the background hazard. This is
+  conservative: it neither adds nor removes risk relative to on-map animals.
 
-**Derived measures.**
-- **Local abundance**, and **resident persistence without newcomers**: survival of the founding cohort and of
-  descendants of local mothers. This is reported separately from presence restored by migration.
-- **Permanent local extinction** (no residents for the rest of the run) versus **recolonisation** (residents return
-  after a gap).
-- **Jackal presence**, split three ways:
-  - predator-days in the valley by residents;
-  - predator-days by visitors from straddling territories;
-  - regional breeding pairs.
+**Reproduction.**
+- It uses the on-map rules unchanged: breeding season, receptivity (the same hunger and health thresholds, using the
+  relaxed needs), gestation, litter size, weaning and maturity.
+- Jackals breed only as the resident pair of a regional territory, with the same founder, natal, helper and dispersal
+  rules as #28.
+- Off-map young are full individuals, with their mother recorded.
+
+**Records.** For on-map behaviour, failed-target memory and water memory are kept but ignored off-map. They expire by
+time as usual.
+
+## 5. Crossing: simulation-authoritative transit corridor (feasibility study)
+### 5.1 Proposal
+- A **transit corridor** `T = 24 m` wide just outside each edge, inside the 192 m terrain apron the renderer already
+  draws.
+- Positions in the corridor are real simulation positions. Only animals in a new `Transit` state may occupy them:
+  - an entering animal walks from the corridor's outer line to inside the 6 m wall;
+  - an exiting animal walks from the wall out across the corridor and becomes off-map when it reaches the outer line.
+- Every other animal still treats the edge wall as before.
+- Possessed animals never enter `Transit`.
+
+### 5.2 What must change, and what was measured
+| Subsystem | Today | Needed for the corridor | Evidence |
+|---|---|---|---|
+| Terrain height in the simulation (`Valley.heightFast`, a 4 m grid) | Clamped to the region. Outside, it returns the edge height | Extend the grid by `T` on every side: 1,488 m / 4 + 1 = 373 points per side instead of 361, about 6% more memory (≈ 556 KB vs 521 KB) | Probe, seeds 1, 7 and 21, points 10–30 m outside the edge: the clamped grid differs from the true terrain (`Valley.height`) by **7.7–8.5 m on average, up to 25.7 m**. Without the extension, an animal in the corridor would float above or sink below the rendered ridge |
+| Grade (steering limit 0.95) | — | None. The corridor is walkable | True grade above 0.95 at 15 m outside the edge: 0.0–0.4% of points |
+| Water depth | Uses `heightFast` | Correct once the grid is extended. The river leaves the map at the north and south edges | 8–11 of 1,680 corridor points are wet. Hares, which avoid water, will route around them by the existing rules |
+| Vegetation, water and building grids (`Environment.cellIndex`) | Clamped to edge cells | Animals in `Transit` do not forage, drink or rest. They only travel | — |
+| Spatial hash | Clamps indices, so outside items go into edge buckets; distances are exact | None | Code read (`packages/core/src/spatial.ts`) |
+| `passable` / `terrainCost` | 6 m wall | Allow the corridor for `Transit` animals only, in their transit direction | — |
+| Collision with buildings | No buildings near edges | None | — |
+| Rendering (`AnimalView`) | Places animals using `valley.height` near the camera and `heightFast` far away | Correct once `heightFast` is extended. Draw `Transit` animals normally. The apron already shows the terrain | — |
+| Selection and possession | Raycast against instances; possession of any rendered animal | `Transit` animals cannot be possessed. They are selectable for inspection | — |
+| Sound | Positional events from simulation positions | None | — |
+| Camera | Clamped 4..R−4 | None. The player cannot follow an animal into the ring. Off-map animals are shown in the UI as "beyond the valley" | — |
+| Time advancement | The continuous sweep is ≤ 1 m per sample and bounded at 32 samples per tick | None. 24 m is crossed in a few ticks at every speed | — |
+| Save/load and hash | Positions are numbers; the snapshot has no off-map fields | Save `offmap`, `transit`, the coarse position, regional territories and `migRng`. Extend the hash conditionally, so it is unchanged when the boundary is closed | — |
+
+**Conclusion.** An inexpensive simulation-authoritative corridor is **feasible**.
+- The one structural change is extending the height grid, which is cheap.
+- The first commit of the migration PR will be a **corridor spike** with tests before any population logic:
+  - terrain-height agreement inside the corridor;
+  - a `Transit` walk-through at 1×, 10×, 100× and 1,000×;
+  - save/load mid-transit;
+  - no non-transit animal entering the corridor.
+- If the spike fails any of these, I will stop and report the alternatives before falling back to anything visual.
+
+### 5.3 Exit
+- An open-boundary species may enter `Transit` outward only by movement:
+  - a jackal whose movement target lies inside its own exclusive disc beyond the edge (straddling residents);
+  - a disperser or floater whose travel direction crosses the edge.
+- **There is no exit for fleeing.** Fleeing animals still meet the wall, because cornering is a separate question.
+  Owner decision 1 asks whether flee may also exit.
+- The exit is classified as an excursion if the animal's territory or home overlaps the outside, and as emigration
+  otherwise.
+
+### 5.4 Entry (no rescue rule)
+An off-map animal enters only when **its own coarse movement** carries it across the edge line:
+- a straddling resident ranging over its disc;
+- a disperser travelling toward the valley.
+
+It then walks in through the corridor. Entry never depends on:
+- valley abundance;
+- valley breeder vacancies;
+- time since extinction;
+- any target.
+
+There is no code path from a valley count to an arrival. A unit test will assert that arrivals are identical in two
+runs whose valley populations differ but whose off-map state is identical.
+
+A jackal immigrant takes a valley breeder vacancy only through #28's ordinary floater rules after it has arrived.
+
+## 6. Metrics (separate counters, saved)
+**Per species:**
+- local births, and deaths by cause;
+- emigrations, excursion exits and returns, visits, immigrations, returns of former residents;
+- off-map births and deaths by cause;
+- off-map abundance;
+- transit counts.
+
+**Jackal territories**, by class:
+- in-valley-centred;
+- straddling;
+- fully external.
+
+**Reported:**
+- **Resident persistence without newcomers**: founders and descendants of local mothers. This is reported separately
+  from presence maintained or restored by migration.
+- Permanent local extinction versus recolonisation.
+- Jackal predator-days, split into residents, straddling-pair visitors and other visitors.
+- Regional breeding pairs.
 - Per-capita kills and total predation.
-- Full-pair occupancy.
 - Hare and chital survival.
-- Compute cost (ms per simulated day) and the number of near-camera actors.
+- The edge-cornering share of kills (re-run of audit B3).
+- Compute cost per simulated day.
+- Peak on-map plus transit actor count.
 
-**Conservation check (a test).** At every hour:
+**Conservation identity (test, every hour, every speed, across save/load):**
 
-> on-map + off-map + cumulative deaths = founders + cumulative births
+> on-map + transit + off-map + cumulative deaths = founders + cumulative births
 
-The check is applied per species, and runs across save/load.
+## 7. Evaluation (unchanged structure)
+- **A–E configurations:**
+  - A: M2;
+  - B: + memory;
+  - C: + territories, closed, frozen at `a13837f` with B1 applied (C is re-frozen after B1 lands);
+  - D: C + open boundary;
+  - E: D with zero immigration.
+- 60 paired seeds × 365 days, identical weather.
+- **E keeps D's off-map simulation and `migRng` draws.** Off-map animals are simulated but never enter the valley; exits
+  still occur. D and E are therefore paired on everything except inflow.
+- **Sensitivity**, each a separate configuration and never a post-hoc retune:
+  - off-map source size: ring width W ±50% (720 m / 2,160 m) and hare strip capacity ±50%;
+  - connectivity ±50%;
+  - jackal spacing 720 m and 1,200 m.
 
-## 7. Evaluation plan (paired, 60 seeds × 365 days, identical weather)
-**Configurations.**
-- **A**: M2, integration.
-- **B**: A plus failed-target memory (#27).
-- **C**: B plus territories, closed boundary (#28 head, frozen in the audit). Hashes must match #28 exactly.
-- **D**: C plus the open boundary, with the pre-registered parameters.
-- **E**: D with zero immigration. Exits still happen, so emigration and excursions are possible, but no off-map animal
-  enters the valley. This is the zero-inflow control. It uses the same `migRng` draws as D, which are discarded, so D
-  and E stay paired.
-- **Sensitivity:** D with off-map source size (slot rows, hare capacity) and connectivity each at ±50%. That is four
-  runs, at 60 seeds where 30 cannot resolve the effect.
+## 8. Pre-registered assumptions (experimental hypotheses, not established Indian wildlife parameters)
+None of these will be changed after results are seen in order to improve survival. Changes require an owner decision
+recorded before a re-run.
 
-**Reported for each comparison.**
-- Extinction transitions (newly extinct / rescued seeds) with sign tests.
-- Distributions with seed-bootstrap 95% confidence intervals.
-- Every measure in §6.
-
-**Acceptance (issue #29 §7).**
-- Deterministic hashes and save/load, including off-map state.
-- The conservation identity holds, so nothing leaks.
-- No teleporting: entries and exits only at the edge, by continuous movement.
-- Near-camera actor count stays bounded.
-- Tests at 1×, 10×, 100× and 1,000×.
-- Every flux parameter labelled field-supported or assumed.
-- All existing gates pass.
-- The #25 shoreline and #27 memory regressions are preserved.
-
-## 8. Pre-registered parameters
-| Parameter | Value | Status / basis |
+| Assumption | Value | Basis and uncertainty |
 |---|---|---|
-| Ring width `W` | 960 m (one jackal spacing) | Assumed. It bounds the regional population; ±50% sensitivity on source size |
-| Regional jackal slot lattice | Spacing 960 m; first row 480 m outside each edge, second row 1,440 m outside | Follows from #28's spacing (assumed, `docs/JACKAL_TERRITORIES.md`) |
-| Initial regional slot occupancy | Each slot holds a pair with probability 0.75, a single adult with 0.15, empty with 0.10, from `migRng` at creation | Assumed. Field studies report pairs holding territories for years; no occupancy rate was found for a comparable landscape |
-| Sector suitability | U(0.6, 1.0) × valley mean, drawn once | Assumed |
-| Jackal dispersal direction | Uniform; enters the valley with probability = subtended angle × connectivity | Assumed geometry. Field dispersal distances are 6.5–159 km (six GPS-tracked animals, Potočnik et al. 2022, conference abstract, read as a search summary), so a disperser commonly leaves a 3 km landscape; the ring cannot represent long-distance return |
-| Excursion rate (straddling pair members) | Daily probability that a member spends its active period inside = fraction of its exclusive disc inside the valley | Assumed. It ties visiting time to space use, not to valley abundance |
-| Hare edge strip depth | 260 m (2 × home range 130 m) | Assumed |
-| Hare off-map capacity | Valley initial density × strip walkable area × suitability | Assumed (model-internal). No Indian *L. nigricollis* density estimate was obtained; the Rollapadu census (Manakadan & Rahmani) exists but its figures were not read |
-| Hare dispersal | Juvenile dispersal follows the existing wander and home rules; crossing happens only by movement | No new parameter |
-| Connectivity per edge sector | Walkable fraction × mean habitat suitability of the 0–120 m band in that sector, from terrain | Derived, not tuned |
+| Jackal exclusive spacing | 960 m (r = 480 m) | From #28 and stated as a modelling choice. Field home ranges span 0.1–35 km² (`docs/JACKAL_TERRITORIES.md`); no Indian estimate was found. **Uncertainty: very high.** The valley-scale choice sits at the small, human-influenced end of the range. Sensitivity 720 / 1,200 m |
+| Ring width W | 1,440 m | Smallest width that holds fully external territories (§3). It bounds the regional population. **Uncertainty: structural.** Sensitivity ±50% |
+| Initial regional occupancy | Each packed regional territory starts as a pair (0.75), a single adult (0.15) or vacant (0.10); helpers drawn as in the valley's `populate` | Assumed. Field studies report pairs holding territories for years, but no occupancy rate for a comparable landscape was found. **Uncertainty: high.** Its effect is checked through source-size sensitivity |
+| Sector suitability | U(0.6, 1.0) × valley mean, drawn once per 120 m sector | Assumed. **Uncertainty: high** |
+| Hare strip depth | 260 m | 2 × the model's hare home range. Assumed |
+| Hare off-map density | Valley initial density (64 hares over the valley's walkable area) × suitability; capacity is the same density × strip area | Model-internal. No Indian *L. nigricollis* density was obtained; the Rollapadu census (Manakadan & Rahmani) exists but its figures were not read. **Uncertainty: very high.** Sensitivity ±50% |
+| Off-map tortuosity (net displacement per metre walked) | 0.15 | Assumed. It sets ranging speed and therefore visit frequency |
+| Need equilibrium off-map | `n* = 0.25 + 0.35 × (1 − suit × (1 − crowding))`, τ = 12 h | Assumed. Chosen so that a typical sector's equilibrium sits below the 0.6 hunger threshold, matching on-map fed animals |
+| Jackal dispersal | Same helper age as #28. Direction uniform; travel continues until the animal joins or claims a territory, or dies | Field natal dispersal distances are 6.5–159 km (six animals; Potočnik et al. 2022, conference abstract via search). Many real dispersers would leave a 4.3 km landscape entirely. **The ring cannot represent that loss**, which biases it toward retention. This is stated, not corrected |
+| Corridor width T | 24 m | Engineering choice inside the 192 m apron. No ecological effect intended |
 
-Sources: [Potočnik et al. 2022 (abstract via search)](https://air.uniud.it/retrieve/63f9b585-b940-48a5-9f54-1b7bdab3e2f0/Poto%c4%8dnik%20et%20al.%20%282022%29.pdf);
-[Lanszki et al. 2018, first GPS natal-dispersal record](https://moorcroftlab.oeb.harvard.edu/resource/lanszkietal2018mammbiologypdf);
-[Manakadan & Rahmani, Rollapadu hare census](https://archive.org/download/biostor-151804/biostor-151804.pdf).
-These were found by search and have not been read in full. They are recorded so that the owner, or a later session, can
-verify or replace the assumptions.
+Sources (found by search, not read in full):
+- [Potočnik et al. 2022](https://air.uniud.it/retrieve/63f9b585-b940-48a5-9f54-1b7bdab3e2f0/Poto%c4%8dnik%20et%20al.%20%282022%29.pdf)
+- [Lanszki et al. 2018](https://moorcroftlab.oeb.harvard.edu/resource/lanszkietal2018mammbiologypdf)
+- [Manakadan & Rahmani](https://archive.org/download/biostor-151804/biostor-151804.pdf)
 
-## 9. Scope of the first implementation PR (after approval)
-1. A separate small correctness PR for audit finding B1: align the flight clamp with the ground wall, or let a grounded
-   animal walk inward out of the 4–6 m strip. It gets a regression test and a hash note. It is independent of
-   migration.
-2. The open-boundary draft PR:
-   - the off-map flag;
-   - the regional landscape state, saved;
-   - `migRng`;
-   - the jackal regional slots and excursions;
-   - the dispersal flux;
-   - the hare edge strip;
-   - exit and entry by movement;
-   - the counters;
-   - conservation, save/load and hash tests at the four speeds;
-   - configuration flags for C, D and E;
-   - the 60-seed A–E evaluation and the sensitivity runs, reported as in Gate 2.
-3. Out of scope:
-   - hare refuges (a later, separate PR, compared with and without the open boundary);
-   - chital, boar and bird migration;
-   - any renderer change beyond the entry fade, if the owner chooses option 1;
-   - PRs #12 and #22.
+## 9. Implementation plan (after this revision is accepted)
+1. **Corridor spike** (§5.2): height-grid extension, the `Transit` state and its tests. Stop and report if it fails.
+2. **Off-map state:** the `offmap` flag, coarse positions, the regional territories (packing), `migRng`, the hourly
+   coarse model, save/load, the conditional hash and the conservation test.
+3. **Crossings:** exits by movement, entries by movement, classification and counters, and tests at four speeds.
+4. **Configuration flags C, D and E**, plus sensitivity variants; the 60-seed evaluation; a report in Gate 2 format.
 
-## 10. Decision points for the owner
-1. Approve option C (identity-preserving regional individuals with straddling territories) over anonymous pools.
-2. Approve scoping to jackals and hares, with chital, boar and birds staying closed for now.
-3. Entry pop-in: renderer-only walk-in from the apron (recommended), or a simulation transit band.
-4. Approve the pre-registered parameter table as written, or amend it **before** any open-boundary run.
-5. Approve fixing audit finding B1, birds stranded in the edge strip, as a separate small PR first.
+Hare refuges, other species, #12 and #22 are out of scope.
+
+## 10. Decisions requested
+1. **Flee exits.** Should a fleeing jackal or hare be allowed to exit through the corridor? Recommendation: **not in
+   the first experiment.** Keep cornering as a measured outcome. Test flee-exit as a separate configuration only if you
+   want it.
+2. Accept `W = 1,440 m` and packing-based regional territories, with the corrected counts of about 2 straddling and 7
+   external.
+3. Accept the off-map coarse model in §4.
+4. Accept the corridor spike as the first commit, with the stop-and-report condition.
