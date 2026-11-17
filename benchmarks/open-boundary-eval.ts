@@ -18,6 +18,9 @@ const days = Number(arg('days', '365'));
 const dt = Number(arg('dt', '2'));
 const outdir = arg('outdir', 'ob-eval');
 const variant = arg('variant', '');
+/** Jackal exclusive spacing sensitivity (m); mutates the species table for this process only. */
+const spacing = Number(arg('spacing', '0'));
+if (spacing) (SPECIES[SPECIES.findIndex((s) => s.id === 'jackal')] as { territory?: { spacing: number } }).territory!.spacing = spacing;
 mkdirSync(outdir, { recursive: true });
 let commit = 'unknown';
 try { commit = execSync('git rev-parse HEAD').toString().trim(); } catch { /* */ }
@@ -65,7 +68,7 @@ for (let seed = s0!; seed <= (s1 ?? s0!); seed++) {
   audit.dispose();
   const end = SPECIES.map((_, i) => sim.population(i));
   writeFileSync(file, JSON.stringify({
-    meta: { config, variant, seed, days, dt, commit, species: SPECIES.map((s) => s.id), wallS: +((performance.now() - t0) / 1000).toFixed(1), maturityDays: SPECIES.map((s) => maturityDays(s)) },
+    meta: { config, variant, spacing: spacing || null, seed, days, dt, commit, species: SPECIES.map((s) => s.id), wallS: +((performance.now() - t0) / 1000).toFixed(1), maturityDays: SPECIES.map((s) => maturityDays(s)) },
     endPops: end, extinct: SPECIES.filter((_, i) => end[i] === 0).map((s) => s.id), hash: sim.stateHash(),
     daily, summary: obs.summary(), boundary: audit.summary(), migration: sim.migration ?? null, territoryStats: sim.territoryStats ?? null,
   }));

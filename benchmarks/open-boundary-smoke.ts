@@ -1,3 +1,4 @@
+/** Quick open-boundary smoke run: regional counts, crossings and the conservation balance every 10 days (seed 3, 60 days). */
 import { SPECIES, Simulation } from '@untamed/ecology';
 const sim = new Simulation(3);
 sim.configureBoundary({ open: true });
