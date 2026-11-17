@@ -188,3 +188,37 @@ test('Observer has independent yaw, pitch, bank/roll and optical zoom without to
   expect((await read()).hash).toBe(before.hash);
   expect(errors).toEqual([]);
 });
+
+test('opt-in camera culling retains visible animals and leaves paused ecology untouched', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?qa=1&animalCulling=B');
+  await page.selectOption('#startQuality', 'low'); // no shadows: camera-only pruning is measurable
+  await page.click('#btnNew');
+  await expect(page.locator('#hud')).toBeVisible({ timeout: 90_000 });
+  const before = await page.evaluate(() => (window as unknown as { __untamed: { sim: { stateHash(): number } } }).__untamed.sim.stateHash());
+  await expect.poll(() => page.evaluate(() => {
+    const G = (window as unknown as { __untamed: { engine: { animals: {
+      debugCulling(): { mode: string; candidates: number; rendered: number; culled: number; overflow: number }
+    } } } }).__untamed;
+    return G.engine.animals.debugCulling().mode;
+  }), { timeout: 30_000 }).toBe('camera-shadow');
+  await expect.poll(() => page.evaluate(() => {
+    const G = (window as unknown as { __untamed: { engine: { animals: {
+      debugCulling(): { candidates: number; rendered: number; culled: number; overflow: number }
+    } } } }).__untamed;
+    return G.engine.animals.debugCulling().candidates;
+  }), { timeout: 30_000 }).toBeGreaterThan(0);
+  const after = await page.evaluate(() => {
+    const G = (window as unknown as { __untamed: {
+      engine: { animals: { debugCulling(): { candidates: number; rendered: number; culled: number; overflow: number } } };
+      sim: { stateHash(): number };
+    } }).__untamed;
+    return { ...G.engine.animals.debugCulling(), hash: G.sim.stateHash() };
+  });
+  expect(after.rendered).toBeLessThanOrEqual(after.candidates);
+  expect(after.culled).toBeGreaterThan(0);
+  expect(after.overflow).toBe(0);
+  expect(after.hash).toBe(before);
+  expect(errors).toEqual([]);
+});
