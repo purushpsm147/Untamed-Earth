@@ -174,4 +174,18 @@ describe('bounded swept movement at high speed', () => {
       for (const x of Object.values(cats.birdInWater ?? {})) expect(x.shareOfTime).toBeLessThan(0.0002);
     }
   });
+
+  it('the residual 1000x river crossings are closed: no animal crosses water faster than it can move through it (seed 3 replay)', () => {
+    // seed 3 at 1000x is where the 8-sub-step build still let fleeing chital, hares and chasing jackals enter or leave
+    // the river faster than their wading/swimming speed allows (36 cases in these 10 days); the 1 m continuous sweep
+    // checks every sample and applies the depth-dependent speed at each, so the count is zero
+    const sim = new Simulation(3);
+    const audit = new PlausibilityAudit(sim);
+    for (let i = 0; i < 10 * 720; i++) {
+      sim.step(2);
+      audit.afterStep(2);
+    }
+    const cats = (audit.summary() as { categories: Record<string, Record<string, { episodes: number }>> }).categories;
+    expect(Object.values(cats.shorelineSkip ?? {}).reduce((t, x) => t + x.episodes, 0)).toBe(0);
+  });
 });

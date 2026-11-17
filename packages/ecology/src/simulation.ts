@@ -141,9 +141,13 @@ export const swimDepth = (sp: SpeciesDef): number => sp.locomotion.wadeDepth * 2
 /** May this animal be in water deeper than its wade depth right now? */
 const maySwim = (sp: SpeciesDef, fleeing: boolean): boolean =>
   sp.locomotion.swim === 'capable' || sp.locomotion.swim === 'strong' || (sp.locomotion.swim === 'escape' && fleeing);
-/** Bounded swept movement: a ground step is integrated in at most SUBSTEPS_MAX sub-steps of nominal SUBSTEP_M metres. */
-const SUBSTEP_M = 1;
-const SUBSTEPS_MAX = 8;
+/**
+ * Bounded continuous sweep: a ground step is walked in samples of at most SWEEP_M metres, at most SWEEP_SAMPLES_MAX per
+ * tick. The longest ground step at any current speed is ~25 m (12.5 m/s at the 2 s tick), so every step is checked at
+ * 1 m resolution; only a step longer than 32 m (none today) would be sampled more coarsely. Work per animal is bounded.
+ */
+const SWEEP_M = 1;
+const SWEEP_SAMPLES_MAX = 32;
 /** Daylight below which a diurnal animal settled on its roost/rest site waits for first light before going to water. */
 const DARK = 0.1;
 
@@ -1429,20 +1433,23 @@ export class Simulation {
     // turning rate falls with speed (a sprinting deer arcs; a walking one can pivot) and with body size
     const maxTurn = (loco.agility * 4.5 * dt) / (1 + a.speed / 6);
     a.heading += clamp(angleDiff(a.heading, desired), -maxTurn, maxTurn);
-    // swept integration: the step is walked in at most SUBSTEPS_MAX sub-steps (nominally SUBSTEP_M long; longer only
-    // when a very large tick would need more, so no distance is lost and the work per animal stays bounded). Each
-    // sub-step is checked for walls, region edge and water the species may not enter, and slows on entering deep
-    // water, so a large tick cannot jump a shoreline or a wall corner (docs/BEHAVIOUR_AUDIT.md, findings 5-6).
+    // continuous sweep: the step is walked in samples of at most SWEEP_M (bounded by SWEEP_SAMPLES_MAX; no distance is
+    // lost). Each sample is checked for walls, region edge and water the species may not enter, and the speed factor
+    // follows the depth at each sample, so a large tick neither jumps a shoreline or wall corner nor crosses deep
+    // water at walking speed (docs/BEHAVIOUR_AUDIT.md, findings 5-6).
     const fleeing = a.beh === B.Flee;
     const hx = Math.sin(a.heading);
     const hz = Math.cos(a.heading);
-    const n = Math.min(SUBSTEPS_MAX, Math.max(1, Math.ceil(step / SUBSTEP_M)));
+    const n = Math.min(SWEEP_SAMPLES_MAX, Math.max(1, Math.ceil(step / SWEEP_M)));
     const sub = step / n;
     const water = sp.locomotion;
     const swimD = swimDepth(sp);
     let depth = this.valley.waterDepth(a.x, a.z, this.env.stage);
+    const factor = (d: number): number => (d > swimD ? water.swimSpeed : d > water.wadeDepth ? 0.6 : 1);
     for (let i = 0; i < n; i++) {
-      const f = depth > swimD ? water.swimSpeed : depth > water.wadeDepth ? 0.6 : 1;
+      // the slower of the sample's start and end: entering deeper water slows the animal at once
+      const ahead = this.valley.waterDepth(a.x + hx * sub, a.z + hz * sub, this.env.stage);
+      const f = Math.min(factor(depth), factor(ahead));
       const nx = a.x + hx * sub * f;
       const nz = a.z + hz * sub * f;
       if (!this.passable(sp, nx, nz, depth, fleeing)) {
