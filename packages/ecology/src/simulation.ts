@@ -1,7 +1,7 @@
 import { EventBus, Rng, SpatialHash, angleDiff, clamp, clamp01, hash3, lerp } from '@untamed/core';
 import { EnvSnapshot, Environment } from '@untamed/environment';
 import { REGION_SIZE, Valley } from '@untamed/worlds';
-import { SPECIES, SPECIES_INDEX, SpeciesDef, SpeciesId, gestationHours, intervalHours, lifeDays, maturityDays, weanDays } from './species';
+import { LIFE_COMPRESSION, SPECIES, SPECIES_INDEX, SpeciesDef, SpeciesId, gestationHours, intervalHours, lifeDays, maturityDays, weanDays } from './species';
 
 /**
  * Kinematics run in "kinetic" seconds (what you see at 1x); physiology and the calendar run
@@ -109,6 +109,11 @@ export interface ControlInput {
   action: 'eat' | 'drink' | 'rest' | null;
 }
 
+/** A held territory: the group that holds it, its centre, and the resident breeders (0 = slot vacant). */
+export interface Territory { group: number; sp: number; x: number; z: number; female: number; male: number; sinceH: number }
+/** Cumulative territory and dispersal events (diagnostic; saved). */
+export interface TerritoryStats { dispersed: number; claimed: number; joined: number; inherited: number; vacated: number }
+
 export interface SimSnapshot {
   version: number;
   seed: number;
@@ -129,6 +134,9 @@ export interface SimSnapshot {
   rainAcc: number;
   groups: [number, number, number, number][];
   eaten?: number[];
+  territories?: Territory[];
+  territoryStats?: TerritoryStats;
+  terrAccH?: number;
 }
 
 const NO_CONTROL: ControlInput = { mx: 0, mz: 0, run: false, action: null };
@@ -204,6 +212,10 @@ export class Simulation {
   private statAcc = 0;
   private groupAcc = 0;
   private rainAcc = 0;
+  /** Held territories by group id (territorial species only). */
+  readonly territories = new Map<number, Territory>();
+  territoryStats: TerritoryStats = { dispersed: 0, claimed: 0, joined: 0, inherited: 0, vacated: 0 };
+  private terrAccH = 0;
   private dead = false;
   /** 1 for environment cells that touch a building footprint (cheap pre-filter for collision tests). */
   private readonly bldCell: Uint8Array;
@@ -221,6 +233,7 @@ export class Simulation {
     if (snapshot) this.restore(snapshot);
     else {
       this.populate();
+      this.updateTerritories();
       this.recordStats();
       this.rebuildGroups();
     }
@@ -353,6 +366,11 @@ export class Simulation {
       this.groupAcc = 0;
       this.rebuildGroups();
     }
+    this.terrAccH += dtH;
+    if (this.terrAccH >= 1) {
+      this.terrAccH -= 1;
+      this.updateTerritories();
+    }
     const n = list.length; // newborns appended during the loop act from the next tick
     for (let i = 0; i < n; i++) {
       const a = list[i]!;
@@ -406,7 +424,8 @@ export class Simulation {
       if (!first) continue;
       const sp = SPECIES[first.sp]!;
       const limit = Math.max(4, sp.group * 2);
-      if (e.n > limit) {
+      // territorial species do not bud off groups by size: offspring disperse individually (updateTerritories)
+      if (e.n > limit && !sp.territory) {
         const ng = this.nextId++;
         const ang = this.rng.range(0, 6.283);
         const hx = clamp(e.x + Math.cos(ang) * sp.homeRange * 0.9, 60, REGION_SIZE - 60);
@@ -481,11 +500,111 @@ export class Simulation {
     }
   }
 
+  /**
+   * Territorial pair breeding (species with `territory`), run once per game hour. No population cap: how many
+   * territories exist follows from space (centres at least `spacing` apart) and from who is alive to hold them.
+   *  1. A territory with no living adult member is vacated; a dead breeder leaves its slot vacant.
+   *  2. A founder (no recorded mother) fills a vacant slot of its sex in its own group. A natal adult takes a slot
+   *     only when both are vacant (inheritance after both parents are gone); while one parent still breeds, the
+   *     other slot waits for an outsider, so offspring never pair with a surviving parent (fathers are not
+   *     recorded, so this rule is the model's inbreeding avoidance).
+   *  3. A non-breeding adult member stays as a helper for `helperYears`, then disperses as a floater.
+   *  4. An adult floater joins a territory it is inside if that territory lacks a breeder of its sex; otherwise it
+   *     claims where it stands if that is at least `spacing` from every held centre; otherwise it keeps exploring
+   *     toward a changing anchor point. Floaters do not breed.
+   */
+  private updateTerritories(): void {
+    const now = this.env.timeH;
+    // ---- 1. slots and vacancy ----
+    for (const t of this.territories.values()) {
+      const f = t.female ? this.byId.get(t.female) : undefined;
+      const m = t.male ? this.byId.get(t.male) : undefined;
+      if (!f || !f.alive || f.group !== t.group) t.female = 0;
+      if (!m || !m.alive || m.group !== t.group) t.male = 0;
+    }
+    const adults = new Map<number, number>(); // territory group -> living adult members
+    for (const a of this.animals) {
+      if (!a.alive) continue;
+      const sp = SPECIES[a.sp]!;
+      if (!sp.territory || !this.territories.has(a.group) || a.age <= maturityDays(sp)) continue;
+      adults.set(a.group, (adults.get(a.group) ?? 0) + 1);
+    }
+    for (const t of [...this.territories.values()]) {
+      if (!adults.has(t.group)) {
+        this.territories.delete(t.group);
+        this.territoryStats.vacated++;
+      }
+    }
+    // ---- 2-4. per animal, in id order of the animal list (deterministic) ----
+    for (const a of this.animals) {
+      if (!a.alive || a.controlled) continue;
+      const sp = SPECIES[a.sp]!;
+      const terr = sp.territory;
+      if (!terr) continue;
+      const mat = maturityDays(sp);
+      const t = this.territories.get(a.group);
+      if (t) {
+        a.homeX = t.x;
+        a.homeZ = t.z;
+        if (a.age <= mat) continue;
+        if (t.female === a.id || t.male === a.id) continue;
+        const mySlotFree = a.sex === 0 ? t.female === 0 : t.male === 0;
+        const founder = a.mother === 0;
+        if (mySlotFree && (founder || (t.female === 0 && t.male === 0))) {
+          if (a.sex === 0) t.female = a.id;
+          else t.male = a.id;
+          if (!founder) this.territoryStats.inherited++;
+          continue;
+        }
+        // helper: disperse after the helper period
+        if (a.age > mat + (terr.helperYears * 365) / LIFE_COMPRESSION) {
+          a.group = this.nextId++;
+          a.homeX = this.rng.range(80, REGION_SIZE - 80);
+          a.homeZ = this.rng.range(80, REGION_SIZE - 80);
+          this.territoryStats.dispersed++;
+        }
+        continue;
+      }
+      if (a.age <= mat) continue;
+      // ---- floater ----
+      let inside: Territory | null = null;
+      let clear = true;
+      for (const o of this.territories.values()) {
+        if (o.sp !== a.sp) continue;
+        const d = Math.hypot(o.x - a.x, o.z - a.z);
+        if (d < terr.spacing) clear = false;
+        if (d < terr.spacing * 0.5 && (a.sex === 0 ? o.female === 0 : o.male === 0) && !inside && o.female !== a.mother) inside = o;
+      }
+      if (inside) {
+        a.group = inside.group;
+        if (a.sex === 0) inside.female = a.id;
+        else inside.male = a.id;
+        a.homeX = inside.x;
+        a.homeZ = inside.z;
+        this.territoryStats.joined++;
+      } else if (clear && this.valley.inBounds(a.x, a.z, 60) && this.valley.waterDepth(a.x, a.z, this.env.stage) < -0.3 && !this.insideBuilding(a.x, a.z, 2)) {
+        const nt: Territory = { group: a.group, sp: a.sp, x: a.x, z: a.z, female: a.sex === 0 ? a.id : 0, male: a.sex === 1 ? a.id : 0, sinceH: now };
+        this.territories.set(a.group, nt);
+        a.homeX = a.x;
+        a.homeZ = a.z;
+        this.territoryStats.claimed++;
+      } else if (Math.hypot(a.homeX - a.x, a.homeZ - a.z) < 80 || this.rng.chance(1 / 24)) {
+        // keep exploring: a new anchor somewhere in the region
+        a.homeX = this.rng.range(80, REGION_SIZE - 80);
+        a.homeZ = this.rng.range(80, REGION_SIZE - 80);
+      }
+    }
+  }
+
   private seasonOk(sp: SpeciesDef): boolean {
     return sp.breedSeasons === null || sp.breedSeasons.includes(this.env.season);
   }
   private receptive(a: Animal, sp: SpeciesDef): boolean {
-    if (sp.pairBreeding && a.sex === 0) {
+    if (sp.territory) {
+      // only the resident female of a held territory breeds, and only with a resident male present
+      const t = this.territories.get(a.group);
+      if (!t || t.female !== a.id || t.male === 0) return false;
+    } else if (sp.pairBreeding && a.sex === 0) {
       // only the dominant (oldest) female of a jackal family breeds; her daughters are helpers until they disperse
       for (const o of this.animals) if (o.alive && o.sp === a.sp && o.group === a.group && o.sex === 0 && o.age > a.age) return false;
     }
@@ -638,7 +757,7 @@ export class Simulation {
       const osp = SPECIES[o.sp]!;
       if (o.sp === a.sp) {
         if (d2 < 3600) crowd++;
-        if (a.sex === 1 && adult && d2 < mateD2 && this.receptive(o, osp)) {
+        if (a.sex === 1 && adult && d2 < mateD2 && (!sp.territory || this.territories.get(o.group)?.male === a.id) && this.receptive(o, osp)) {
           mate = o;
           mateD2 = d2;
         }
@@ -1656,6 +1775,7 @@ export class Simulation {
       fertility: [...this.fertility], births: [...this.births], deaths: this.deaths.map((r) => [...r]),
       history: this.history.map((h) => ({ ...h, pops: [...h.pops] })), statAcc: this.statAcc, groupAcc: this.groupAcc, rainAcc: this.rainAcc,
       groups: [...this.groups].map(([id, g]) => [id, g.x, g.z, g.n]), eaten: [...this.eaten],
+      territories: [...this.territories.values()].map((t) => ({ ...t })), territoryStats: { ...this.territoryStats }, terrAccH: this.terrAccH,
     };
   }
 
@@ -1683,6 +1803,10 @@ export class Simulation {
     this.groupAcc = s.groupAcc;
     this.rainAcc = s.rainAcc;
     if (s.eaten) this.eaten = [...s.eaten];
+    this.territories.clear();
+    for (const t of s.territories ?? []) this.territories.set(t.group, { ...t });
+    if (s.territoryStats) this.territoryStats = { ...s.territoryStats };
+    this.terrAccH = s.terrAccH ?? 0;
     this.groups.clear();
     for (const [id, x, z, n] of s.groups) this.groups.set(id, { x, z, n });
   }

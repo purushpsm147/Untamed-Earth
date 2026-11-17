@@ -1,0 +1,1556 @@
+{
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22,
+  23,
+  24,
+  25,
+  26,
+  27,
+  28,
+  29,
+  30,
+  31,
+  32,
+  33,
+  34,
+  35,
+  36,
+  37,
+  38,
+  39,
+  40,
+  41,
+  42,
+  43,
+  44,
+  45,
+  46,
+  47,
+  48,
+  49,
+  50,
+  51,
+  52,
+  53,
+  54,
+  55,
+  56,
+  57,
+  58,
+  59,
+  60
+ ],
+ "configs": [
+  "M2",
+  "M2+memory",
+  "M2+memory+territories",
+  "sensitivity: spacing 720 m"
+ ],
+ "metrics": {
+  "jackal-days": {
+   "M2": {
+    "median": 1372.5,
+    "iqr": [
+     1021,
+     2123
+    ],
+    "n": 60
+   },
+   "M2+memory": {
+    "median": 3591.5,
+    "iqr": [
+     2352,
+     5438
+    ],
+    "n": 60
+   },
+   "M2+memory+territories": {
+    "median": 1859.0,
+    "iqr": [
+     1466,
+     2703
+    ],
+    "n": 60
+   },
+   "sensitivity: spacing 720 m": {
+    "median": 2266.5,
+    "iqr": [
+     1598,
+     2912
+    ],
+    "n": 30
+   }
+  },
+  "jackal end population": {
+   "M2": {
+    "median": 0.0,
+    "iqr": [
+     0,
+     1
+    ],
+    "n": 60
+   },
+   "M2+memory": {
+    "median": 5.5,
+    "iqr": [
+     1,
+     13
+    ],
+    "n": 60
+   },
+   "M2+memory+territories": {
+    "median": 1.0,
+    "iqr": [
+     0,
+     2
+    ],
+    "n": 60
+   },
+   "sensitivity: spacing 720 m": {
+    "median": 0.5,
+    "iqr": [
+     0,
+     2
+    ],
+    "n": 30
+   }
+  },
+  "kills per jackal-day": {
+   "M2": {
+    "median": 0.174,
+    "iqr": [
+     0.145,
+     0.228
+    ],
+    "n": 60
+   },
+   "M2+memory": {
+    "median": 0.129,
+    "iqr": [
+     0.085,
+     0.161
+    ],
+    "n": 60
+   },
+   "M2+memory+territories": {
+    "median": 0.187,
+    "iqr": [
+     0.141,
+     0.222
+    ],
+    "n": 60
+   },
+   "sensitivity: spacing 720 m": {
+    "median": 0.163,
+    "iqr": [
+     0.123,
+     0.196
+    ],
+    "n": 30
+   }
+  },
+  "total predation (chital+boar+hare)": {
+   "M2": {
+    "median": 253.0,
+    "iqr": [
+     191,
+     335
+    ],
+    "n": 60
+   },
+   "M2+memory": {
+    "median": 402.5,
+    "iqr": [
+     318,
+     499
+    ],
+    "n": 60
+   },
+   "M2+memory+territories": {
+    "median": 340.0,
+    "iqr": [
+     278,
+     404
+    ],
+    "n": 60
+   },
+   "sensitivity: spacing 720 m": {
+    "median": 350.5,
+    "iqr": [
+     251,
+     441
+    ],
+    "n": 30
+   }
+  },
+  "jackal litters": {
+   "M2": {
+    "median": 5.5,
+    "iqr": [
+     4,
+     9
+    ],
+    "n": 60
+   },
+   "M2+memory": {
+    "median": 15.5,
+    "iqr": [
+     9,
+     26
+    ],
+    "n": 60
+   },
+   "M2+memory+territories": {
+    "median": 4.5,
+    "iqr": [
+     3,
+     7
+    ],
+    "n": 60
+   },
+   "sensitivity: spacing 720 m": {
+    "median": 6.5,
+    "iqr": [
+     4,
+     10
+    ],
+    "n": 30
+   }
+  },
+  "hare end population": {
+   "M2": {
+    "median": 54.5,
+    "iqr": [
+     1,
+     120
+    ],
+    "n": 60
+   },
+   "M2+memory": {
+    "median": 0.5,
+    "iqr": [
+     0,
+     50
+    ],
+    "n": 60
+   },
+   "M2+memory+territories": {
+    "median": 3.5,
+    "iqr": [
+     0,
+     59
+    ],
+    "n": 60
+   },
+   "sensitivity: spacing 720 m": {
+    "median": 6.0,
+    "iqr": [
+     0,
+     44
+    ],
+    "n": 30
+   }
+  },
+  "hare min after day 30": {
+   "M2": {
+    "median": 24.5,
+    "iqr": [
+     1,
+     56
+    ],
+    "n": 60
+   },
+   "M2+memory": {
+    "median": 0.5,
+    "iqr": [
+     0,
+     31
+    ],
+    "n": 60
+   },
+   "M2+memory+territories": {
+    "median": 3.5,
+    "iqr": [
+     0,
+     20
+    ],
+    "n": 60
+   },
+   "sensitivity: spacing 720 m": {
+    "median": 2.0,
+    "iqr": [
+     0,
+     15
+    ],
+    "n": 30
+   }
+  },
+  "chital end population": {
+   "M2": {
+    "median": 5.0,
+    "iqr": [
+     2,
+     12
+    ],
+    "n": 60
+   },
+   "M2+memory": {
+    "median": 7.5,
+    "iqr": [
+     3,
+     13
+    ],
+    "n": 60
+   },
+   "M2+memory+territories": {
+    "median": 10.5,
+    "iqr": [
+     5,
+     17
+    ],
+    "n": 60
+   },
+   "sensitivity: spacing 720 m": {
+    "median": 12.0,
+    "iqr": [
+     4,
+     17
+    ],
+    "n": 30
+   }
+  },
+  "chital min after day 30": {
+   "M2": {
+    "median": 4.5,
+    "iqr": [
+     2,
+     9
+    ],
+    "n": 60
+   },
+   "M2+memory": {
+    "median": 6.5,
+    "iqr": [
+     3,
+     12
+    ],
+    "n": 60
+   },
+   "M2+memory+territories": {
+    "median": 10.0,
+    "iqr": [
+     4,
+     15
+    ],
+    "n": 60
+   },
+   "sensitivity: spacing 720 m": {
+    "median": 8.5,
+    "iqr": [
+     3,
+     13
+    ],
+    "n": 30
+   }
+  }
+ },
+ "extinction": {
+  "chital": {
+   "M2": "11/60",
+   "M2+memory": "10/60",
+   "M2+memory+territories": "3/60",
+   "sensitivity: spacing 720 m": "4/30"
+  },
+  "boar": {
+   "M2": "1/60",
+   "M2+memory": "1/60",
+   "M2+memory+territories": "1/60",
+   "sensitivity: spacing 720 m": "0/30"
+  },
+  "jackal": {
+   "M2": "38/60",
+   "M2+memory": "11/60",
+   "M2+memory+territories": "25/60",
+   "sensitivity: spacing 720 m": "15/30"
+  },
+  "hare": {
+   "M2": "13/60",
+   "M2+memory": "30/60",
+   "M2+memory+territories": "24/60",
+   "sensitivity: spacing 720 m": "14/30"
+  },
+  "crow": {
+   "M2": "0/60",
+   "M2+memory": "0/60",
+   "M2+memory+territories": "0/60",
+   "sensitivity: spacing 720 m": "0/30"
+  },
+  "myna": {
+   "M2": "0/60",
+   "M2+memory": "0/60",
+   "M2+memory+territories": "0/60",
+   "sensitivity: spacing 720 m": "0/30"
+  },
+  "allSixPersist": {
+   "M2": "11/60",
+   "M2+memory": "20/60",
+   "M2+memory+territories": "16/60",
+   "sensitivity: spacing 720 m": "8/30"
+  }
+ },
+ "territory": {
+  "M2+memory+territories": {
+   "median mean occupied territories": 1.82,
+   "median mean full pairs": 0.72,
+   "median mean helpers": 0.6,
+   "median mean floaters": 0.97,
+   "median share of days with >=1 territory": 1.0,
+   "litters per full-pair life-year": 0.794,
+   "pups born": 1123,
+   "pups survived to maturity / resolved": "404/1116",
+   "events (sum over seeds)": {
+    "dispersed": 289,
+    "claimed": 219,
+    "joined": 167,
+    "inherited": 30,
+    "vacated": 170
+   }
+  },
+  "sensitivity: spacing 720 m": {
+   "median mean occupied territories": 2.31,
+   "median mean full pairs": 1.04,
+   "median mean helpers": 0.81,
+   "median mean floaters": 0.31,
+   "median share of days with >=1 territory": 0.995,
+   "litters per full-pair life-year": 0.834,
+   "pups born": 656,
+   "pups survived to maturity / resolved": "242/640",
+   "events (sum over seeds)": {
+    "dispersed": 163,
+    "claimed": 167,
+    "joined": 92,
+    "inherited": 14,
+    "vacated": 106
+   }
+  }
+ },
+ "paired": {
+  "M2 -> M2+memory (n=60)": {
+   "jackal-days": {
+    "higher": 56,
+    "lower": 4,
+    "ties": 0,
+    "p": 0.0
+   },
+   "jackal end population": {
+    "higher": 45,
+    "lower": 7,
+    "ties": 8,
+    "p": 0.0
+   },
+   "kills per jackal-day": {
+    "higher": 11,
+    "lower": 49,
+    "ties": 0,
+    "p": 0.0
+   },
+   "total predation (chital+boar+hare)": {
+    "higher": 52,
+    "lower": 8,
+    "ties": 0,
+    "p": 0.0
+   },
+   "jackal litters": {
+    "higher": 47,
+    "lower": 7,
+    "ties": 6,
+    "p": 0.0
+   },
+   "hare end population": {
+    "higher": 17,
+    "lower": 36,
+    "ties": 7,
+    "p": 0.0127
+   },
+   "hare min after day 30": {
+    "higher": 16,
+    "lower": 37,
+    "ties": 7,
+    "p": 0.0055
+   },
+   "chital end population": {
+    "higher": 34,
+    "lower": 24,
+    "ties": 2,
+    "p": 0.237
+   },
+   "chital min after day 30": {
+    "higher": 35,
+    "lower": 22,
+    "ties": 3,
+    "p": 0.1112
+   },
+   "extinction chital": {
+    "newlyExtinct": [
+     2,
+     6,
+     8,
+     14,
+     43,
+     44,
+     46,
+     52,
+     58
+    ],
+    "rescued": [
+     7,
+     13,
+     17,
+     22,
+     27,
+     32,
+     33,
+     38,
+     49,
+     51
+    ],
+    "p": 1.0
+   },
+   "extinction jackal": {
+    "newlyExtinct": [
+     5,
+     22,
+     27,
+     48
+    ],
+    "rescued": [
+     1,
+     2,
+     3,
+     4,
+     6,
+     7,
+     8,
+     17,
+     23,
+     26,
+     28,
+     29,
+     30,
+     31,
+     32,
+     34,
+     37,
+     38,
+     39,
+     41,
+     42,
+     43,
+     45,
+     46,
+     47,
+     49,
+     50,
+     51,
+     52,
+     54,
+     55
+    ],
+    "p": 0.0
+   },
+   "extinction hare": {
+    "newlyExtinct": [
+     1,
+     2,
+     3,
+     6,
+     7,
+     10,
+     13,
+     17,
+     18,
+     21,
+     23,
+     24,
+     25,
+     26,
+     28,
+     30,
+     32,
+     36,
+     42,
+     46,
+     49,
+     50,
+     53
+    ],
+    "rescued": [
+     5,
+     15,
+     19,
+     22,
+     52,
+     54
+    ],
+    "p": 0.0023
+   }
+  },
+  "M2+memory -> M2+memory+territories (n=60)": {
+   "jackal-days": {
+    "higher": 13,
+    "lower": 47,
+    "ties": 0,
+    "p": 0.0
+   },
+   "jackal end population": {
+    "higher": 10,
+    "lower": 43,
+    "ties": 7,
+    "p": 0.0
+   },
+   "kills per jackal-day": {
+    "higher": 44,
+    "lower": 16,
+    "ties": 0,
+    "p": 0.0004
+   },
+   "total predation (chital+boar+hare)": {
+    "higher": 22,
+    "lower": 38,
+    "ties": 0,
+    "p": 0.0519
+   },
+   "jackal litters": {
+    "higher": 8,
+    "lower": 51,
+    "ties": 1,
+    "p": 0.0
+   },
+   "hare end population": {
+    "higher": 27,
+    "lower": 21,
+    "ties": 12,
+    "p": 0.4709
+   },
+   "hare min after day 30": {
+    "higher": 28,
+    "lower": 20,
+    "ties": 12,
+    "p": 0.3123
+   },
+   "chital end population": {
+    "higher": 35,
+    "lower": 19,
+    "ties": 6,
+    "p": 0.0402
+   },
+   "chital min after day 30": {
+    "higher": 33,
+    "lower": 21,
+    "ties": 6,
+    "p": 0.1337
+   },
+   "extinction chital": {
+    "newlyExtinct": [],
+    "rescued": [
+     2,
+     6,
+     8,
+     43,
+     44,
+     46,
+     58
+    ],
+    "p": 0.0156
+   },
+   "extinction jackal": {
+    "newlyExtinct": [
+     1,
+     3,
+     4,
+     6,
+     7,
+     8,
+     9,
+     12,
+     15,
+     21,
+     24,
+     26,
+     32,
+     33,
+     34,
+     35,
+     40,
+     41,
+     43,
+     49,
+     57
+    ],
+    "rescued": [
+     5,
+     10,
+     14,
+     22,
+     48,
+     56,
+     59
+    ],
+    "p": 0.0125
+   },
+   "extinction hare": {
+    "newlyExtinct": [
+     4,
+     5,
+     8,
+     9,
+     22,
+     31,
+     33,
+     37,
+     38,
+     52,
+     54,
+     55
+    ],
+    "rescued": [
+     1,
+     2,
+     3,
+     6,
+     7,
+     11,
+     14,
+     17,
+     18,
+     26,
+     27,
+     28,
+     32,
+     36,
+     42,
+     43,
+     47,
+     53
+    ],
+    "p": 0.3616
+   }
+  },
+  "M2 -> M2+memory+territories (n=60)": {
+   "jackal-days": {
+    "higher": 40,
+    "lower": 20,
+    "ties": 0,
+    "p": 0.0135
+   },
+   "jackal end population": {
+    "higher": 25,
+    "lower": 17,
+    "ties": 18,
+    "p": 0.28
+   },
+   "kills per jackal-day": {
+    "higher": 34,
+    "lower": 26,
+    "ties": 0,
+    "p": 0.3663
+   },
+   "total predation (chital+boar+hare)": {
+    "higher": 43,
+    "lower": 17,
+    "ties": 0,
+    "p": 0.0011
+   },
+   "jackal litters": {
+    "higher": 25,
+    "lower": 32,
+    "ties": 3,
+    "p": 0.427
+   },
+   "hare end population": {
+    "higher": 17,
+    "lower": 37,
+    "ties": 6,
+    "p": 0.0091
+   },
+   "hare min after day 30": {
+    "higher": 14,
+    "lower": 39,
+    "ties": 7,
+    "p": 0.0008
+   },
+   "chital end population": {
+    "higher": 39,
+    "lower": 17,
+    "ties": 4,
+    "p": 0.0046
+   },
+   "chital min after day 30": {
+    "higher": 37,
+    "lower": 19,
+    "ties": 4,
+    "p": 0.0222
+   },
+   "extinction chital": {
+    "newlyExtinct": [
+     14,
+     52
+    ],
+    "rescued": [
+     7,
+     13,
+     17,
+     22,
+     27,
+     32,
+     33,
+     38,
+     49,
+     51
+    ],
+    "p": 0.0386
+   },
+   "extinction jackal": {
+    "newlyExtinct": [
+     9,
+     12,
+     15,
+     21,
+     24,
+     27,
+     33,
+     35,
+     40,
+     57
+    ],
+    "rescued": [
+     2,
+     10,
+     14,
+     17,
+     23,
+     28,
+     29,
+     30,
+     31,
+     37,
+     38,
+     39,
+     42,
+     45,
+     46,
+     47,
+     50,
+     51,
+     52,
+     54,
+     55,
+     56,
+     59
+    ],
+    "p": 0.0351
+   },
+   "extinction hare": {
+    "newlyExtinct": [
+     4,
+     8,
+     9,
+     10,
+     13,
+     21,
+     23,
+     24,
+     25,
+     30,
+     31,
+     33,
+     37,
+     38,
+     46,
+     49,
+     50,
+     55
+    ],
+    "rescued": [
+     11,
+     14,
+     15,
+     19,
+     27,
+     43,
+     47
+    ],
+    "p": 0.0433
+   }
+  },
+  "M2+memory+territories -> sensitivity: spacing 720 m (n=30)": {
+   "jackal-days": {
+    "higher": 20,
+    "lower": 10,
+    "ties": 0,
+    "p": 0.0987
+   },
+   "jackal end population": {
+    "higher": 13,
+    "lower": 8,
+    "ties": 9,
+    "p": 0.3833
+   },
+   "kills per jackal-day": {
+    "higher": 12,
+    "lower": 18,
+    "ties": 0,
+    "p": 0.3616
+   },
+   "total predation (chital+boar+hare)": {
+    "higher": 21,
+    "lower": 8,
+    "ties": 1,
+    "p": 0.0241
+   },
+   "jackal litters": {
+    "higher": 23,
+    "lower": 7,
+    "ties": 0,
+    "p": 0.0052
+   },
+   "hare end population": {
+    "higher": 14,
+    "lower": 9,
+    "ties": 7,
+    "p": 0.4049
+   },
+   "hare min after day 30": {
+    "higher": 13,
+    "lower": 10,
+    "ties": 7,
+    "p": 0.6776
+   },
+   "chital end population": {
+    "higher": 11,
+    "lower": 15,
+    "ties": 4,
+    "p": 0.5572
+   },
+   "chital min after day 30": {
+    "higher": 12,
+    "lower": 16,
+    "ties": 2,
+    "p": 0.5716
+   },
+   "extinction chital": {
+    "newlyExtinct": [
+     7,
+     12,
+     13
+    ],
+    "rescued": [
+     28
+    ],
+    "p": 0.625
+   },
+   "extinction jackal": {
+    "newlyExtinct": [
+     2,
+     11,
+     13,
+     14,
+     22,
+     28,
+     30
+    ],
+    "rescued": [
+     3,
+     4,
+     7,
+     8,
+     9,
+     15,
+     26,
+     27
+    ],
+    "p": 1.0
+   },
+   "extinction hare": {
+    "newlyExtinct": [
+     6,
+     7,
+     11,
+     18,
+     27,
+     28,
+     29
+    ],
+    "rescued": [
+     4,
+     8,
+     13,
+     21,
+     23
+    ],
+    "p": 0.7744
+   }
+  }
+ },
+ "hareExtinctionContext": {
+  "M2": {
+   "extinctions": 13,
+   "noJackalsInPrior30Days": 1,
+   "hareDeathsByCause": {
+    "predation": 10596,
+    "starvation": 13736,
+    "dehydration": 42,
+    "background": 63636,
+    "age": 592
+   },
+   "cases": [
+    {
+     "seed": 5,
+     "day": 175,
+     "meanJackalsPrior30d": 18.4,
+     "harePeakBefore": 112
+    },
+    {
+     "seed": 11,
+     "day": 331,
+     "meanJackalsPrior30d": 8.7,
+     "harePeakBefore": 137
+    },
+    {
+     "seed": 14,
+     "day": 334,
+     "meanJackalsPrior30d": 0,
+     "harePeakBefore": 306
+    },
+    {
+     "seed": 15,
+     "day": 338,
+     "meanJackalsPrior30d": 5.2,
+     "harePeakBefore": 155
+    },
+    {
+     "seed": 19,
+     "day": 296,
+     "meanJackalsPrior30d": 5.4,
+     "harePeakBefore": 89
+    },
+    {
+     "seed": 22,
+     "day": 130,
+     "meanJackalsPrior30d": 9.3,
+     "harePeakBefore": 75
+    },
+    {
+     "seed": 27,
+     "day": 212,
+     "meanJackalsPrior30d": 6.3,
+     "harePeakBefore": 295
+    },
+    {
+     "seed": 43,
+     "day": 296,
+     "meanJackalsPrior30d": 1.8,
+     "harePeakBefore": 143
+    },
+    {
+     "seed": 44,
+     "day": 237,
+     "meanJackalsPrior30d": 12.6,
+     "harePeakBefore": 205
+    },
+    {
+     "seed": 47,
+     "day": 271,
+     "meanJackalsPrior30d": 2.8,
+     "harePeakBefore": 78
+    },
+    {
+     "seed": 52,
+     "day": 153,
+     "meanJackalsPrior30d": 11.2,
+     "harePeakBefore": 83
+    },
+    {
+     "seed": 54,
+     "day": 221,
+     "meanJackalsPrior30d": 3.0,
+     "harePeakBefore": 101
+    },
+    {
+     "seed": 58,
+     "day": 314,
+     "meanJackalsPrior30d": 7.6,
+     "harePeakBefore": 95
+    }
+   ]
+  },
+  "M2+memory": {
+   "extinctions": 30,
+   "noJackalsInPrior30Days": 0,
+   "hareDeathsByCause": {
+    "predation": 15052,
+    "starvation": 6258,
+    "dehydration": 39,
+    "background": 38467,
+    "age": 408
+   },
+   "cases": [
+    {
+     "seed": 1,
+     "day": 219,
+     "meanJackalsPrior30d": 3.4,
+     "harePeakBefore": 90
+    },
+    {
+     "seed": 2,
+     "day": 177,
+     "meanJackalsPrior30d": 18.3,
+     "harePeakBefore": 69
+    },
+    {
+     "seed": 3,
+     "day": 117,
+     "meanJackalsPrior30d": 9.1,
+     "harePeakBefore": 70
+    },
+    {
+     "seed": 6,
+     "day": 300,
+     "meanJackalsPrior30d": 9.1,
+     "harePeakBefore": 184
+    },
+    {
+     "seed": 7,
+     "day": 197,
+     "meanJackalsPrior30d": 20.9,
+     "harePeakBefore": 74
+    },
+    {
+     "seed": 10,
+     "day": 247,
+     "meanJackalsPrior30d": 2.4,
+     "harePeakBefore": 163
+    },
+    {
+     "seed": 11,
+     "day": 141,
+     "meanJackalsPrior30d": 18.9,
+     "harePeakBefore": 64
+    },
+    {
+     "seed": 13,
+     "day": 143,
+     "meanJackalsPrior30d": 19.3,
+     "harePeakBefore": 93
+    },
+    {
+     "seed": 14,
+     "day": 182,
+     "meanJackalsPrior30d": 3.5,
+     "harePeakBefore": 82
+    },
+    {
+     "seed": 17,
+     "day": 315,
+     "meanJackalsPrior30d": 17.2,
+     "harePeakBefore": 106
+    },
+    {
+     "seed": 18,
+     "day": 206,
+     "meanJackalsPrior30d": 9.3,
+     "harePeakBefore": 143
+    },
+    {
+     "seed": 21,
+     "day": 154,
+     "meanJackalsPrior30d": 22.7,
+     "harePeakBefore": 94
+    },
+    {
+     "seed": 23,
+     "day": 157,
+     "meanJackalsPrior30d": 27.4,
+     "harePeakBefore": 89
+    },
+    {
+     "seed": 24,
+     "day": 129,
+     "meanJackalsPrior30d": 10.5,
+     "harePeakBefore": 70
+    },
+    {
+     "seed": 25,
+     "day": 263,
+     "meanJackalsPrior30d": 16.5,
+     "harePeakBefore": 159
+    },
+    {
+     "seed": 26,
+     "day": 179,
+     "meanJackalsPrior30d": 16.8,
+     "harePeakBefore": 152
+    },
+    {
+     "seed": 27,
+     "day": 156,
+     "meanJackalsPrior30d": 17.0,
+     "harePeakBefore": 85
+    },
+    {
+     "seed": 28,
+     "day": 339,
+     "meanJackalsPrior30d": 7.0,
+     "harePeakBefore": 342
+    },
+    {
+     "seed": 30,
+     "day": 318,
+     "meanJackalsPrior30d": 8.0,
+     "harePeakBefore": 196
+    },
+    {
+     "seed": 32,
+     "day": 184,
+     "meanJackalsPrior30d": 20.5,
+     "harePeakBefore": 97
+    },
+    {
+     "seed": 36,
+     "day": 107,
+     "meanJackalsPrior30d": 17,
+     "harePeakBefore": 65
+    },
+    {
+     "seed": 42,
+     "day": 280,
+     "meanJackalsPrior30d": 18.1,
+     "harePeakBefore": 129
+    },
+    {
+     "seed": 43,
+     "day": 284,
+     "meanJackalsPrior30d": 3,
+     "harePeakBefore": 116
+    },
+    {
+     "seed": 44,
+     "day": 251,
+     "meanJackalsPrior30d": 4.1,
+     "harePeakBefore": 192
+    },
+    {
+     "seed": 46,
+     "day": 286,
+     "meanJackalsPrior30d": 23.3,
+     "harePeakBefore": 66
+    },
+    {
+     "seed": 47,
+     "day": 217,
+     "meanJackalsPrior30d": 13.5,
+     "harePeakBefore": 73
+    },
+    {
+     "seed": 49,
+     "day": 199,
+     "meanJackalsPrior30d": 32.6,
+     "harePeakBefore": 107
+    },
+    {
+     "seed": 50,
+     "day": 101,
+     "meanJackalsPrior30d": 19.2,
+     "harePeakBefore": 98
+    },
+    {
+     "seed": 53,
+     "day": 278,
+     "meanJackalsPrior30d": 15.7,
+     "harePeakBefore": 172
+    },
+    {
+     "seed": 58,
+     "day": 246,
+     "meanJackalsPrior30d": 25.3,
+     "harePeakBefore": 158
+    }
+   ]
+  },
+  "M2+memory+territories": {
+   "extinctions": 24,
+   "noJackalsInPrior30Days": 0,
+   "hareDeathsByCause": {
+    "predation": 13026,
+    "starvation": 5701,
+    "dehydration": 26,
+    "background": 33560,
+    "age": 347
+   },
+   "cases": [
+    {
+     "seed": 4,
+     "day": 122,
+     "meanJackalsPrior30d": 9.6,
+     "harePeakBefore": 80
+    },
+    {
+     "seed": 5,
+     "day": 225,
+     "meanJackalsPrior30d": 6,
+     "harePeakBefore": 119
+    },
+    {
+     "seed": 8,
+     "day": 180,
+     "meanJackalsPrior30d": 4,
+     "harePeakBefore": 83
+    },
+    {
+     "seed": 9,
+     "day": 180,
+     "meanJackalsPrior30d": 4.6,
+     "harePeakBefore": 80
+    },
+    {
+     "seed": 10,
+     "day": 212,
+     "meanJackalsPrior30d": 9.4,
+     "harePeakBefore": 105
+    },
+    {
+     "seed": 13,
+     "day": 221,
+     "meanJackalsPrior30d": 7.4,
+     "harePeakBefore": 98
+    },
+    {
+     "seed": 21,
+     "day": 190,
+     "meanJackalsPrior30d": 3,
+     "harePeakBefore": 82
+    },
+    {
+     "seed": 22,
+     "day": 201,
+     "meanJackalsPrior30d": 4.8,
+     "harePeakBefore": 64
+    },
+    {
+     "seed": 23,
+     "day": 236,
+     "meanJackalsPrior30d": 16.4,
+     "harePeakBefore": 93
+    },
+    {
+     "seed": 24,
+     "day": 131,
+     "meanJackalsPrior30d": 4.3,
+     "harePeakBefore": 82
+    },
+    {
+     "seed": 25,
+     "day": 123,
+     "meanJackalsPrior30d": 5.6,
+     "harePeakBefore": 83
+    },
+    {
+     "seed": 30,
+     "day": 272,
+     "meanJackalsPrior30d": 9.3,
+     "harePeakBefore": 76
+    },
+    {
+     "seed": 31,
+     "day": 295,
+     "meanJackalsPrior30d": 5.8,
+     "harePeakBefore": 69
+    },
+    {
+     "seed": 33,
+     "day": 154,
+     "meanJackalsPrior30d": 7.7,
+     "harePeakBefore": 79
+    },
+    {
+     "seed": 37,
+     "day": 162,
+     "meanJackalsPrior30d": 12,
+     "harePeakBefore": 88
+    },
+    {
+     "seed": 38,
+     "day": 195,
+     "meanJackalsPrior30d": 5,
+     "harePeakBefore": 93
+    },
+    {
+     "seed": 44,
+     "day": 218,
+     "meanJackalsPrior30d": 9.3,
+     "harePeakBefore": 109
+    },
+    {
+     "seed": 46,
+     "day": 347,
+     "meanJackalsPrior30d": 4.6,
+     "harePeakBefore": 107
+    },
+    {
+     "seed": 49,
+     "day": 164,
+     "meanJackalsPrior30d": 6,
+     "harePeakBefore": 137
+    },
+    {
+     "seed": 50,
+     "day": 148,
+     "meanJackalsPrior30d": 11.0,
+     "harePeakBefore": 102
+    },
+    {
+     "seed": 52,
+     "day": 132,
+     "meanJackalsPrior30d": 10.1,
+     "harePeakBefore": 86
+    },
+    {
+     "seed": 54,
+     "day": 284,
+     "meanJackalsPrior30d": 5.8,
+     "harePeakBefore": 146
+    },
+    {
+     "seed": 55,
+     "day": 230,
+     "meanJackalsPrior30d": 11.2,
+     "harePeakBefore": 90
+    },
+    {
+     "seed": 58,
+     "day": 282,
+     "meanJackalsPrior30d": 4.8,
+     "harePeakBefore": 77
+    }
+   ]
+  },
+  "sensitivity: spacing 720 m": {
+   "extinctions": 14,
+   "noJackalsInPrior30Days": 0,
+   "hareDeathsByCause": {
+    "predation": 6061,
+    "starvation": 2852,
+    "dehydration": 12,
+    "background": 14811,
+    "age": 140
+   },
+   "cases": [
+    {
+     "seed": 5,
+     "day": 112,
+     "meanJackalsPrior30d": 13.5,
+     "harePeakBefore": 92
+    },
+    {
+     "seed": 6,
+     "day": 129,
+     "meanJackalsPrior30d": 11.1,
+     "harePeakBefore": 85
+    },
+    {
+     "seed": 7,
+     "day": 227,
+     "meanJackalsPrior30d": 5,
+     "harePeakBefore": 94
+    },
+    {
+     "seed": 9,
+     "day": 167,
+     "meanJackalsPrior30d": 14.6,
+     "harePeakBefore": 79
+    },
+    {
+     "seed": 10,
+     "day": 232,
+     "meanJackalsPrior30d": 8.1,
+     "harePeakBefore": 112
+    },
+    {
+     "seed": 11,
+     "day": 326,
+     "meanJackalsPrior30d": 1.7,
+     "harePeakBefore": 75
+    },
+    {
+     "seed": 18,
+     "day": 217,
+     "meanJackalsPrior30d": 11.1,
+     "harePeakBefore": 138
+    },
+    {
+     "seed": 22,
+     "day": 110,
+     "meanJackalsPrior30d": 8.6,
+     "harePeakBefore": 71
+    },
+    {
+     "seed": 24,
+     "day": 76,
+     "meanJackalsPrior30d": 8.1,
+     "harePeakBefore": 88
+    },
+    {
+     "seed": 25,
+     "day": 161,
+     "meanJackalsPrior30d": 9.4,
+     "harePeakBefore": 86
+    },
+    {
+     "seed": 27,
+     "day": 189,
+     "meanJackalsPrior30d": 9.1,
+     "harePeakBefore": 93
+    },
+    {
+     "seed": 28,
+     "day": 272,
+     "meanJackalsPrior30d": 2.8,
+     "harePeakBefore": 86
+    },
+    {
+     "seed": 29,
+     "day": 319,
+     "meanJackalsPrior30d": 4.1,
+     "harePeakBefore": 92
+    },
+    {
+     "seed": 30,
+     "day": 209,
+     "meanJackalsPrior30d": 8,
+     "harePeakBefore": 77
+    }
+   ]
+  }
+ }
+}

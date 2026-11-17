@@ -7,7 +7,7 @@
 import { execSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import os from 'node:os';
-import { SPECIES, Simulation } from '@untamed/ecology';
+import { SPECIES, Simulation, maturityDays } from '@untamed/ecology';
 import { EcoObserver } from './ecology/observer';
 import { VARIANTS } from './ecology/variants';
 
@@ -27,14 +27,33 @@ for (const seed of seeds) {
   const restore = apply(sim);
   const obs = new EcoObserver(sim);
   const ts = performance.now();
+  // territorial species: daily occupancy (read-only; absent on builds without territories)
+  type T = { female: number; male: number; sp: number };
+  const terrMap = (sim as unknown as { territories?: Map<number, T> }).territories;
+  const terrDays: { territories: number; fullPairs: number; helpers: number; floaters: number }[] = [];
+  const J = SPECIES.findIndex((s) => s.id === 'jackal');
   for (let d = 0; d < days * ticksPerDay; d++) {
     sim.step(dt);
     obs.afterStep(dt);
+    if (terrMap && d % ticksPerDay === ticksPerDay - 1) {
+      let fullPairs = 0;
+      for (const t of terrMap.values()) if (t.female && t.male) fullPairs++;
+      let helpers = 0;
+      let floaters = 0;
+      for (const a of sim.animals) {
+        if (!a.alive || a.sp !== J || a.age <= maturityDays(SPECIES[J]!)) continue;
+        const t = terrMap.get(a.group);
+        if (!t) floaters++;
+        else if (t.female !== a.id && t.male !== a.id) helpers++;
+      }
+      terrDays.push({ territories: terrMap.size, fullPairs, helpers, floaters });
+    }
   }
   obs.detach();
   restore?.();
   const end = SPECIES.map((_, i) => sim.population(i));
-  runs.push({ seed, wallS: +((performance.now() - ts) / 1000).toFixed(1), endPops: end, extinct: SPECIES.filter((_, i) => end[i] === 0).map((s) => s.id), hash: sim.stateHash(), summary: obs.summary(), days: obs.days });
+  runs.push({ seed, wallS: +((performance.now() - ts) / 1000).toFixed(1), endPops: end, extinct: SPECIES.filter((_, i) => end[i] === 0).map((s) => s.id), hash: sim.stateHash(), summary: obs.summary(), days: obs.days,
+    territory: terrMap ? { daily: terrDays, stats: (sim as unknown as { territoryStats: unknown }).territoryStats } : null });
   console.log(`${variant} dt=${dt} seed ${seed}: end ${end.join('/')} extinct [${runs.at(-1)!.extinct}] ${runs.at(-1)!.wallS}s`);
 }
 let commit = 'unknown';
