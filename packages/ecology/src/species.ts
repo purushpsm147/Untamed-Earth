@@ -64,6 +64,14 @@ export interface SpeciesDef {
   group: number;
   /** Only the dominant female of each group breeds. */
   pairBreeding?: boolean;
+  /**
+   * Territorial pair breeding. A breeding pair holds an exclusive territory; only the resident pair breeds.
+   * - spacing: minimum distance between territory centres, m (two home-range radii: ranges of mated pairs are mutually
+   *   exclusive). The number of territories a region holds follows from its area; there is no population cap.
+   * - helperYears: offspring stay with the parents as non-breeding helpers for this long after maturity (life-years),
+   *   then disperse as floaters that settle only in unclaimed space or a territory missing a breeder of their sex.
+   */
+  territory?: { spacing: number; helperYears: number; evidence: string };
   homeRange: number;
   flies: boolean;
   habitat: { forest: number; meadow: number; wetland: number; settlement: number; dump: number };
@@ -109,7 +117,8 @@ export const SPECIES: SpeciesDef[] = [
     vision: 110, hearing: 95, smell: 230, activity: 'crepuscular', lifespanY: 8, maturityY: 0.95, gestationD: 63, weanD: 75,
     intervalD: 360, litter: [2, 5], breedSeasons: [0], intake: 0.75, feedHours: 11, foodWater: 0.3,
     diet: { veg: 0.12, invert: 0.3, fauna: 0.9, carrion: 1 }, prey: ['hare', 'chital', 'boar'], predators: [], adultFearless: true, fleeDist: 0,
-    group: 2, pairBreeding: true, homeRange: 480, flies: false, habitat: { forest: 0.5, meadow: 0.8, wetland: 0.3, settlement: 0.9, dump: 0.9 },
+    group: 2, pairBreeding: true, homeRange: 480,
+    territory: { spacing: 960, helperYears: 1, evidence: 'exclusive pair ranges, helpers for about a year after maturity: field studies (docs/JACKAL_TERRITORIES.md); spacing = 2 x the model home range, not a measured territory size' }, flies: false, habitat: { forest: 0.5, meadow: 0.8, wetland: 0.3, settlement: 0.9, dump: 0.9 },
     initial: 6, juvHazard: 0.026, adultHazard: 0.0025, playable: false,
     locomotion: { wadeDepth: 0.22, swim: 'capable', swimSpeed: 0.4, waterAversion: 1.4, wallows: false, evidence: 'wade depth: body size; swimming: assumption; aversion: existing Living Valley value' },
     note: 'Golden jackals usually live as a mated pair with their young; older offspring sometimes stay on as helpers.', groupNoun: 'family',
