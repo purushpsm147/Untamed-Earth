@@ -1,0 +1,57 @@
+seeds: 30 (365 game days, dt 2)
+out-of-region positions (all seeds): 0
+edge-wall cells that are water (mean): 0.006
+
+band          area share  walkable frac  walkable share
+0-8 m              0.022          0.495           0.011
+8-30 m             0.059          0.993           0.056
+30-60 m            0.078          0.993           0.086
+60-120 m           0.146          0.990           0.149
+120-240 m          0.250          0.981           0.254
+240-720 m          0.444          0.966           0.444
+
+Occupancy share / walkable-area share (1 = uniform on walkable ground), pooled
+species        0-8 m      8-30 m     30-60 m    60-120 m   120-240 m   240-720 m
+chital          0.01        0.34        0.34        0.51        0.83        1.50
+boar            0.00        0.29        0.29        0.54        0.90        1.47
+jackal          0.04        0.29        0.20        0.30        0.61        1.73
+hare            0.05        0.52        0.37        0.52        1.16        1.27
+crow            0.30        0.17        0.25        0.48        0.75        1.59
+myna            0.24        0.18        0.25        0.39        0.66        1.67
+
+Wall contact (< 8 m from the edge) and pinning (want > 0, speed < 0.05 m/s), animal-hours over all seeds
+species   contact h  pinned h       all h  contact share
+chital        929.7       4.5    10144205        0.00009
+boar           89.5       0.0    10157848        0.00001
+jackal        613.2       0.0     1404811        0.00044
+hare         7328.7       0.0    13751457        0.00053
+crow        59413.6     186.5    18246760        0.00326
+myna        55083.5     948.3    21242400        0.00259
+
+Flee episodes: started, target clamped by the 8 m edge clamp, ended < 30 m from the edge
+chital     573935  11371 (0.0198)  14724 (0.0257)
+boar       212610   1302 (0.0061)   1630 (0.0077)
+hare       527349  18536 (0.0351)  23211 (0.0440)
+crow      1057272   6441 (0.0061)  21412 (0.0203)
+myna       240723    575 (0.0024)   1384 (0.0057)
+
+Predation: kill share / occupancy share per band (> 1 = kills concentrated there), pooled; 95% seed bootstrap for < 60 m
+chital   kills  1474 229.47   7.05   1.54   1.09   0.88   0.80 | <60 m: 4.11 [3.49-4.84]
+boar     kills  2147 264.21   2.64   0.84   0.55   0.61   1.15 | <60 m: 1.61 [1.20-2.02]
+hare     kills  5951  12.93   2.73   1.56   0.92   0.55   1.11 | <60 m: 2.21 [1.55-3.41]
+
+Deaths (all causes) per band, pooled
+chital       35    326    196    407    815   2601
+boar          5    237    225    695   1963   5960
+jackal        0     14     12     33     97    516
+hare         48   1000    921   1839   6081  13170
+crow         44     56    130    472   1317   4965
+myna        102    129    289    881   2515  11186
+
+Jackal territories: 19984 territory-days over 30 seeds
+  centre-to-edge mean 239 m, minimum 62 m
+  exclusive disc (r = spacing/2) crossing the edge: 0.927 of territory-days
+  mean disc fraction outside the region: 0.289
+  mean disc fraction that is walkable valley ground: 0.687
+
+run time per seed: median 286 s
