@@ -1,6 +1,6 @@
 import { EventBus, Rng, SpatialHash, angleDiff, clamp, clamp01, hash3, lerp } from '@untamed/core';
 import { EnvSnapshot, Environment } from '@untamed/environment';
-import { REGION_SIZE, Valley } from '@untamed/worlds';
+import { CORRIDOR, REGION_SIZE, Valley } from '@untamed/worlds';
 import { LIFE_COMPRESSION, SPECIES, SPECIES_INDEX, SpeciesDef, SpeciesId, gestationHours, intervalHours, lifeDays, maturityDays, weanDays } from './species';
 
 /**
@@ -19,6 +19,8 @@ export const BEHAVIOR_NAMES = ['Idle', 'Wandering', 'Foraging', 'Seeking water',
 
 export interface Animal {
   id: number;
+  /** Boundary transit (issue #29 corridor spike): +1 walking in through the corridor, -1 walking out, 0/absent none. */
+  transit?: number;
   sp: number;
   x: number; z: number; alt: number;
   px: number; pz: number; palt: number;
@@ -170,6 +172,10 @@ const SWEEP_M = 1;
  */
 export const EDGE_WALL = 6;
 const outsideWall = (x: number, z: number): boolean => x < EDGE_WALL || z < EDGE_WALL || x > REGION_SIZE - EDGE_WALL || z > REGION_SIZE - EDGE_WALL;
+/** Inside the transit corridor's outer line (the region plus CORRIDOR m on every side). */
+const inCorridor = (x: number, z: number): boolean => x >= -CORRIDOR && z >= -CORRIDOR && x <= REGION_SIZE + CORRIDOR && z <= REGION_SIZE + CORRIDOR;
+/** The edge refuses this position for this animal: everyone stops at the wall; only animals in transit may use the corridor. */
+const edgeBlocks = (a: Animal | null, x: number, z: number): boolean => outsideWall(x, z) && !(a?.transit && inCorridor(x, z));
 const SWEEP_SAMPLES_MAX = 32;
 /** A destination given up as unreachable is avoided for this many game hours, within this radius (m). */
 export const FAILED_TARGET_HOURS = 6;
@@ -741,6 +747,7 @@ export class Simulation {
   }
 
   private decide(a: Animal, sp: SpeciesDef): void {
+    if (a.transit) return this.updateTransit(a);
     const env = this.env;
     const rng = this.rng;
     const cell = env.cellIndex(a.x, a.z);
@@ -1529,8 +1536,34 @@ export class Simulation {
     a.mode = !sp.flies && d > swimDepth(sp) ? MODE.Swim : d > 0.02 ? MODE.Wade : MODE.Walk;
   }
 
-  private passable(sp: SpeciesDef, x: number, z: number, fromDepth: number, fleeing: boolean): boolean {
-    if (outsideWall(x, z)) return false;
+  /**
+   * Corridor spike (issue #29): an animal in transit travels to its corridor target; an entering animal's transit ends
+   * once it is inside the wall, an exiting animal's when it reaches the corridor's outer line (the migration PR will then
+   * move it off-map; the spike only marks arrival with transit = -2 and stops it there).
+   */
+  private updateTransit(a: Animal): void {
+    if (a.transit === 1 && !outsideWall(a.x, a.z)) {
+      a.transit = 0;
+      a.timer = 0;
+      return;
+    }
+    if (a.transit === -1 && Math.max(-a.x, -a.z, a.x - REGION_SIZE, a.z - REGION_SIZE) >= CORRIDOR - 1) {
+      a.transit = -2;
+      a.want = 0;
+      return;
+    }
+    if (a.transit === -2) {
+      a.want = 0;
+      a.timer = 1;
+      return;
+    }
+    a.beh = B.Wander;
+    a.want = SPECIES[a.sp]!.walk;
+    a.timer = 0.5;
+  }
+
+  private passable(sp: SpeciesDef, a: Animal | null, x: number, z: number, fromDepth: number, fleeing: boolean): boolean {
+    if (edgeBlocks(a, x, z)) return false;
     if (this.insideBuilding(x, z)) return false;
     // no animal walks deeper than its wade depth unless it may swim; anything can always retreat toward shallower water
     if (!maySwim(sp, fleeing)) {
@@ -1597,7 +1630,7 @@ export class Simulation {
       a.z = clamp(a.z + Math.cos(a.heading) * step, EDGE_WALL, REGION_SIZE - EDGE_WALL);
       return;
     }
-    if (outsideWall(a.x, a.z)) {
+    if (outsideWall(a.x, a.z) && !a.transit) {
       // defensive (and for saves made before EDGE_WALL applied to flight): an animal on the ground inside the edge
       // strip walks straight inward, so it can never be trapped where every step is refused
       const nx = clamp(a.x, EDGE_WALL, REGION_SIZE - EDGE_WALL) - a.x;
@@ -1640,7 +1673,7 @@ export class Simulation {
       const f = Math.min(factor(depth), factor(ahead));
       const nx = a.x + hx * sub * f;
       const nz = a.z + hz * sub * f;
-      if (!this.passable(sp, nx, nz, depth, fleeing)) {
+      if (!this.passable(sp, a, nx, nz, depth, fleeing)) {
         a.speed = 0; // pressed against an obstacle: stop and keep turning next tick (no instant heading snaps)
         break;
       }
@@ -1721,7 +1754,7 @@ export class Simulation {
     const depth = this.valley.waterDepth(a.x, a.z, this.env.stage);
     // making room never means wading in: the step may not end in water deeper than where the animal stands
     const wet = this.valley.waterDepth(nx, nz, this.env.stage) > Math.max(-0.05, depth);
-    if (!wet && this.passable(sp, nx, nz, depth, false) && this.terrainCost(sp, a, nx, nz, this.valley.heightFast(a.x, a.z), step + 1e-3) < 0.5) {
+    if (!wet && this.passable(sp, a, nx, nz, depth, false) && this.terrainCost(sp, a, nx, nz, this.valley.heightFast(a.x, a.z), step + 1e-3) < 0.5) {
       a.x = nx;
       a.z = nz;
       a.speed = Math.max(a.speed, step / dt); // a real (slow) step: renderers animate legs from speed and distance
@@ -1736,7 +1769,7 @@ export class Simulation {
    * slopes above ~25 degrees cost more and cliffs are refused.
    */
   private terrainCost(sp: SpeciesDef, a: Animal, x: number, z: number, h0: number, dist: number): number {
-    if (outsideWall(x, z)) return Infinity;
+    if (edgeBlocks(a, x, z)) return Infinity;
     if (this.insideBuilding(x, z, 0.9)) return Infinity;
     const h = this.valley.heightFast(x, z);
     const depth = this.valley.waterSurface(z) + this.env.stage - h;
