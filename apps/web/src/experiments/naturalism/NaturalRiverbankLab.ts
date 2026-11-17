@@ -673,7 +673,31 @@ export function updateArticulatedChitalRig(
     limb.upper.updateMatrixWorld(true);
     limb.hoofBottom.getWorldPosition(_tmpHoofBottomWorld);
 
-    const clearance = _tmpHoofBottomWorld.y - target.groundY;
+    // The analytical knee/ankle solve has a bounded reach and abduction angle.
+    // On steep cross-slopes its remaining error can be ~1 cm even after the
+    // ankle iterations. Correct the *physical hoof transform* in the lower-leg
+    // frame, not the diagnostic value or the acceptance threshold. This is a
+    // small terminal fetlock adjustment; the limb IK remains authoritative.
+    // Reset it each frame so the adjustment cannot accumulate or drift.
+    limb.hoof.position.set(0, -LOWER_LIMB_LEN, 0);
+    limb.hoof.updateMatrixWorld(true);
+    for (let contactStep = 0; contactStep < 3; contactStep++) {
+      limb.hoofBottom.getWorldPosition(_tmpHoofBottomWorld);
+      // Sample at the marker's actual X/Z, not only at the planned footfall.
+      const groundAtMarker = sampleTerrainHeight(_tmpHoofBottomWorld.x, _tmpHoofBottomWorld.z);
+      const deltaY = groundAtMarker + target.liftY - _tmpHoofBottomWorld.y;
+      if (Math.abs(deltaY) < 0.0001) break;
+      _tmpWorldAnkle.copy(_tmpHoofBottomWorld);
+      _tmpWorldAnkle.y += THREE.MathUtils.clamp(deltaY, -0.025, 0.025);
+      limb.lower.worldToLocal(_tmpWorldAnkle);
+      _tmpLocalAnkle.copy(_tmpHoofBottomWorld);
+      limb.lower.worldToLocal(_tmpLocalAnkle);
+      limb.hoof.position.y += _tmpWorldAnkle.y - _tmpLocalAnkle.y;
+      limb.hoof.updateMatrixWorld(true);
+    }
+    limb.hoofBottom.getWorldPosition(_tmpHoofBottomWorld);
+
+    const clearance = _tmpHoofBottomWorld.y - sampleTerrainHeight(_tmpHoofBottomWorld.x, _tmpHoofBottomWorld.z);
     perHoofClearance[limb.name] = clearance;
     if (target.isStance) {
       maxStanceError = Math.max(maxStanceError, Math.abs(clearance));
