@@ -1,0 +1,23 @@
+# On-map jackal deaths by cause (sum over seeds) and on-map mortality per animal-year (48 game days = 1 life-year)
+A   mortality  0.79/a-y  (1728 deaths, 2198 a-y)  causes: background 62%, starvation 33%, age 6%, dehydration 0%
+B   mortality  0.69/a-y  (3269 deaths, 4736 a-y)  causes: background 77%, starvation 18%, age 5%, poison 0%
+C   mortality  0.55/a-y  (1369 deaths, 2494 a-y)  causes: background 69%, starvation 20%, age 11%, poison 0%
+D   mortality  2.22/a-y  (1951 deaths, 877 a-y)  causes: dehydration 48%, starvation 35%, background 16%, age 1%, poison 0%
+E   mortality  0.86/a-y  (165 deaths, 193 a-y)  causes: dehydration 35%, background 34%, starvation 29%, age 2%
+F   mortality  0.98/a-y  (2569 deaths, 2615 a-y)  causes: background 38%, starvation 31%, dehydration 26%, age 4%, poison 0%
+G   mortality  1.89/a-y  (549 deaths, 291 a-y)  causes: dehydration 52%, starvation 28%, background 17%, age 2%, poison 0%
+M   mortality  1.10/a-y  (641 deaths, 581 a-y)  causes: background 37%, starvation 31%, dehydration 27%, age 3%, poison 2%
+
+# Hare kills by jackals per hare-day (predation pressure on hares) and hare flee exits
+C: hare kills/1000 hare-days 9.19; chases of hares 111548; kill per chase 0.115
+D: hare kills/1000 hare-days 1.58; chases of hares 58125; kill per chase 0.107
+E: hare kills/1000 hare-days 0.48; chases of hares 16452; kill per chase 0.109
+F: hare kills/1000 hare-days 6.95; chases of hares 182046; kill per chase 0.112
+
+# Jackal dehydration deaths (observer records): remembered water, river distance, behaviour, age
+C none
+D: n=936 rememberedWater 553/936; riverDistM median 384; juvenile 156; behaviour [('Idle', 858), ('Wandering', 74), ('Following mother', 4)]; day median 154.0
+E: n=58 rememberedWater 57/58; riverDistM median 160; juvenile 2; behaviour [('Idle', 55), ('Wandering', 3)]; day median 51.5
+F: n=674 rememberedWater 306/674; riverDistM median 556; juvenile 195; behaviour [('Idle', 573), ('Wandering', 101)]; day median 129.5
+G: n=285 rememberedWater 184/285; riverDistM median 381; juvenile 37; behaviour [('Idle', 268), ('Wandering', 17)]; day median 91
+  note: observer caps the record list? 164

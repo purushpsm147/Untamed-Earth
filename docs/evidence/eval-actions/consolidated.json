@@ -1,0 +1,3295 @@
+{
+ "seeds": {
+  "S-K13": 30,
+  "F": 60,
+  "C": 60,
+  "S-J720": 30,
+  "S-H05": 30,
+  "B": 60,
+  "E": 60,
+  "S-W720": 30,
+  "M": 60,
+  "S-W2160": 30,
+  "D": 60,
+  "S-K1": 30,
+  "A": 60,
+  "G": 30,
+  "S-J1200": 30,
+  "S-H15": 30
+ },
+ "commits": {
+  "S-K13": [
+   "ce83f68b"
+  ],
+  "F": [
+   "ce83f68b"
+  ],
+  "C": [
+   "6980dded"
+  ],
+  "S-J720": [
+   "ce83f68b"
+  ],
+  "S-H05": [
+   "ce83f68b"
+  ],
+  "B": [
+   "868ca7ba"
+  ],
+  "E": [
+   "ce83f68b"
+  ],
+  "S-W720": [
+   "ce83f68b"
+  ],
+  "M": [
+   "89d3a458"
+  ],
+  "S-W2160": [
+   "ce83f68b"
+  ],
+  "D": [
+   "ce83f68b"
+  ],
+  "S-K1": [
+   "ce83f68b"
+  ],
+  "A": [
+   "ac287338"
+  ],
+  "G": [
+   "ce83f68b"
+  ],
+  "S-J1200": [
+   "ce83f68b"
+  ],
+  "S-H15": [
+   "ce83f68b"
+  ]
+ },
+ "ledger": {
+  "records": 690,
+  "mismatchSeeds": [],
+  "founders": {
+   "(52, 20, 6, 64)": 690
+  }
+ },
+ "determinism": {
+  "identical": 92,
+  "different": 0,
+  "differentList": []
+ },
+ "extinction": {
+  "S-K13": {
+   "chital": {
+    "local": 11,
+    "resident": 11,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.21873702204017678,
+     0.5448675356639506
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0,
+     0.113517091390478
+    ]
+   },
+   "jackal": {
+    "local": 14,
+    "resident": 30,
+    "recolonised": 14,
+    "n": 30,
+    "ci": [
+     0.30232127224128236,
+     0.6385798671847496
+    ]
+   },
+   "hare": {
+    "local": 2,
+    "resident": 8,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.01847663532769335,
+     0.21323817721072091
+    ]
+   }
+  },
+  "F": {
+   "chital": {
+    "local": 14,
+    "resident": 14,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.1443943161843107,
+     0.3543651134039202
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0,
+     0.06017393047793289
+    ]
+   },
+   "jackal": {
+    "local": 12,
+    "resident": 49,
+    "recolonised": 7,
+    "n": 60,
+    "ci": [
+     0.11828389736858964,
+     0.3178204609181701
+    ]
+   },
+   "hare": {
+    "local": 17,
+    "resident": 26,
+    "recolonised": 1,
+    "n": 60,
+    "ci": [
+     0.1850667860430859,
+     0.40767525049735165
+    ]
+   }
+  },
+  "C": {
+   "chital": {
+    "local": 1,
+    "resident": 1,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.002948083860873682,
+     0.08855338226779477
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0,
+     0.06017393047793289
+    ]
+   },
+   "jackal": {
+    "local": 28,
+    "resident": 28,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.34627701540988,
+     0.5910679132886489
+    ]
+   },
+   "hare": {
+    "local": 28,
+    "resident": 28,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.34627701540988,
+     0.5910679132886489
+    ]
+   }
+  },
+  "S-J720": {
+   "chital": {
+    "local": 9,
+    "resident": 9,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.16664562643958933,
+     0.4787612101166018
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0,
+     0.113517091390478
+    ]
+   },
+   "jackal": {
+    "local": 12,
+    "resident": 30,
+    "recolonised": 15,
+    "n": 30,
+    "ci": [
+     0.24590394326083403,
+     0.5767994750172616
+    ]
+   },
+   "hare": {
+    "local": 3,
+    "resident": 8,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.03459925995971615,
+     0.25621441315266624
+    ]
+   }
+  },
+  "S-H05": {
+   "chital": {
+    "local": 8,
+    "resident": 8,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.14182495553910618,
+     0.4444830204431169
+    ]
+   },
+   "boar": {
+    "local": 1,
+    "resident": 1,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.0059084379948573795,
+     0.16670751396958874
+    ]
+   },
+   "jackal": {
+    "local": 16,
+    "resident": 28,
+    "recolonised": 10,
+    "n": 30,
+    "ci": [
+     0.3614201328152505,
+     0.6976787277587178
+    ]
+   },
+   "hare": {
+    "local": 1,
+    "resident": 3,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.0059084379948573795,
+     0.16670751396958874
+    ]
+   }
+  },
+  "B": {
+   "chital": {
+    "local": 3,
+    "resident": 3,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.01714919117914121,
+     0.13700734625099836
+    ]
+   },
+   "boar": {
+    "local": 2,
+    "resident": 2,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.009189126490150246,
+     0.11363987528925378
+    ]
+   },
+   "jackal": {
+    "local": 8,
+    "resident": 8,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.06914026978309641,
+     0.24165394590072103
+    ]
+   },
+   "hare": {
+    "local": 30,
+    "resident": 30,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.37734812427246284,
+     0.6226518757275372
+    ]
+   }
+  },
+  "E": {
+   "chital": {
+    "local": 24,
+    "resident": 24,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.28569303003765506,
+     0.5263417560579315
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0,
+     0.06017393047793289
+    ]
+   },
+   "jackal": {
+    "local": 60,
+    "resident": 60,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.9398260695220669,
+     0.9999999999999999
+    ]
+   },
+   "hare": {
+    "local": 2,
+    "resident": 2,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.009189126490150246,
+     0.11363987528925378
+    ]
+   }
+  },
+  "S-W720": {
+   "chital": {
+    "local": 9,
+    "resident": 9,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.16664562643958933,
+     0.4787612101166018
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0,
+     0.113517091390478
+    ]
+   },
+   "jackal": {
+    "local": 30,
+    "resident": 30,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.8864829086095221,
+     1
+    ]
+   },
+   "hare": {
+    "local": 2,
+    "resident": 3,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.01847663532769335,
+     0.21323817721072091
+    ]
+   }
+  },
+  "M": {
+   "chital": {
+    "local": 17,
+    "resident": 17,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.1850667860430859,
+     0.40767525049735165
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0,
+     0.06017393047793289
+    ]
+   },
+   "jackal": {
+    "local": 58,
+    "resident": 58,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.8863601247107462,
+     0.9908108735098498
+    ]
+   },
+   "hare": {
+    "local": 3,
+    "resident": 3,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.01714919117914121,
+     0.13700734625099836
+    ]
+   }
+  },
+  "S-W2160": {
+   "chital": {
+    "local": 8,
+    "resident": 8,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.14182495553910618,
+     0.4444830204431169
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0,
+     0.113517091390478
+    ]
+   },
+   "jackal": {
+    "local": 4,
+    "resident": 30,
+    "recolonised": 25,
+    "n": 30,
+    "ci": [
+     0.05309569424218104,
+     0.2968168394441695
+    ]
+   },
+   "hare": {
+    "local": 3,
+    "resident": 7,
+    "recolonised": 1,
+    "n": 30,
+    "ci": [
+     0.03459925995971615,
+     0.25621441315266624
+    ]
+   }
+  },
+  "D": {
+   "chital": {
+    "local": 20,
+    "resident": 20,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.2272909421592783,
+     0.459433701333366
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0,
+     0.06017393047793289
+    ]
+   },
+   "jackal": {
+    "local": 28,
+    "resident": 57,
+    "recolonised": 30,
+    "n": 60,
+    "ci": [
+     0.34627701540988,
+     0.5910679132886489
+    ]
+   },
+   "hare": {
+    "local": 3,
+    "resident": 8,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.01714919117914121,
+     0.13700734625099836
+    ]
+   }
+  },
+  "S-K1": {
+   "chital": {
+    "local": 9,
+    "resident": 9,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.16664562643958933,
+     0.4787612101166018
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0,
+     0.113517091390478
+    ]
+   },
+   "jackal": {
+    "local": 14,
+    "resident": 30,
+    "recolonised": 15,
+    "n": 30,
+    "ci": [
+     0.30232127224128236,
+     0.6385798671847496
+    ]
+   },
+   "hare": {
+    "local": 0,
+    "resident": 3,
+    "recolonised": 1,
+    "n": 30,
+    "ci": [
+     0,
+     0.113517091390478
+    ]
+   }
+  },
+  "A": {
+   "chital": {
+    "local": 8,
+    "resident": 8,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.06914026978309641,
+     0.24165394590072103
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0,
+     0.06017393047793289
+    ]
+   },
+   "jackal": {
+    "local": 38,
+    "resident": 38,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.5068276736679673,
+     0.7437926115379172
+    ]
+   },
+   "hare": {
+    "local": 12,
+    "resident": 12,
+    "recolonised": 0,
+    "n": 60,
+    "ci": [
+     0.11828389736858964,
+     0.3178204609181701
+    ]
+   }
+  },
+  "G": {
+   "chital": {
+    "local": 13,
+    "resident": 13,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.2737723743061511,
+     0.6080299045459127
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0,
+     0.113517091390478
+    ]
+   },
+   "jackal": {
+    "local": 28,
+    "resident": 30,
+    "recolonised": 2,
+    "n": 30,
+    "ci": [
+     0.7867618227892791,
+     0.9815233646723066
+    ]
+   },
+   "hare": {
+    "local": 2,
+    "resident": 2,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.01847663532769335,
+     0.21323817721072091
+    ]
+   }
+  },
+  "S-J1200": {
+   "chital": {
+    "local": 9,
+    "resident": 9,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.16664562643958933,
+     0.4787612101166018
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0,
+     0.113517091390478
+    ]
+   },
+   "jackal": {
+    "local": 20,
+    "resident": 28,
+    "recolonised": 9,
+    "n": 30,
+    "ci": [
+     0.48779725813830266,
+     0.807697044731538
+    ]
+   },
+   "hare": {
+    "local": 2,
+    "resident": 5,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.01847663532769335,
+     0.21323817721072091
+    ]
+   }
+  },
+  "S-H15": {
+   "chital": {
+    "local": 10,
+    "resident": 10,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.19230295526846194,
+     0.5122027418616973
+    ]
+   },
+   "boar": {
+    "local": 0,
+    "resident": 0,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0,
+     0.113517091390478
+    ]
+   },
+   "jackal": {
+    "local": 18,
+    "resident": 30,
+    "recolonised": 12,
+    "n": 30,
+    "ci": [
+     0.42320052498273836,
+     0.7540960567391659
+    ]
+   },
+   "hare": {
+    "local": 1,
+    "resident": 3,
+    "recolonised": 0,
+    "n": 30,
+    "ci": [
+     0.0059084379948573795,
+     0.16670751396958874
+    ]
+   }
+  }
+ },
+ "contrasts": {
+  "A->B": {
+   "n": 60,
+   "label": "adds failed-target memory",
+   "effects": {
+    "jackal_days": {
+     "medianDiff": 2044,
+     "ci": [
+      1518,
+      2423
+     ],
+     "higher": 53,
+     "lower": 7,
+     "p": 7.671918274276823e-10,
+     "pHolm": 6.904726446849141e-09
+    },
+    "hare_days": {
+     "medianDiff": -11013,
+     "ci": [
+      -16989,
+      -2724
+     ],
+     "higher": 14,
+     "lower": 46,
+     "p": 4.223704562267977e-05,
+     "pHolm": 0.00021118522811339885
+    },
+    "chital_days": {
+     "medianDiff": -1166,
+     "ci": [
+      -1541,
+      -632
+     ],
+     "higher": 19,
+     "lower": 41,
+     "p": 0.0062176026593266705,
+     "pHolm": 0.01865280797798001
+    },
+    "kills_total": {
+     "medianDiff": 134,
+     "ci": [
+      85,
+      161
+     ],
+     "higher": 46,
+     "lower": 13,
+     "p": 1.9167786796225883e-05,
+     "pHolm": 0.0001150067207773553
+    },
+    "kills_per_jackal_day": {
+     "medianDiff": -0.048495409704325,
+     "ci": [
+      -0.07000810972006567,
+      -0.0369337895719174
+     ],
+     "higher": 7,
+     "lower": 53,
+     "p": 7.671918274276823e-10,
+     "pHolm": 6.904726446849141e-09
+    },
+    "hare_resident_days": {
+     "medianDiff": -11013,
+     "ci": [
+      -16989,
+      -2724
+     ],
+     "higher": 14,
+     "lower": 46,
+     "p": 4.223704562267977e-05,
+     "pHolm": null
+    },
+    "jackal_litters": {
+     "medianDiff": 8,
+     "ci": [
+      6,
+      12
+     ],
+     "higher": 53,
+     "lower": 6,
+     "p": 1.7539187463500028e-10,
+     "pHolm": null
+    },
+    "kills_hare": {
+     "medianDiff": 28,
+     "ci": [
+      -14,
+      69
+     ],
+     "higher": 35,
+     "lower": 24,
+     "p": 0.19252645776146274,
+     "pHolm": null
+    },
+    "kills_chital": {
+     "medianDiff": 31,
+     "ci": [
+      18,
+      43
+     ],
+     "higher": 52,
+     "lower": 8,
+     "p": 5.205691473372798e-09,
+     "pHolm": null
+    },
+    "chital_juv_predation": {
+     "medianDiff": 28,
+     "ci": [
+      15,
+      38
+     ],
+     "higher": 50,
+     "lower": 10,
+     "p": 1.6163814566157175e-07,
+     "pHolm": null
+    },
+    "chital_cohort_survival": {
+     "medianDiff": -0.13699999999999998,
+     "ci": [
+      -0.159,
+      -0.10800000000000001
+     ],
+     "higher": 10,
+     "lower": 50,
+     "p": 1.6163814566157175e-07,
+     "pHolm": null
+    },
+    "boar_cohort_survival": {
+     "medianDiff": -0.06999999999999998,
+     "ci": [
+      -0.091,
+      -0.02999999999999997
+     ],
+     "higher": 13,
+     "lower": 47,
+     "p": 1.2146708022957309e-05,
+     "pHolm": null
+    },
+    "hare_edge_kill_share": {
+     "medianDiff": 0.009739130434782611,
+     "ci": [
+      -0.006576543660942638,
+      0.017654986522911045
+     ],
+     "higher": 32,
+     "lower": 28,
+     "p": 0.6988834276200057,
+     "pHolm": null
+    },
+    "bb_chital_Resting": {
+     "medianDiff": 0.006000000000000005,
+     "ci": [
+      0.0010000000000000009,
+      0.012999999999999956
+     ],
+     "higher": 37,
+     "lower": 21,
+     "p": 0.04794032407166697,
+     "pHolm": null
+    },
+    "bb_chital_Following_mother": {
+     "medianDiff": -0.012999999999999998,
+     "ci": [
+      -0.017,
+      -0.009000000000000008
+     ],
+     "higher": 12,
+     "lower": 48,
+     "p": 3.183628737933597e-06,
+     "pHolm": null
+    },
+    "bb_jackal_Alert": {
+     "medianDiff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "higher": 0,
+     "lower": 0,
+     "p": 1.0,
+     "pHolm": null
+    },
+    "wallS": {
+     "medianDiff": -54.099999999999966,
+     "ci": [
+      -122.50000000000003,
+      -14.300000000000011
+     ],
+     "higher": 19,
+     "lower": 41,
+     "p": 0.0062176026593266705,
+     "pHolm": null
+    }
+   },
+   "extinction": {
+    "jackal_extinct": {
+     "a": 38,
+     "b": 8,
+     "newlyExtinct": 3,
+     "rescued": 33,
+     "p": 2.2721360437572002e-07,
+     "pHolm": 1.5904952306300402e-06
+    },
+    "hare_extinct": {
+     "a": 12,
+     "b": 30,
+     "newlyExtinct": 21,
+     "rescued": 3,
+     "p": 0.0002771615982055664,
+     "pHolm": 0.0011086463928222656
+    },
+    "chital_extinct": {
+     "a": 8,
+     "b": 3,
+     "newlyExtinct": 2,
+     "rescued": 7,
+     "p": 0.1796875,
+     "pHolm": 0.359375
+    },
+    "boar_extinct": {
+     "a": 0,
+     "b": 2,
+     "newlyExtinct": 2,
+     "rescued": 0,
+     "p": 0.5,
+     "pHolm": 0.5
+    }
+   }
+  },
+  "B->C": {
+   "n": 60,
+   "label": "adds territorial breeding (given memory)",
+   "effects": {
+    "jackal_days": {
+     "medianDiff": -1750,
+     "ci": [
+      -2253,
+      -1126
+     ],
+     "higher": 12,
+     "lower": 48,
+     "p": 3.183628737933597e-06,
+     "pHolm": 2.5469029903468776e-05
+    },
+    "hare_days": {
+     "medianDiff": -468,
+     "ci": [
+      -3285,
+      2691
+     ],
+     "higher": 27,
+     "lower": 33,
+     "p": 0.5189580031896518,
+     "pHolm": 1.0
+    },
+    "chital_days": {
+     "medianDiff": 153,
+     "ci": [
+      -363,
+      1402
+     ],
+     "higher": 31,
+     "lower": 29,
+     "p": 0.8974218269914305,
+     "pHolm": 1.0
+    },
+    "kills_total": {
+     "medianDiff": -31,
+     "ci": [
+      -75,
+      4
+     ],
+     "higher": 24,
+     "lower": 35,
+     "p": 0.19252645776146274,
+     "pHolm": 1.0
+    },
+    "kills_per_jackal_day": {
+     "medianDiff": 0.06444844124700241,
+     "ci": [
+      0.05237098637346346,
+      0.08504567808033364
+     ],
+     "higher": 52,
+     "lower": 8,
+     "p": 5.205691473372798e-09,
+     "pHolm": 4.685122326035518e-08
+    },
+    "hare_resident_days": {
+     "medianDiff": -468,
+     "ci": [
+      -3285,
+      2691
+     ],
+     "higher": 27,
+     "lower": 33,
+     "p": 0.5189580031896518,
+     "pHolm": null
+    },
+    "jackal_litters": {
+     "medianDiff": -10,
+     "ci": [
+      -14,
+      -8
+     ],
+     "higher": 3,
+     "lower": 56,
+     "p": 1.189326415129699e-13,
+     "pHolm": null
+    },
+    "kills_hare": {
+     "medianDiff": 19,
+     "ci": [
+      -18,
+      31
+     ],
+     "higher": 33,
+     "lower": 27,
+     "p": 0.5189580031896518,
+     "pHolm": null
+    },
+    "kills_chital": {
+     "medianDiff": -11,
+     "ci": [
+      -15,
+      -4
+     ],
+     "higher": 18,
+     "lower": 40,
+     "p": 0.005354859650800292,
+     "pHolm": null
+    },
+    "chital_juv_predation": {
+     "medianDiff": -9,
+     "ci": [
+      -12,
+      -7
+     ],
+     "higher": 20,
+     "lower": 40,
+     "p": 0.01348929373119186,
+     "pHolm": null
+    },
+    "chital_cohort_survival": {
+     "medianDiff": 0.05099999999999999,
+     "ci": [
+      0.01100000000000001,
+      0.08300000000000002
+     ],
+     "higher": 39,
+     "lower": 21,
+     "p": 0.027340133868077935,
+     "pHolm": null
+    },
+    "boar_cohort_survival": {
+     "medianDiff": 0.036000000000000004,
+     "ci": [
+      0.010000000000000009,
+      0.05199999999999996
+     ],
+     "higher": 40,
+     "lower": 19,
+     "p": 0.008641499683281734,
+     "pHolm": null
+    },
+    "hare_edge_kill_share": {
+     "medianDiff": 0.01417275583324508,
+     "ci": [
+      -0.006243972999035674,
+      0.0260116896444028
+     ],
+     "higher": 35,
+     "lower": 25,
+     "p": 0.2450608330229457,
+     "pHolm": null
+    },
+    "bb_chital_Resting": {
+     "medianDiff": 0.0010000000000000009,
+     "ci": [
+      -0.006000000000000005,
+      0.008000000000000007
+     ],
+     "higher": 31,
+     "lower": 29,
+     "p": 0.8974218269914305,
+     "pHolm": null
+    },
+    "bb_chital_Following_mother": {
+     "medianDiff": 0.007000000000000006,
+     "ci": [
+      0.00399999999999999,
+      0.012999999999999998
+     ],
+     "higher": 43,
+     "lower": 14,
+     "p": 0.00015388902244434233,
+     "pHolm": null
+    },
+    "bb_jackal_Alert": {
+     "medianDiff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "higher": 0,
+     "lower": 0,
+     "p": 1.0,
+     "pHolm": null
+    },
+    "wallS": {
+     "medianDiff": 29.100000000000023,
+     "ci": [
+      -19.99999999999997,
+      62.89999999999998
+     ],
+     "higher": 34,
+     "lower": 26,
+     "p": 0.36629400670329104,
+     "pHolm": null
+    }
+   },
+   "extinction": {
+    "jackal_extinct": {
+     "a": 8,
+     "b": 28,
+     "newlyExtinct": 24,
+     "rescued": 4,
+     "p": 0.00017999112606048584,
+     "pHolm": 0.0012599378824234009
+    },
+    "hare_extinct": {
+     "a": 30,
+     "b": 28,
+     "newlyExtinct": 12,
+     "rescued": 14,
+     "p": 0.8450189828872681,
+     "pHolm": 1.0
+    },
+    "chital_extinct": {
+     "a": 3,
+     "b": 1,
+     "newlyExtinct": 1,
+     "rescued": 3,
+     "p": 0.625,
+     "pHolm": 1.0
+    },
+    "boar_extinct": {
+     "a": 2,
+     "b": 0,
+     "newlyExtinct": 0,
+     "rescued": 2,
+     "p": 0.5,
+     "pHolm": 1.0
+    }
+   }
+  },
+  "A->C": {
+   "n": 60,
+   "label": "memory + territories together",
+   "effects": {
+    "jackal_days": {
+     "medianDiff": 233,
+     "ci": [
+      -51,
+      584
+     ],
+     "higher": 35,
+     "lower": 25,
+     "p": 0.2450608330229457,
+     "pHolm": 0.9802433320917828
+    },
+    "hare_days": {
+     "medianDiff": -6684,
+     "ci": [
+      -10964,
+      -2296
+     ],
+     "higher": 16,
+     "lower": 44,
+     "p": 0.00039404324272610154,
+     "pHolm": 0.003546389184534914
+    },
+    "chital_days": {
+     "medianDiff": 30,
+     "ci": [
+      -1466,
+      777
+     ],
+     "higher": 30,
+     "lower": 30,
+     "p": 1.0,
+     "pHolm": 1.0
+    },
+    "kills_total": {
+     "medianDiff": 50,
+     "ci": [
+      -8,
+      115
+     ],
+     "higher": 37,
+     "lower": 23,
+     "p": 0.09246098107292373,
+     "pHolm": 0.5229513198137283
+    },
+    "kills_per_jackal_day": {
+     "medianDiff": 0.00912814835943479,
+     "ci": [
+      -0.01042514879578249,
+      0.025946327683615794
+     ],
+     "higher": 33,
+     "lower": 27,
+     "p": 0.5189580031896518,
+     "pHolm": 1.0
+    },
+    "hare_resident_days": {
+     "medianDiff": -6684,
+     "ci": [
+      -10964,
+      -2296
+     ],
+     "higher": 16,
+     "lower": 44,
+     "p": 0.00039404324272610154,
+     "pHolm": null
+    },
+    "jackal_litters": {
+     "medianDiff": -2,
+     "ci": [
+      -4,
+      0
+     ],
+     "higher": 19,
+     "lower": 35,
+     "p": 0.0402235640957167,
+     "pHolm": null
+    },
+    "kills_hare": {
+     "medianDiff": 11,
+     "ci": [
+      -19,
+      47
+     ],
+     "higher": 32,
+     "lower": 28,
+     "p": 0.6988834276200057,
+     "pHolm": null
+    },
+    "kills_chital": {
+     "medianDiff": 18,
+     "ci": [
+      10,
+      28
+     ],
+     "higher": 47,
+     "lower": 11,
+     "p": 2.031594536044956e-06,
+     "pHolm": null
+    },
+    "chital_juv_predation": {
+     "medianDiff": 14,
+     "ci": [
+      9,
+      27
+     ],
+     "higher": 46,
+     "lower": 12,
+     "p": 8.219663963332513e-06,
+     "pHolm": null
+    },
+    "chital_cohort_survival": {
+     "medianDiff": -0.08600000000000002,
+     "ci": [
+      -0.121,
+      -0.04199999999999998
+     ],
+     "higher": 12,
+     "lower": 48,
+     "p": 3.183628737933597e-06,
+     "pHolm": null
+    },
+    "boar_cohort_survival": {
+     "medianDiff": -0.026000000000000023,
+     "ci": [
+      -0.04400000000000004,
+      -0.01899999999999996
+     ],
+     "higher": 16,
+     "lower": 44,
+     "p": 0.00039404324272610154,
+     "pHolm": null
+    },
+    "hare_edge_kill_share": {
+     "medianDiff": 0.009492964038418567,
+     "ci": [
+      -0.00203803351758719,
+      0.024986301369863004
+     ],
+     "higher": 34,
+     "lower": 26,
+     "p": 0.36629400670329104,
+     "pHolm": null
+    },
+    "bb_chital_Resting": {
+     "medianDiff": 0.0030000000000000027,
+     "ci": [
+      -0.0050000000000000044,
+      0.011999999999999955
+     ],
+     "higher": 34,
+     "lower": 24,
+     "p": 0.2370471147627195,
+     "pHolm": null
+    },
+    "bb_chital_Following_mother": {
+     "medianDiff": -0.0040000000000000036,
+     "ci": [
+      -0.008999999999999994,
+      0.0
+     ],
+     "higher": 20,
+     "lower": 36,
+     "p": 0.04404654610215078,
+     "pHolm": null
+    },
+    "bb_jackal_Alert": {
+     "medianDiff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "higher": 0,
+     "lower": 0,
+     "p": 1.0,
+     "pHolm": null
+    },
+    "wallS": {
+     "medianDiff": -43.299999999999955,
+     "ci": [
+      -57.599999999999994,
+      -17.899999999999977
+     ],
+     "higher": 19,
+     "lower": 41,
+     "p": 0.0062176026593266705,
+     "pHolm": null
+    }
+   },
+   "extinction": {
+    "jackal_extinct": {
+     "a": 38,
+     "b": 28,
+     "newlyExtinct": 9,
+     "rescued": 19,
+     "p": 0.08715855330228806,
+     "pHolm": 0.5229513198137283
+    },
+    "hare_extinct": {
+     "a": 12,
+     "b": 28,
+     "newlyExtinct": 19,
+     "rescued": 3,
+     "p": 0.0008554458618164062,
+     "pHolm": 0.00684356689453125
+    },
+    "chital_extinct": {
+     "a": 8,
+     "b": 1,
+     "newlyExtinct": 1,
+     "rescued": 8,
+     "p": 0.0390625,
+     "pHolm": 0.2734375
+    },
+    "boar_extinct": {
+     "a": 0,
+     "b": 0,
+     "newlyExtinct": 0,
+     "rescued": 0,
+     "p": 1.0,
+     "pHolm": 1.0
+    }
+   }
+  },
+  "C->D": {
+   "n": 60,
+   "label": "opens the boundary (given memory + territories)",
+   "effects": {
+    "jackal_days": {
+     "medianDiff": -1291,
+     "ci": [
+      -1529,
+      -989
+     ],
+     "higher": 3,
+     "lower": 57,
+     "p": 6.253851603243987e-14,
+     "pHolm": 4.377696122270791e-13
+    },
+    "hare_days": {
+     "medianDiff": 41877,
+     "ci": [
+      35463,
+      47075
+     ],
+     "higher": 59,
+     "lower": 1,
+     "p": 1.0581813203458523e-16,
+     "pHolm": 8.465450562766819e-16
+    },
+    "chital_days": {
+     "medianDiff": -383,
+     "ci": [
+      -1204,
+      641
+     ],
+     "higher": 27,
+     "lower": 33,
+     "p": 0.5189580031896518,
+     "pHolm": 1.0
+    },
+    "kills_total": {
+     "medianDiff": -190,
+     "ci": [
+      -244,
+      -174
+     ],
+     "higher": 0,
+     "lower": 60,
+     "p": 1.734723475976807e-18,
+     "pHolm": 1.5612511283791264e-17
+    },
+    "kills_per_jackal_day": {
+     "medianDiff": 0.003936508730138899,
+     "ci": [
+      -0.026602414818530318,
+      0.03494576699281221
+     ],
+     "higher": 31,
+     "lower": 29,
+     "p": 0.8974218269914305,
+     "pHolm": 1.0
+    },
+    "hare_resident_days": {
+     "medianDiff": 21504,
+     "ci": [
+      17551,
+      27190
+     ],
+     "higher": 48,
+     "lower": 12,
+     "p": 3.183628737933597e-06,
+     "pHolm": null
+    },
+    "jackal_litters": {
+     "medianDiff": -4,
+     "ci": [
+      -5,
+      -3
+     ],
+     "higher": 4,
+     "lower": 52,
+     "p": 1.1008055578187737e-11,
+     "pHolm": null
+    },
+    "full_pairs_inside": {
+     "medianDiff": -0.6164383561643836,
+     "ci": [
+      -0.7232876712328766,
+      -0.3561643835616438
+     ],
+     "higher": 7,
+     "lower": 53,
+     "p": 7.671918274276823e-10,
+     "pHolm": null
+    },
+    "kills_hare": {
+     "medianDiff": -103,
+     "ci": [
+      -115,
+      -83
+     ],
+     "higher": 2,
+     "lower": 58,
+     "p": 3.1762786845135338e-15,
+     "pHolm": null
+    },
+    "kills_chital": {
+     "medianDiff": -43,
+     "ci": [
+      -49,
+      -35
+     ],
+     "higher": 1,
+     "lower": 58,
+     "p": 2.0816681711721685e-16,
+     "pHolm": null
+    },
+    "chital_juv_predation": {
+     "medianDiff": -40,
+     "ci": [
+      -45,
+      -31
+     ],
+     "higher": 2,
+     "lower": 58,
+     "p": 3.1762786845135338e-15,
+     "pHolm": null
+    },
+    "chital_cohort_survival": {
+     "medianDiff": 0.16799999999999998,
+     "ci": [
+      0.128,
+      0.179
+     ],
+     "higher": 57,
+     "lower": 3,
+     "p": 6.253851603243987e-14,
+     "pHolm": null
+    },
+    "boar_cohort_survival": {
+     "medianDiff": 0.066,
+     "ci": [
+      0.05400000000000005,
+      0.08399999999999996
+     ],
+     "higher": 54,
+     "lower": 5,
+     "p": 1.9067358802971057e-11,
+     "pHolm": null
+    },
+    "hare_edge_kill_share": {
+     "medianDiff": -0.03772760868104549,
+     "ci": [
+      -0.0507471711151421,
+      -0.013760725271167243
+     ],
+     "higher": 17,
+     "lower": 43,
+     "p": 0.0010657657791434353,
+     "pHolm": null
+    },
+    "bb_chital_Resting": {
+     "medianDiff": -0.0030000000000000027,
+     "ci": [
+      -0.010000000000000009,
+      0.0
+     ],
+     "higher": 20,
+     "lower": 37,
+     "p": 0.033143967787505446,
+     "pHolm": null
+    },
+    "bb_chital_Following_mother": {
+     "medianDiff": 0.011999999999999997,
+     "ci": [
+      0.007000000000000006,
+      0.014000000000000012
+     ],
+     "higher": 51,
+     "lower": 9,
+     "p": 3.085035609438902e-08,
+     "pHolm": null
+    },
+    "bb_jackal_Alert": {
+     "medianDiff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "higher": 0,
+     "lower": 0,
+     "p": 1.0,
+     "pHolm": null
+    },
+    "wallS": {
+     "medianDiff": 581.4000000000001,
+     "ci": [
+      473.79999999999995,
+      744.3000000000001
+     ],
+     "higher": 60,
+     "lower": 0,
+     "p": 1.734723475976807e-18,
+     "pHolm": null
+    }
+   },
+   "extinction": {
+    "jackal_extinct": {
+     "a": 28,
+     "b": 28,
+     "newlyExtinct": 16,
+     "rescued": 16,
+     "p": 1.0,
+     "pHolm": 1.0
+    },
+    "hare_extinct": {
+     "a": 28,
+     "b": 3,
+     "newlyExtinct": 1,
+     "rescued": 26,
+     "p": 4.172325134277344e-07,
+     "pHolm": 2.5033950805664062e-06
+    },
+    "chital_extinct": {
+     "a": 1,
+     "b": 20,
+     "newlyExtinct": 20,
+     "rescued": 1,
+     "p": 2.09808349609375e-05,
+     "pHolm": 0.0001049041748046875
+    },
+    "boar_extinct": {
+     "a": 0,
+     "b": 0,
+     "newlyExtinct": 0,
+     "rescued": 0,
+     "p": 1.0,
+     "pHolm": 1.0
+    }
+   }
+  },
+  "C->E": {
+   "n": 60,
+   "label": "exits only, zero inflow (sink effect of an open edge)",
+   "effects": {
+    "jackal_days": {
+     "medianDiff": -1823,
+     "ci": [
+      -2021,
+      -1570
+     ],
+     "higher": 1,
+     "lower": 59,
+     "p": 1.0581813203458523e-16,
+     "pHolm": 7.407269242420966e-16
+    },
+    "hare_days": {
+     "medianDiff": 37805,
+     "ci": [
+      30246,
+      47108
+     ],
+     "higher": 60,
+     "lower": 0,
+     "p": 1.734723475976807e-18,
+     "pHolm": 1.5612511283791264e-17
+    },
+    "chital_days": {
+     "medianDiff": 87,
+     "ci": [
+      -329,
+      838
+     ],
+     "higher": 32,
+     "lower": 28,
+     "p": 0.6988834276200057,
+     "pHolm": 1.0
+    },
+    "kills_total": {
+     "medianDiff": -294,
+     "ci": [
+      -342,
+      -255
+     ],
+     "higher": 0,
+     "lower": 60,
+     "p": 1.734723475976807e-18,
+     "pHolm": 1.5612511283791264e-17
+    },
+    "kills_per_jackal_day": {
+     "medianDiff": 0.09927171105559554,
+     "ci": [
+      0.06582425562817723,
+      0.13156383497351742
+     ],
+     "higher": 51,
+     "lower": 9,
+     "p": 3.085035609438902e-08,
+     "pHolm": 1.4901161193847656e-07
+    },
+    "hare_resident_days": {
+     "medianDiff": 37805,
+     "ci": [
+      30246,
+      47108
+     ],
+     "higher": 60,
+     "lower": 0,
+     "p": 1.734723475976807e-18,
+     "pHolm": null
+    },
+    "jackal_litters": {
+     "medianDiff": -5,
+     "ci": [
+      -6,
+      -4
+     ],
+     "higher": 0,
+     "lower": 58,
+     "p": 6.938893903907228e-18,
+     "pHolm": null
+    },
+    "full_pairs_inside": {
+     "medianDiff": -0.2054794520547945,
+     "ci": [
+      -0.4958904109589042,
+      -0.008219178082191747
+     ],
+     "higher": 22,
+     "lower": 38,
+     "p": 0.051893895928921435,
+     "pHolm": null
+    },
+    "kills_hare": {
+     "medianDiff": -177,
+     "ci": [
+      -195,
+      -156
+     ],
+     "higher": 0,
+     "lower": 60,
+     "p": 1.734723475976807e-18,
+     "pHolm": null
+    },
+    "kills_chital": {
+     "medianDiff": -47,
+     "ci": [
+      -54,
+      -40
+     ],
+     "higher": 0,
+     "lower": 60,
+     "p": 1.734723475976807e-18,
+     "pHolm": null
+    },
+    "chital_juv_predation": {
+     "medianDiff": -45,
+     "ci": [
+      -49,
+      -37
+     ],
+     "higher": 0,
+     "lower": 60,
+     "p": 1.734723475976807e-18,
+     "pHolm": null
+    },
+    "chital_cohort_survival": {
+     "medianDiff": 0.185,
+     "ci": [
+      0.16100000000000003,
+      0.20400000000000001
+     ],
+     "higher": 57,
+     "lower": 3,
+     "p": 6.253851603243987e-14,
+     "pHolm": null
+    },
+    "boar_cohort_survival": {
+     "medianDiff": 0.08000000000000002,
+     "ci": [
+      0.067,
+      0.09999999999999998
+     ],
+     "higher": 57,
+     "lower": 3,
+     "p": 6.253851603243987e-14,
+     "pHolm": null
+    },
+    "hare_edge_kill_share": {
+     "medianDiff": -0.08974358974358973,
+     "ci": [
+      -0.1080289935879565,
+      -0.07006255585344058
+     ],
+     "higher": 4,
+     "lower": 56,
+     "p": 9.084503982403902e-13,
+     "pHolm": null
+    },
+    "bb_chital_Resting": {
+     "medianDiff": -0.0030000000000000027,
+     "ci": [
+      -0.013000000000000012,
+      0.0010000000000000009
+     ],
+     "higher": 23,
+     "lower": 35,
+     "p": 0.14800580076020597,
+     "pHolm": null
+    },
+    "bb_chital_Following_mother": {
+     "medianDiff": 0.013000000000000012,
+     "ci": [
+      0.009000000000000008,
+      0.016
+     ],
+     "higher": 52,
+     "lower": 8,
+     "p": 5.205691473372798e-09,
+     "pHolm": null
+    },
+    "bb_jackal_Alert": {
+     "medianDiff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "higher": 0,
+     "lower": 0,
+     "p": 1.0,
+     "pHolm": null
+    },
+    "wallS": {
+     "medianDiff": 248.3,
+     "ci": [
+      167.89999999999998,
+      289.29999999999995
+     ],
+     "higher": 44,
+     "lower": 16,
+     "p": 0.00039404324272610154,
+     "pHolm": null
+    }
+   },
+   "extinction": {
+    "jackal_extinct": {
+     "a": 28,
+     "b": 60,
+     "newlyExtinct": 32,
+     "rescued": 0,
+     "p": 4.656612873077393e-10,
+     "pHolm": 2.7939677238464355e-09
+    },
+    "hare_extinct": {
+     "a": 28,
+     "b": 2,
+     "newlyExtinct": 0,
+     "rescued": 26,
+     "p": 2.9802322387695312e-08,
+     "pHolm": 1.4901161193847656e-07
+    },
+    "chital_extinct": {
+     "a": 1,
+     "b": 24,
+     "newlyExtinct": 23,
+     "rescued": 0,
+     "p": 2.384185791015625e-07,
+     "pHolm": 7.152557373046875e-07
+    },
+    "boar_extinct": {
+     "a": 0,
+     "b": 0,
+     "newlyExtinct": 0,
+     "rescued": 0,
+     "p": 1.0,
+     "pHolm": 1.0
+    }
+   }
+  },
+  "E->D": {
+   "n": 60,
+   "label": "immigration itself (D inflow, E none; same off-map draws)",
+   "effects": {
+    "jackal_days": {
+     "medianDiff": 464,
+     "ci": [
+      395,
+      598
+     ],
+     "higher": 57,
+     "lower": 3,
+     "p": 6.253851603243987e-14,
+     "pHolm": 5.628466442919589e-13
+    },
+    "hare_days": {
+     "medianDiff": 3098,
+     "ci": [
+      -2162,
+      9364
+     ],
+     "higher": 31,
+     "lower": 29,
+     "p": 0.8974218269914305,
+     "pHolm": 1.0
+    },
+    "chital_days": {
+     "medianDiff": -109,
+     "ci": [
+      -908,
+      383
+     ],
+     "higher": 28,
+     "lower": 32,
+     "p": 0.6988834276200057,
+     "pHolm": 1.0
+    },
+    "kills_total": {
+     "medianDiff": 96,
+     "ci": [
+      74,
+      102
+     ],
+     "higher": 56,
+     "lower": 4,
+     "p": 9.084503982403902e-13,
+     "pHolm": 7.267603185923122e-12
+    },
+    "kills_per_jackal_day": {
+     "medianDiff": -0.09308489720155416,
+     "ci": [
+      -0.13255613126079446,
+      -0.0501885536823425
+     ],
+     "higher": 12,
+     "lower": 47,
+     "p": 5.1256292496887346e-06,
+     "pHolm": 3.075377549813241e-05
+    },
+    "hare_resident_days": {
+     "medianDiff": -15416,
+     "ci": [
+      -23702,
+      -8418
+     ],
+     "higher": 17,
+     "lower": 43,
+     "p": 0.0010657657791434353,
+     "pHolm": null
+    },
+    "jackal_litters": {
+     "medianDiff": 1,
+     "ci": [
+      1,
+      2
+     ],
+     "higher": 38,
+     "lower": 4,
+     "p": 5.65314621780999e-08,
+     "pHolm": null
+    },
+    "full_pairs_inside": {
+     "medianDiff": -0.27123287671232876,
+     "ci": [
+      -0.49863013698630143,
+      -0.07397260273972603
+     ],
+     "higher": 15,
+     "lower": 45,
+     "p": 0.00013451408092849532,
+     "pHolm": null
+    },
+    "kills_hare": {
+     "medianDiff": 76,
+     "ci": [
+      64,
+      87
+     ],
+     "higher": 58,
+     "lower": 2,
+     "p": 3.1762786845135338e-15,
+     "pHolm": null
+    },
+    "kills_chital": {
+     "medianDiff": 4,
+     "ci": [
+      2,
+      6
+     ],
+     "higher": 43,
+     "lower": 16,
+     "p": 0.0005843646280443461,
+     "pHolm": null
+    },
+    "chital_juv_predation": {
+     "medianDiff": 4,
+     "ci": [
+      2,
+      6
+     ],
+     "higher": 43,
+     "lower": 16,
+     "p": 0.0005843646280443461,
+     "pHolm": null
+    },
+    "chital_cohort_survival": {
+     "medianDiff": -0.02799999999999997,
+     "ci": [
+      -0.045999999999999985,
+      -0.008000000000000007
+     ],
+     "higher": 18,
+     "lower": 41,
+     "p": 0.0037937056353716074,
+     "pHolm": null
+    },
+    "boar_cohort_survival": {
+     "medianDiff": -0.017000000000000015,
+     "ci": [
+      -0.02899999999999997,
+      -0.0010000000000000009
+     ],
+     "higher": 21,
+     "lower": 39,
+     "p": 0.027340133868077935,
+     "pHolm": null
+    },
+    "hare_edge_kill_share": {
+     "medianDiff": 0.06179001721170396,
+     "ci": [
+      0.04700854700854701,
+      0.07836520434945632
+     ],
+     "higher": 49,
+     "lower": 10,
+     "p": 2.706279703008907e-07,
+     "pHolm": null
+    },
+    "bb_chital_Resting": {
+     "medianDiff": 0.0,
+     "ci": [
+      -0.0030000000000000027,
+      0.006000000000000005
+     ],
+     "higher": 29,
+     "lower": 30,
+     "p": 1.0,
+     "pHolm": null
+    },
+    "bb_chital_Following_mother": {
+     "medianDiff": -0.001999999999999988,
+     "ci": [
+      -0.0030000000000000027,
+      0.000999999999999987
+     ],
+     "higher": 23,
+     "lower": 34,
+     "p": 0.18485048241641847,
+     "pHolm": null
+    },
+    "bb_jackal_Alert": {
+     "medianDiff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "higher": 0,
+     "lower": 0,
+     "p": 1.0,
+     "pHolm": null
+    },
+    "wallS": {
+     "medianDiff": 431.3,
+     "ci": [
+      338.80000000000007,
+      518.0
+     ],
+     "higher": 52,
+     "lower": 8,
+     "p": 5.205691473372798e-09,
+     "pHolm": null
+    }
+   },
+   "extinction": {
+    "jackal_extinct": {
+     "a": 60,
+     "b": 28,
+     "newlyExtinct": 0,
+     "rescued": 32,
+     "p": 4.656612873077393e-10,
+     "pHolm": 3.259629011154175e-09
+    },
+    "hare_extinct": {
+     "a": 2,
+     "b": 3,
+     "newlyExtinct": 3,
+     "rescued": 2,
+     "p": 1.0,
+     "pHolm": 1.0
+    },
+    "chital_extinct": {
+     "a": 24,
+     "b": 20,
+     "newlyExtinct": 11,
+     "rescued": 15,
+     "p": 0.557197093963623,
+     "pHolm": 1.0
+    },
+    "boar_extinct": {
+     "a": 0,
+     "b": 0,
+     "newlyExtinct": 0,
+     "rescued": 0,
+     "p": 1.0,
+     "pHolm": 1.0
+    }
+   }
+  },
+  "F->D": {
+   "n": 60,
+   "label": "flee exits (D allows, F does not)",
+   "effects": {
+    "jackal_days": {
+     "medianDiff": -1279,
+     "ci": [
+      -1433,
+      -1026
+     ],
+     "higher": 1,
+     "lower": 59,
+     "p": 1.0581813203458523e-16,
+     "pHolm": 8.465450562766819e-16
+    },
+    "hare_days": {
+     "medianDiff": 13607,
+     "ci": [
+      8178,
+      24893
+     ],
+     "higher": 49,
+     "lower": 11,
+     "p": 7.561280982396751e-07,
+     "pHolm": 5.292896687677726e-06
+    },
+    "chital_days": {
+     "medianDiff": 2,
+     "ci": [
+      -374,
+      826
+     ],
+     "higher": 30,
+     "lower": 29,
+     "p": 1.0,
+     "pHolm": 1.0
+    },
+    "kills_total": {
+     "medianDiff": -263,
+     "ci": [
+      -299,
+      -251
+     ],
+     "higher": 0,
+     "lower": 60,
+     "p": 1.734723475976807e-18,
+     "pHolm": 1.5612511283791264e-17
+    },
+    "kills_per_jackal_day": {
+     "medianDiff": -0.017421136340022847,
+     "ci": [
+      -0.040545784647508604,
+      -0.006427482753088409
+     ],
+     "higher": 21,
+     "lower": 39,
+     "p": 0.027340133868077935,
+     "pHolm": 0.10936053547231174
+    },
+    "hare_resident_days": {
+     "medianDiff": 13824,
+     "ci": [
+      8170,
+      16919
+     ],
+     "higher": 50,
+     "lower": 10,
+     "p": 1.6163814566157175e-07,
+     "pHolm": null
+    },
+    "jackal_litters": {
+     "medianDiff": -4,
+     "ci": [
+      -5,
+      -3
+     ],
+     "higher": 4,
+     "lower": 55,
+     "p": 1.6979681549678105e-12,
+     "pHolm": null
+    },
+    "full_pairs_inside": {
+     "medianDiff": -0.4547945205479452,
+     "ci": [
+      -0.5589041095890411,
+      -0.34794520547945207
+     ],
+     "higher": 4,
+     "lower": 56,
+     "p": 9.084503982403902e-13,
+     "pHolm": null
+    },
+    "kills_hare": {
+     "medianDiff": -208,
+     "ci": [
+      -252,
+      -184
+     ],
+     "higher": 0,
+     "lower": 60,
+     "p": 1.734723475976807e-18,
+     "pHolm": null
+    },
+    "kills_chital": {
+     "medianDiff": -19,
+     "ci": [
+      -24,
+      -13
+     ],
+     "higher": 2,
+     "lower": 56,
+     "p": 1.1879386363489175e-14,
+     "pHolm": null
+    },
+    "chital_juv_predation": {
+     "medianDiff": -18,
+     "ci": [
+      -22,
+      -12
+     ],
+     "higher": 3,
+     "lower": 55,
+     "p": 2.2598589666245061e-13,
+     "pHolm": null
+    },
+    "chital_cohort_survival": {
+     "medianDiff": 0.07300000000000001,
+     "ci": [
+      0.059,
+      0.09400000000000003
+     ],
+     "higher": 49,
+     "lower": 11,
+     "p": 7.561280982396751e-07,
+     "pHolm": null
+    },
+    "boar_cohort_survival": {
+     "medianDiff": 0.044999999999999984,
+     "ci": [
+      0.025000000000000022,
+      0.056999999999999995
+     ],
+     "higher": 46,
+     "lower": 14,
+     "p": 4.223704562267977e-05,
+     "pHolm": null
+    },
+    "hare_edge_kill_share": {
+     "medianDiff": -0.06102775279657942,
+     "ci": [
+      -0.06934001670843776,
+      -0.04149298976885184
+     ],
+     "higher": 3,
+     "lower": 57,
+     "p": 6.253851603243987e-14,
+     "pHolm": null
+    },
+    "bb_chital_Resting": {
+     "medianDiff": 0.010000000000000009,
+     "ci": [
+      0.0020000000000000018,
+      0.013000000000000012
+     ],
+     "higher": 39,
+     "lower": 18,
+     "p": 0.007508175534150202,
+     "pHolm": null
+    },
+    "bb_chital_Following_mother": {
+     "medianDiff": 0.0049999999999999906,
+     "ci": [
+      0.0020000000000000018,
+      0.008999999999999994
+     ],
+     "higher": 40,
+     "lower": 17,
+     "p": 0.003201543767450382,
+     "pHolm": null
+    },
+    "bb_jackal_Alert": {
+     "medianDiff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "higher": 0,
+     "lower": 0,
+     "p": 1.0,
+     "pHolm": null
+    },
+    "wallS": {
+     "medianDiff": 76.20000000000005,
+     "ci": [
+      11.0,
+      164.0
+     ],
+     "higher": 41,
+     "lower": 19,
+     "p": 0.0062176026593266705,
+     "pHolm": null
+    }
+   },
+   "extinction": {
+    "jackal_extinct": {
+     "a": 12,
+     "b": 28,
+     "newlyExtinct": 21,
+     "rescued": 5,
+     "p": 0.002493917942047119,
+     "pHolm": 0.012469589710235596
+    },
+    "hare_extinct": {
+     "a": 17,
+     "b": 3,
+     "newlyExtinct": 2,
+     "rescued": 16,
+     "p": 0.001312255859375,
+     "pHolm": 0.00787353515625
+    },
+    "chital_extinct": {
+     "a": 14,
+     "b": 20,
+     "newlyExtinct": 12,
+     "rescued": 6,
+     "p": 0.237884521484375,
+     "pHolm": 0.713653564453125
+    },
+    "boar_extinct": {
+     "a": 0,
+     "b": 0,
+     "newlyExtinct": 0,
+     "rescued": 0,
+     "p": 1.0,
+     "pHolm": 1.0
+    }
+   }
+  },
+  "A->D": {
+   "n": 60,
+   "label": "all three mechanisms vs M2",
+   "effects": {
+    "jackal_days": {
+     "medianDiff": -1021,
+     "ci": [
+      -1231,
+      -777
+     ],
+     "higher": 5,
+     "lower": 55,
+     "p": 1.0382663478969434e-11,
+     "pHolm": 8.306130783175547e-11
+    },
+    "hare_days": {
+     "medianDiff": 32190,
+     "ci": [
+      23314,
+      39332
+     ],
+     "higher": 53,
+     "lower": 7,
+     "p": 7.671918274276823e-10,
+     "pHolm": 5.370342791993776e-09
+    },
+    "chital_days": {
+     "medianDiff": -707,
+     "ci": [
+      -1053,
+      19
+     ],
+     "higher": 23,
+     "lower": 37,
+     "p": 0.09246098107292373,
+     "pHolm": 0.2773829432187712
+    },
+    "kills_total": {
+     "medianDiff": -137,
+     "ci": [
+      -205,
+      -93
+     ],
+     "higher": 4,
+     "lower": 55,
+     "p": 1.6979681549678105e-12,
+     "pHolm": 1.5281713394710295e-11
+    },
+    "kills_per_jackal_day": {
+     "medianDiff": 0.02056766762649115,
+     "ci": [
+      0.007586678180693154,
+      0.04149293019968037
+     ],
+     "higher": 42,
+     "lower": 18,
+     "p": 0.002670436282807066,
+     "pHolm": 0.016022617696842396
+    },
+    "hare_resident_days": {
+     "medianDiff": 13780,
+     "ci": [
+      3569,
+      21765
+     ],
+     "higher": 39,
+     "lower": 21,
+     "p": 0.027340133868077935,
+     "pHolm": null
+    },
+    "jackal_litters": {
+     "medianDiff": -5,
+     "ci": [
+      -7,
+      -4
+     ],
+     "higher": 1,
+     "lower": 56,
+     "p": 8.049116928532385e-16,
+     "pHolm": null
+    },
+    "kills_hare": {
+     "medianDiff": -70,
+     "ci": [
+      -115,
+      -45
+     ],
+     "higher": 8,
+     "lower": 52,
+     "p": 5.205691473372798e-09,
+     "pHolm": null
+    },
+    "kills_chital": {
+     "medianDiff": -22,
+     "ci": [
+      -27,
+      -17
+     ],
+     "higher": 2,
+     "lower": 58,
+     "p": 3.1762786845135338e-15,
+     "pHolm": null
+    },
+    "chital_juv_predation": {
+     "medianDiff": -20,
+     "ci": [
+      -25,
+      -15
+     ],
+     "higher": 2,
+     "lower": 58,
+     "p": 3.1762786845135338e-15,
+     "pHolm": null
+    },
+    "chital_cohort_survival": {
+     "medianDiff": 0.05499999999999999,
+     "ci": [
+      0.03999999999999998,
+      0.08800000000000002
+     ],
+     "higher": 50,
+     "lower": 10,
+     "p": 1.6163814566157175e-07,
+     "pHolm": null
+    },
+    "boar_cohort_survival": {
+     "medianDiff": 0.03699999999999998,
+     "ci": [
+      0.022999999999999965,
+      0.059
+     ],
+     "higher": 47,
+     "lower": 13,
+     "p": 1.2146708022957309e-05,
+     "pHolm": null
+    },
+    "hare_edge_kill_share": {
+     "medianDiff": -0.025995807127882603,
+     "ci": [
+      -0.041926729986431474,
+      -0.008653846153846165
+     ],
+     "higher": 19,
+     "lower": 41,
+     "p": 0.0062176026593266705,
+     "pHolm": null
+    },
+    "bb_chital_Resting": {
+     "medianDiff": 0.0010000000000000009,
+     "ci": [
+      -0.0030000000000000027,
+      0.006999999999999951
+     ],
+     "higher": 30,
+     "lower": 29,
+     "p": 1.0,
+     "pHolm": null
+    },
+    "bb_chital_Following_mother": {
+     "medianDiff": 0.006999999999999992,
+     "ci": [
+      0.0040000000000000036,
+      0.01100000000000001
+     ],
+     "higher": 42,
+     "lower": 17,
+     "p": 0.0015471669302425245,
+     "pHolm": null
+    },
+    "bb_jackal_Alert": {
+     "medianDiff": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "higher": 0,
+     "lower": 0,
+     "p": 1.0,
+     "pHolm": null
+    },
+    "wallS": {
+     "medianDiff": 576.8000000000001,
+     "ci": [
+      481.29999999999995,
+      718.0
+     ],
+     "higher": 59,
+     "lower": 1,
+     "p": 1.0581813203458523e-16,
+     "pHolm": null
+    }
+   },
+   "extinction": {
+    "jackal_extinct": {
+     "a": 38,
+     "b": 28,
+     "newlyExtinct": 12,
+     "rescued": 22,
+     "p": 0.12144948495551944,
+     "pHolm": 0.2773829432187712
+    },
+    "hare_extinct": {
+     "a": 12,
+     "b": 3,
+     "newlyExtinct": 3,
+     "rescued": 12,
+     "p": 0.03515625,
+     "pHolm": 0.140625
+    },
+    "chital_extinct": {
+     "a": 8,
+     "b": 20,
+     "newlyExtinct": 14,
+     "rescued": 2,
+     "p": 0.004180908203125,
+     "pHolm": 0.020904541015625
+    },
+    "boar_extinct": {
+     "a": 0,
+     "b": 0,
+     "newlyExtinct": 0,
+     "rescued": 0,
+     "p": 1.0,
+     "pHolm": 1.0
+    }
+   }
+  },
+  "C->M": {
+   "n": 60,
+   "label": "issue #31 maternal instincts (investigation, closed boundary)",
+   "effects": {
+    "jackal_days": {
+     "medianDiff": -1613,
+     "ci": [
+      -1692,
+      -1165
+     ],
+     "higher": 2,
+     "lower": 58,
+     "p": 3.1762786845135338e-15,
+     "pHolm": 2.541022947610827e-14
+    },
+    "hare_days": {
+     "medianDiff": 18414,
+     "ci": [
+      7521,
+      22282
+     ],
+     "higher": 50,
+     "lower": 10,
+     "p": 1.6163814566157175e-07,
+     "pHolm": 9.698288739694305e-07
+    },
+    "chital_days": {
+     "medianDiff": -380,
+     "ci": [
+      -1145,
+      411
+     ],
+     "higher": 27,
+     "lower": 33,
+     "p": 0.5189580031896518,
+     "pHolm": 1.0
+    },
+    "kills_total": {
+     "medianDiff": -240,
+     "ci": [
+      -282,
+      -216
+     ],
+     "higher": 1,
+     "lower": 59,
+     "p": 1.0581813203458523e-16,
+     "pHolm": 9.52363188311267e-16
+    },
+    "kills_per_jackal_day": {
+     "medianDiff": 0.02779117434289849,
+     "ci": [
+      0.0003357602318512787,
+      0.0541072760092933
+     ],
+     "higher": 37,
+     "lower": 23,
+     "p": 0.09246098107292373,
+     "pHolm": 0.2773829432187712
+    },
+    "hare_resident_days": {
+     "medianDiff": 18414,
+     "ci": [
+      7521,
+      22282
+     ],
+     "higher": 50,
+     "lower": 10,
+     "p": 1.6163814566157175e-07,
+     "pHolm": null
+    },
+    "jackal_litters": {
+     "medianDiff": -4,
+     "ci": [
+      -5,
+      -3
+     ],
+     "higher": 2,
+     "lower": 55,
+     "p": 2.295386103412511e-14,
+     "pHolm": null
+    },
+    "full_pairs_inside": {
+     "medianDiff": -0.6164383561643836,
+     "ci": [
+      -0.7534246575342466,
+      -0.43561643835616437
+     ],
+     "higher": 2,
+     "lower": 58,
+     "p": 3.1762786845135338e-15,
+     "pHolm": null
+    },
+    "kills_hare": {
+     "medianDiff": -118,
+     "ci": [
+      -154,
+      -96
+     ],
+     "higher": 2,
+     "lower": 58,
+     "p": 3.1762786845135338e-15,
+     "pHolm": null
+    },
+    "kills_chital": {
+     "medianDiff": -49,
+     "ci": [
+      -55,
+      -41
+     ],
+     "higher": 0,
+     "lower": 60,
+     "p": 1.734723475976807e-18,
+     "pHolm": null
+    },
+    "chital_juv_predation": {
+     "medianDiff": -47,
+     "ci": [
+      -50,
+      -39
+     ],
+     "higher": 0,
+     "lower": 60,
+     "p": 1.734723475976807e-18,
+     "pHolm": null
+    },
+    "chital_cohort_survival": {
+     "medianDiff": 0.176,
+     "ci": [
+      0.149,
+      0.192
+     ],
+     "higher": 58,
+     "lower": 2,
+     "p": 3.1762786845135338e-15,
+     "pHolm": null
+    },
+    "boar_cohort_survival": {
+     "medianDiff": 0.07500000000000001,
+     "ci": [
+      0.065,
+      0.09400000000000003
+     ],
+     "higher": 57,
+     "lower": 3,
+     "p": 6.253851603243987e-14,
+     "pHolm": null
+    },
+    "hare_edge_kill_share": {
+     "medianDiff": -0.016062884483937112,
+     "ci": [
+      -0.025641025641025633,
+      -0.0067543162609260965
+     ],
+     "higher": 20,
+     "lower": 40,
+     "p": 0.01348929373119186,
+     "pHolm": null
+    },
+    "bb_chital_Resting": {
+     "medianDiff": 0.035999999999999976,
+     "ci": [
+      0.02999999999999997,
+      0.045999999999999985
+     ],
+     "higher": 57,
+     "lower": 3,
+     "p": 6.253851603243987e-14,
+     "pHolm": null
+    },
+    "bb_chital_Following_mother": {
+     "medianDiff": -0.039999999999999994,
+     "ci": [
+      -0.042,
+      -0.036
+     ],
+     "higher": 0,
+     "lower": 60,
+     "p": 1.734723475976807e-18,
+     "pHolm": null
+    },
+    "bb_jackal_Alert": {
+     "medianDiff": 0.112,
+     "ci": [
+      0.106,
+      0.128
+     ],
+     "higher": 60,
+     "lower": 0,
+     "p": 1.734723475976807e-18,
+     "pHolm": null
+    },
+    "wallS": {
+     "medianDiff": 57.89999999999998,
+     "ci": [
+      18.399999999999977,
+      116.5
+     ],
+     "higher": 39,
+     "lower": 21,
+     "p": 0.027340133868077935,
+     "pHolm": null
+    }
+   },
+   "extinction": {
+    "jackal_extinct": {
+     "a": 28,
+     "b": 58,
+     "newlyExtinct": 31,
+     "rescued": 1,
+     "p": 1.5366822481155396e-08,
+     "pHolm": 1.0756775736808777e-07
+    },
+    "hare_extinct": {
+     "a": 28,
+     "b": 3,
+     "newlyExtinct": 1,
+     "rescued": 26,
+     "p": 4.172325134277344e-07,
+     "pHolm": 2.086162567138672e-06
+    },
+    "chital_extinct": {
+     "a": 1,
+     "b": 17,
+     "newlyExtinct": 16,
+     "rescued": 0,
+     "p": 3.0517578125e-05,
+     "pHolm": 0.0001220703125
+    },
+    "boar_extinct": {
+     "a": 0,
+     "b": 0,
+     "newlyExtinct": 0,
+     "rescued": 0,
+     "p": 1.0,
+     "pHolm": 1.0
+    }
+   }
+  }
+ },
+ "mortality": {
+  "S-K13": {
+   "jackal": {
+    "offmap": 0.40220011702750147,
+    "onmap": 2.146322899819237
+   },
+   "hare": {
+    "offmap": 0.607914435772586,
+    "onmap": 1.9161823924388246
+   }
+  },
+  "F": {
+   "jackal": {
+    "offmap": 0.40550039199086646,
+    "onmap": 0.9823935246410989
+   },
+   "hare": {
+    "offmap": 0.5865264182639511,
+    "onmap": 2.018294007912917
+   }
+  },
+  "S-J720": {
+   "jackal": {
+    "offmap": 0.37945006974299034,
+    "onmap": 2.3410222593061123
+   },
+   "hare": {
+    "offmap": 0.6151253989378884,
+    "onmap": 1.915656159531866
+   }
+  },
+  "S-H05": {
+   "jackal": {
+    "offmap": 0.3900660078042376,
+    "onmap": 1.6522135371025974
+   },
+   "hare": {
+    "offmap": 0.6177239510069646,
+    "onmap": 1.8548845884821636
+   }
+  },
+  "E": {
+   "jackal": {
+    "offmap": 0.3661428515363638,
+    "onmap": 0.856401384083045
+   },
+   "hare": {
+    "offmap": 0.592483061061203,
+    "onmap": 1.8051869090752009
+   }
+  },
+  "S-W720": {
+   "jackal": {
+    "offmap": 0.2926504822081809,
+    "onmap": 2.042553191489362
+   },
+   "hare": {
+    "offmap": 0.6013644188468323,
+    "onmap": 1.8816506421911592
+   }
+  },
+  "S-W2160": {
+   "jackal": {
+    "offmap": 0.3865065326009372,
+    "onmap": 2.86532475617348
+   },
+   "hare": {
+    "offmap": 0.6143067807347704,
+    "onmap": 1.9030478514115614
+   }
+  },
+  "D": {
+   "jackal": {
+    "offmap": 0.3875909795967068,
+    "onmap": 2.2234674011111637
+   },
+   "hare": {
+    "offmap": 0.5971923814378303,
+    "onmap": 1.885702644922716
+   }
+  },
+  "S-K1": {
+   "jackal": {
+    "offmap": 0.3788210011486161,
+    "onmap": 2.241367177682835
+   },
+   "hare": {
+    "offmap": 0.5927314293900477,
+    "onmap": 1.8859253398994635
+   }
+  },
+  "G": {
+   "jackal": {
+    "offmap": 0.7313454545454545,
+    "onmap": 1.8861928280008589
+   },
+   "hare": {
+    "offmap": 1.2269909599655617,
+    "onmap": 1.8601373410565605
+   }
+  },
+  "S-J1200": {
+   "jackal": {
+    "offmap": 0.3951786258213307,
+    "onmap": 2.013755158184319
+   },
+   "hare": {
+    "offmap": 0.5959364823193752,
+    "onmap": 1.8875614780106384
+   }
+  },
+  "S-H15": {
+   "jackal": {
+    "offmap": 0.40810178762535176,
+    "onmap": 2.7051282051282053
+   },
+   "hare": {
+    "offmap": 0.5941015950946192,
+    "onmap": 1.9572962442232156
+   }
+  }
+ },
+ "sensitivity": {
+  "S-K13": {
+   "n": 30,
+   "ext": {
+    "chital": [
+     10,
+     11
+    ],
+    "boar": [
+     0,
+     0
+    ],
+    "jackal": [
+     12,
+     14
+    ],
+    "hare": [
+     2,
+     2
+    ]
+   },
+   "hareDays": [
+    -1504,
+    [
+     -11643,
+     12921
+    ]
+   ],
+   "jackalDays": [
+    40,
+    [
+     -91,
+     202
+    ]
+   ]
+  },
+  "S-J720": {
+   "n": 30,
+   "ext": {
+    "chital": [
+     10,
+     9
+    ],
+    "boar": [
+     0,
+     0
+    ],
+    "jackal": [
+     12,
+     12
+    ],
+    "hare": [
+     2,
+     3
+    ]
+   },
+   "hareDays": [
+    -13954,
+    [
+     -19668,
+     2211
+    ]
+   ],
+   "jackalDays": [
+    463,
+    [
+     392,
+     921
+    ]
+   ]
+  },
+  "S-H05": {
+   "n": 30,
+   "ext": {
+    "chital": [
+     10,
+     8
+    ],
+    "boar": [
+     0,
+     1
+    ],
+    "jackal": [
+     12,
+     16
+    ],
+    "hare": [
+     2,
+     1
+    ]
+   },
+   "hareDays": [
+    -9506,
+    [
+     -15116,
+     -2727
+    ]
+   ],
+   "jackalDays": [
+    102,
+    [
+     -107,
+     436
+    ]
+   ]
+  },
+  "S-W720": {
+   "n": 30,
+   "ext": {
+    "chital": [
+     10,
+     9
+    ],
+    "boar": [
+     0,
+     0
+    ],
+    "jackal": [
+     12,
+     30
+    ],
+    "hare": [
+     2,
+     2
+    ]
+   },
+   "hareDays": [
+    2674,
+    [
+     -1785,
+     12697
+    ]
+   ],
+   "jackalDays": [
+    -198,
+    [
+     -396,
+     -103
+    ]
+   ]
+  },
+  "S-W2160": {
+   "n": 30,
+   "ext": {
+    "chital": [
+     10,
+     8
+    ],
+    "boar": [
+     0,
+     0
+    ],
+    "jackal": [
+     12,
+     4
+    ],
+    "hare": [
+     2,
+     3
+    ]
+   },
+   "hareDays": [
+    1344,
+    [
+     -15750,
+     10843
+    ]
+   ],
+   "jackalDays": [
+    327,
+    [
+     217,
+     487
+    ]
+   ]
+  },
+  "S-K1": {
+   "n": 30,
+   "ext": {
+    "chital": [
+     10,
+     9
+    ],
+    "boar": [
+     0,
+     0
+    ],
+    "jackal": [
+     12,
+     14
+    ],
+    "hare": [
+     2,
+     0
+    ]
+   },
+   "hareDays": [
+    6935,
+    [
+     3784,
+     11213
+    ]
+   ],
+   "jackalDays": [
+    -90,
+    [
+     -177,
+     136
+    ]
+   ]
+  },
+  "G": {
+   "n": 30,
+   "ext": {
+    "chital": [
+     10,
+     13
+    ],
+    "boar": [
+     0,
+     0
+    ],
+    "jackal": [
+     12,
+     28
+    ],
+    "hare": [
+     2,
+     2
+    ]
+   },
+   "hareDays": [
+    -75,
+    [
+     -6355,
+     6867
+    ]
+   ],
+   "jackalDays": [
+    -134,
+    [
+     -314,
+     -65
+    ]
+   ]
+  },
+  "S-J1200": {
+   "n": 30,
+   "ext": {
+    "chital": [
+     10,
+     9
+    ],
+    "boar": [
+     0,
+     0
+    ],
+    "jackal": [
+     12,
+     20
+    ],
+    "hare": [
+     2,
+     2
+    ]
+   },
+   "hareDays": [
+    5126,
+    [
+     -9047,
+     15966
+    ]
+   ],
+   "jackalDays": [
+    -36,
+    [
+     -286,
+     151
+    ]
+   ]
+  },
+  "S-H15": {
+   "n": 30,
+   "ext": {
+    "chital": [
+     10,
+     10
+    ],
+    "boar": [
+     0,
+     0
+    ],
+    "jackal": [
+     12,
+     18
+    ],
+    "hare": [
+     2,
+     1
+    ]
+   },
+   "hareDays": [
+    13943,
+    [
+     6587,
+     26127
+    ]
+   ],
+   "jackalDays": [
+    -88,
+    [
+     -189,
+     -17
+    ]
+   ]
+  }
+ }
+}

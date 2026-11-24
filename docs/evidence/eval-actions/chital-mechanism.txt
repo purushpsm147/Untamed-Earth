@@ -1,0 +1,37 @@
+# Chital deaths by cause (median per seed-year) and hare/chital relationship, Actions run 45378622930
+cfg   pred  starv  dehyd  age  backgr | chital_ext  median hare_days | median late-year hare (d300-365 mean)
+A        29     61      0   11      41 |   8/60        31422 |     39.0
+B        64     33      0   12      34 |   3/60        19292 |      1.7
+C        50     44      0   13      36 |   1/60        17502 |      6.8
+D         6     84      0   10      42 |  20/60        63716 |     76.4
+E         2     91      0   10      40 |  24/60        63862 |    104.9
+F        27     66      0   11      40 |  14/60        48150 |     32.6
+M         2     85      0    9      41 |  17/60        39050 |     74.0
+G         6     84      0   10      43 |  13/30        67080 |     95.3
+S-H05    10     79      0   10      43 |   8/30        50774 |     56.8
+S-H15     3     82      0    9      43 |  10/30        78942 |     90.7
+
+# Pooled over all 690 seed-runs: chital extinction rate by hare-days quintile
+  Q1 hare_days    2235-  25485: chital extinct 7/138  median jackal_days 2253
+  Q2 hare_days   25572-  43354: chital extinct 28/138  median jackal_days 1115
+  Q3 hare_days   43453-  58310: chital extinct 40/138  median jackal_days 698
+  Q4 hare_days   58651-  74956: chital extinct 51/138  median jackal_days 510
+  Q5 hare_days   74963- 124701: chital extinct 47/138  median jackal_days 446
+  within D: chital extinct in low-hare half 10/30, high-hare half 10/30
+  within E: chital extinct in low-hare half 12/30, high-hare half 12/30
+  within C: chital extinct in low-hare half 0/30, high-hare half 1/30
+  within M: chital extinct in low-hare half 8/30, high-hare half 9/30
+
+# Day of chital extinction in D (median, IQR): [186, 207, 222, 232, 232, 248, 268, 272, 276, 276, 280, 282, 285, 287, 288, 326, 329, 331, 356, 360]
+
+# Predator-release / overshoot test: chital peak, day of peak, peak-to-end decline, juvenile starvation, births
+cfg   peak  dayPeak  end  births  juvStarv  | extinct-seeds: peak    non-extinct: peak
+A        72      74     6    104       17  |       74         72
+B        69      74    10    106        8  |       76         69
+C        71      74    10    108       11  |       78         71
+D        79      86     2     96       24  |       79         80
+E        83      94     1    100       28  |       82         83
+F        76      75     4    102       16  |       80         75
+M        81      76     2     91       26  |       79         81
+
+  paired C->D chital peak higher in D: 53 / lower: 4
