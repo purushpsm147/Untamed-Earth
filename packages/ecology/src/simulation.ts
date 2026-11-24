@@ -1326,19 +1326,17 @@ export class Simulation {
     const s = Math.sin(j);
     let fx = dx * c - dz * s;
     let fz = dx * s + dz * c;
-    // issue #31: a dependent young animal runs to its mother unless she lies toward the threat
+    // issue #31: a dependent young animal with its mother close by runs to shelter behind her (on her far side from the
+    // threat), even when she is moving toward the threat to defend it; it does not bolt off alone
     const mom = a.mother !== 0 && a.age < weanDays(sp) ? this.byId.get(a.mother) : undefined;
-    if (mom && mom.alive && !mom.off) {
-      const mx = mom.x - a.x;
-      const mz = mom.z - a.z;
-      const ml = Math.hypot(mx, mz);
-      if (ml > 2 && (mx * dx + mz * dz) / ml > -0.3) {
-        fx = fx * 0.4 + (mx / ml) * 0.6;
-        fz = fz * 0.4 + (mz / ml) * 0.6;
-        const fl = Math.hypot(fx, fz) || 1;
-        fx /= fl;
-        fz /= fl;
-      }
+    if (mom && mom.alive && !mom.off && Math.hypot(mom.x - a.x, mom.z - a.z) < 40) {
+      const tx = mom.x - a.threatX;
+      const tz = mom.z - a.threatZ;
+      const tl = Math.hypot(tx, tz) || 1;
+      a.beh = B.Flee;
+      a.tx = clamp(mom.x + (tx / tl) * 4, 8, REGION_SIZE - 8);
+      a.tz = clamp(mom.z + (tz / tl) * 4, 8, REGION_SIZE - 8);
+      return;
     }
     // herd animals flee as a herd: bend the escape toward the group unless the group lies toward the threat
     const g = sp.group > 2 && !sp.flies ? this.groups.get(a.group) : undefined;
