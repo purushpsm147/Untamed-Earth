@@ -14,9 +14,12 @@ export const SAVE_VERSION = 1;
 export const B = {
   Idle: 0, Wander: 1, Forage: 2, SeekWater: 3, Drink: 4, Rest: 5, Flee: 6, SeekMate: 7,
   Stalk: 8, Chase: 9, SeekCarrion: 10, Feed: 11, Roost: 12, Follow: 13, Regroup: 14,
+  /** Issue #31: watching an approaching animal; a mother protecting her young; a newborn lying hidden. */
+  Alert: 15, Defend: 16, Hide: 17,
 } as const;
 export const BEHAVIOR_NAMES = ['Idle', 'Wandering', 'Foraging', 'Seeking water', 'Drinking', 'Resting', 'Fleeing', 'Seeking mate',
-  'Stalking', 'Chasing', 'Approaching carrion', 'Feeding', 'Roosting', 'Following mother', 'Rejoining the herd'];
+  'Stalking', 'Chasing', 'Approaching carrion', 'Feeding', 'Roosting', 'Following mother', 'Rejoining the herd',
+  'Alert', 'Defending young', 'Hiding'];
 
 export interface Animal {
   id: number;
@@ -32,6 +35,8 @@ export interface Animal {
   settled?: boolean;
   /** Off-map (in the regional landscape, coarse simulation). */
   off?: boolean;
+  /** Issue #31: id of this mother's most recent offspring (0/absent none). */
+  young?: number;
   sp: number;
   x: number; z: number; alt: number;
   px: number; pz: number; palt: number;
@@ -119,13 +124,38 @@ export interface ControlInput {
   mx: number;
   mz: number;
   run: boolean;
-  action: 'eat' | 'drink' | 'rest' | null;
+  action: 'eat' | 'drink' | 'rest' | 'defend' | null;
 }
 
 /** A held territory: the group that holds it, its centre, and the resident breeders (0 = slot vacant). */
 export interface Territory { group: number; sp: number; x: number; z: number; female: number; male: number; sinceH: number }
 /** Cumulative territory and dispersal events (diagnostic; saved). */
 export interface TerritoryStats { dispersed: number; claimed: number; joined: number; inherited: number; vacated: number }
+
+/** Issue #31: counts of maternal and predator decisions (evidence, not used by the simulation). */
+export interface InteractionStats {
+  /** A mother started defending her young (chital: reposition and display; boar: charge). */
+  defends: number;
+  /** A defending sow's charge reached the jackal. */
+  chargeContacts: number;
+  /** Jackal injuries from charges. */
+  jackalInjuries: number;
+  /** Hunts a jackal abandoned because a defending mother confronted it. */
+  huntsAbandoned: number;
+  /** A jackal stopped to watch an approaching large animal; withdrew from an adult boar. */
+  alerts: number;
+  withdrawals: number;
+  /** A hidden newborn bolted (predator too close) instead of staying frozen. */
+  hiderBolts: number;
+}
+export const emptyInteractions = (): InteractionStats => ({ defends: 0, chargeContacts: 0, jackalInjuries: 0, huntsAbandoned: 0, alerts: 0, withdrawals: 0, hiderBolts: 0 });
+/**
+ * Days a newborn chital lies hidden (a "hider" species) before following its mother: about 10 real days compressed by
+ * LIFE_COMPRESSION. Assumed (docs/MATERNAL_BEHAVIOUR.md); the hider strategy itself is documented for chital.
+ */
+export const CHITAL_HIDE_DAYS = (10 * 48) / 365;
+/** A predator takes prey up to this multiple of its own mass when the prey is healthy. */
+export const PREY_MASS_RATIO = 2.5;
 
 export interface SimSnapshot {
   version: number;
@@ -149,6 +179,7 @@ export interface SimSnapshot {
   eaten?: number[];
   territories?: Territory[];
   territoryStats?: TerritoryStats;
+  interactions?: InteractionStats;
   terrAccH?: number;
   boundary?: BoundaryConfig;
   regional?: Animal[];
@@ -246,6 +277,8 @@ export class Simulation {
   /** Held territories by group id (territorial species only). */
   readonly territories = new Map<number, Territory>();
   territoryStats: TerritoryStats = { dispersed: 0, claimed: 0, joined: 0, inherited: 0, vacated: 0 };
+  /** Issue #31 counters: maternal defence and predator decisions. */
+  interactions: InteractionStats = emptyInteractions();
   private terrAccH = 0;
   /** Open-boundary configuration (closed unless configureBoundary is called before the first step). */
   boundary: BoundaryConfig = { ...CLOSED_BOUNDARY };
@@ -684,6 +717,7 @@ export class Simulation {
     for (let i = 0; i < n; i++) {
       const c = this.spawn(m.sp, m.x + this.rng.range(-1.5, 1.5), m.z + this.rng.range(-1.5, 1.5), 0, m.group, m.id, m.homeX, m.homeZ);
       if (m.origin) c.origin = m.origin;
+      m.young = c.id;
       c.waterX = m.waterX;
       c.waterZ = m.waterZ;
       c.alt = m.alt;
@@ -816,9 +850,28 @@ export class Simulation {
     let preyD2 = vis * vis;
     let alarm: Animal | null = null;
     let crowd = 0;
+    // issue #31: a predator watches large animals near it; a mother watches predators near her young
+    const isPredator = sp.prey.length > 0;
+    let big: Animal | null = null;
+    let bigD2 = 25 * 25;
+    const myYoung = this.dependentYoung(a);
+    let danger: Animal | null = null;
+    let dangerD2 = 1e18;
     this.hash.query(a.x, a.z, R, (o, d2) => {
       if (o === a || !o.alive) return;
       const osp = SPECIES[o.sp]!;
+      if (isPredator && o.sp !== a.sp && d2 < bigD2 && o.alt < 1 && osp.mass * this.growth(o, osp) > sp.mass * PREY_MASS_RATIO) {
+        big = o;
+        bigD2 = d2;
+      }
+      if (myYoung && sp.predators.includes(osp.id) && o.alt < 2 && o.age > maturityDays(osp) * 0.5) {
+        // a predator near her young (she knows where they are) or near her, within her senses
+        const dy = Math.hypot(o.x - myYoung.x, o.z - myYoung.z);
+        if (dy < 30 && dy * dy < dangerD2 && (d2 < vis * vis || d2 < sp.hearing * sp.hearing)) {
+          danger = o;
+          dangerD2 = dy * dy;
+        }
+      }
       if (o.sp === a.sp) {
         if (d2 < 3600) crowd++;
         if (a.sex === 1 && adult && d2 < mateD2 && (!sp.territory || this.territories.get(o.group)?.male === a.id) && this.receptive(o, osp)) {
@@ -839,7 +892,7 @@ export class Simulation {
           threat = o;
           threatD2 = d2;
         }
-      } else if (hunter && d2 < preyD2 && o.alt < 1 && sp.prey.includes(osp.id) && this.suitablePrey(o, osp)) {
+      } else if (hunter && d2 < preyD2 && o.alt < 1 && sp.prey.includes(osp.id) && this.preyValue(a, sp, o, osp) > 0 && this.detectable(a, o, d2)) {
         prey = o;
         preyD2 = d2;
       }
@@ -848,6 +901,8 @@ export class Simulation {
     // narrowing helpers (closures above defeat control-flow analysis)
     const th = threat as Animal | null;
     const al = alarm as Animal | null;
+    const bg = big as Animal | null;
+    const dn = danger as Animal | null;
     const mt = mate as Animal | null;
     const pr = prey as Animal | null;
 
@@ -898,11 +953,51 @@ export class Simulation {
       }
     }
 
+    // ---- issue #31: a mother protecting her young ----
+    if (dn && myYoung && this.maternalResponse(a, sp, myYoung, dn, Math.sqrt(threatD2))) return;
+    // ---- issue #31: a newborn hider stays frozen unless the predator is almost on it ----
+    const hiderNow = sp.id === 'chital' && a.mother !== 0 && a.age < CHITAL_HIDE_DAYS && !!this.byId.get(a.mother)?.alive;
+    // (the threat may be one it saw itself, or the one its mother's alarm pointed to)
+    if (hiderNow && a.fear > 0.4 && Math.hypot(a.threatX - a.x, a.threatZ - a.z) > 5) {
+      a.beh = B.Hide;
+      a.want = 0;
+      a.tx = a.x;
+      a.tz = a.z;
+      a.timer = 1;
+      return;
+    }
+    if (hiderNow && a.fear > 0.4 && a.beh === B.Hide) this.interactions.hiderBolts++;
     // ---- flee overrides everything ----
     if (a.fear > 0.4) {
       a.timer = 1;
       this.startFlee(a, sp);
       return;
+    }
+    // ---- issue #31: a predator not busy hunting reacts to a large animal near it ----
+    if (bg && isPredator && a.beh !== B.Stalk && a.beh !== B.Chase && a.beh !== B.Feed && !a.controlled) {
+      const bsp = SPECIES[bg.sp]!;
+      const d = Math.sqrt(bigD2);
+      if (bsp.id === 'boar' && d < 12) {
+        // an adult boar is dangerous at close range: withdraw
+        a.fear = 0.6;
+        a.threatX = bg.x;
+        a.threatZ = bg.z;
+        this.interactions.withdrawals++;
+        a.timer = 1;
+        this.startFlee(a, sp);
+        return;
+      }
+      const closing = ((bg.x - bg.px) * (a.x - bg.x) + (bg.z - bg.pz) * (a.z - bg.z)) / (d || 1) > 0.02;
+      if (closing || a.beh === B.Alert) {
+        if (a.beh !== B.Alert) this.interactions.alerts++;
+        a.beh = B.Alert;
+        a.targetId = bg.id;
+        a.want = 0;
+        a.tx = a.x;
+        a.tz = a.z;
+        a.timer = rng.range(1.5, 3);
+        return;
+      }
     }
     // dependent young shadow the mother (they are provisioned: their thirst and hunger track hers)
     const mother = a.mother !== 0 && a.age < weanDays(sp) ? this.byId.get(a.mother) : undefined;
@@ -928,8 +1023,39 @@ export class Simulation {
     if (a.beh === B.Feed && a.hunger > 0.05) return;
 
     if (dependent) {
+      const dm = Math.hypot(mother.x - a.x, mother.z - a.z);
+      if (hiderNow) {
+        // a newborn hider lies hidden where the mother left it; it moves only with her right beside it, walking
+        if (dm < 6 && mother.beh !== B.Rest && mother.beh !== B.Flee) {
+          a.beh = B.Follow;
+          a.targetId = mother.id;
+        } else {
+          a.beh = B.Hide;
+          a.want = 0;
+          a.tx = a.x;
+          a.tz = a.z;
+        }
+        return;
+      }
+      // a mobile young animal settles beside a resting mother when nothing worries it, and follows when she moves
+      if (mother.beh === B.Rest && mother.speed < 0.1 && dm < 10 && a.fear < 0.2 && a.hunger < 0.8 && a.thirst < 0.8) {
+        a.beh = B.Rest;
+        a.want = 0;
+        a.tx = a.x;
+        a.tz = a.z;
+        return;
+      }
       a.beh = B.Follow;
       a.targetId = mother.id;
+      return;
+    }
+    // ---- issue #31: a mother returns to a newborn hidden far away (to nurse and guard it) ----
+    const hid = myYoung && sp.id === 'chital' && myYoung.age < CHITAL_HIDE_DAYS ? myYoung : null;
+    if (hid && Math.hypot(hid.x - a.x, hid.z - a.z) > 100 && a.thirst < CRITICAL_THIRST) {
+      a.beh = B.Wander;
+      a.tx = hid.x;
+      a.tz = hid.z;
+      a.want = sp.walk;
       return;
     }
 
@@ -971,7 +1097,7 @@ export class Simulation {
       }
       if (carc) consider(B.SeekCarrion, a.hunger * 1.3 * sp.diet.carrion + 0.15);
     }
-    if (pr) consider(B.Stalk, a.hunger * 1.35 * (0.6 + 0.4 * act));
+    if (pr) consider(B.Stalk, a.hunger * 1.35 * (0.6 + 0.4 * act) * this.preyValue(a, sp, pr, SPECIES[pr.sp]!));
 
     if (best === a.beh && (best === B.Forage || best === B.Rest || best === B.Roost || best === B.SeekWater || best === B.Stalk || best === B.Regroup)) {
       if (best === B.Stalk && pr) a.targetId = pr.id;
@@ -1089,12 +1215,70 @@ export class Simulation {
     }
   }
 
-  private suitablePrey(o: Animal, osp: SpeciesDef): boolean {
-    if (o.controlled && osp.id !== 'chital') return false;
-    if (osp.id === 'hare') return true;
-    const mat = maturityDays(osp);
-    if (osp.id === 'chital') return o.age < mat * 0.45 || o.health < 0.45;
-    return o.age < mat * 0.3;
+  /**
+   * Issue #31: how worthwhile prey o is to predator a (0 = not a target), from what the predator can perceive: body size
+   * against its own (healthy prey up to PREY_MASS_RATIO x its mass; weak chital of any size), the prey's health, and
+   * whether the prey's mother is close by (a mother near her young makes it a poorer prospect, a boar sow much more so;
+   * young far from the mother are easier). Hares are always prey. Replaces the earlier fixed fractions of maturity age.
+   */
+  preyValue(a: Animal, sp: SpeciesDef, o: Animal, osp: SpeciesDef): number {
+    if (o.controlled && osp.id !== 'chital') return 0;
+    if (osp.id === 'hare') return 1;
+    const mass = osp.mass * this.growth(o, osp);
+    const weak = o.health < 0.45;
+    const limit = sp.mass * PREY_MASS_RATIO;
+    if (mass > limit && !(weak && osp.id === 'chital')) return 0;
+    let v = weak ? 0.9 : 1 - 0.5 * Math.min(1, mass / limit);
+    const m = o.mother !== 0 && o.age < weanDays(osp) ? this.byId.get(o.mother) : undefined;
+    if (m && m.alive && !m.off) {
+      const dm = Math.hypot(m.x - o.x, m.z - o.z);
+      if (dm < 25) v *= osp.id === 'boar' ? 0.15 : 0.6;
+      else v = Math.min(1, v * 1.25);
+    }
+    return v;
+  }
+
+  /** A newborn lying hidden is found only at close range (by scent or by nearly stepping on it). */
+  private detectable(a: Animal, o: Animal, d2: number): boolean {
+    if (o.beh !== B.Hide) return true;
+    return d2 < 10 * 10;
+  }
+
+  /** This animal's youngest living dependent offspring, if any (mothers only; on-map). */
+  private dependentYoung(a: Animal): Animal | null {
+    if (!a.young || a.sex !== 0) return null;
+    const y = this.byId.get(a.young);
+    if (!y || !y.alive || y.off || y.age >= weanDays(SPECIES[y.sp]!)) return null;
+    return y;
+  }
+
+  /**
+   * Issue #31: a mother that perceives a predator near her young chooses a response. Returns true when it set behaviour.
+   *  - boar sow: defends by charging the predator (Defend), unless she is badly hurt;
+   *  - chital mother: the alarm (fear relayed to the young), then either stands between young and predator and displays
+   *    (Defend) or, if the predator is on top of her or she is weak, escapes. Protection does not guarantee survival.
+   */
+  private maternalResponse(a: Animal, sp: SpeciesDef, young: Animal, pred: Animal, predToMe: number): boolean {
+    const dMe = Math.hypot(pred.x - a.x, pred.z - a.z);
+    void predToMe;
+    // alert the young: a fear signal they act on by their own rules (a hider freezes, a mobile young flees to her)
+    if (young.fear < 0.6) {
+      young.fear = 0.6;
+      young.threatX = pred.x;
+      young.threatZ = pred.z;
+      young.timer = Math.min(young.timer, 0.3);
+    }
+    if (a.beh !== B.Defend) this.events.emit({ type: 'alarm', sp: a.sp, id: a.id, x: a.x, z: a.z });
+    const healthy = a.health > 0.5 && a.stamina > 0.15;
+    if (sp.id === 'boar' ? healthy : healthy && dMe > 5) {
+      if (a.beh !== B.Defend) this.interactions.defends++;
+      a.beh = B.Defend;
+      a.targetId = pred.id;
+      a.fear = Math.min(a.fear, 0.3);
+      a.timer = 1;
+      return true;
+    }
+    return false; // falls through to the ordinary fear/flee response
   }
 
   private startWander(a: Animal, sp: SpeciesDef, scale: number): void {
@@ -1142,6 +1326,20 @@ export class Simulation {
     const s = Math.sin(j);
     let fx = dx * c - dz * s;
     let fz = dx * s + dz * c;
+    // issue #31: a dependent young animal runs to its mother unless she lies toward the threat
+    const mom = a.mother !== 0 && a.age < weanDays(sp) ? this.byId.get(a.mother) : undefined;
+    if (mom && mom.alive && !mom.off) {
+      const mx = mom.x - a.x;
+      const mz = mom.z - a.z;
+      const ml = Math.hypot(mx, mz);
+      if (ml > 2 && (mx * dx + mz * dz) / ml > -0.3) {
+        fx = fx * 0.4 + (mx / ml) * 0.6;
+        fz = fz * 0.4 + (mz / ml) * 0.6;
+        const fl = Math.hypot(fx, fz) || 1;
+        fx /= fl;
+        fz /= fl;
+      }
+    }
     // herd animals flee as a herd: bend the escape toward the group unless the group lies toward the threat
     const g = sp.group > 2 && !sp.flies ? this.groups.get(a.group) : undefined;
     if (g && g.n > 1) {
@@ -1278,9 +1476,27 @@ export class Simulation {
         }
         break;
       }
-      case B.Rest:
+      case B.Rest: {
         // walk to the chosen dry spot (if any), then settle
         a.want = Math.hypot(a.tx - a.x, a.tz - a.z) > 0.6 ? sp.walk : 0;
+        // a young animal resting beside its mother wakes as soon as she gets up and moves off
+        const m = a.mother !== 0 && a.age < weanDays(sp) ? this.byId.get(a.mother) : undefined;
+        if (m && m.alive && (m.beh !== B.Rest || Math.hypot(m.x - a.x, m.z - a.z) > 12)) a.timer = 0;
+        break;
+      }
+      case B.Hide:
+        a.want = 0;
+        break;
+      case B.Alert: {
+        // stand and face the animal being watched
+        const o = this.byId.get(a.targetId);
+        a.want = 0;
+        if (o && o.alive) a.heading += clamp(angleDiff(a.heading, Math.atan2(o.x - a.x, o.z - a.z)), -dt * 3, dt * 3);
+        else a.timer = 0;
+        break;
+      }
+      case B.Defend:
+        this.actDefend(a, sp, dt);
         break;
       case B.Roost:
         a.want = dist > 1 ? sp.run * 0.8 : 0;
@@ -1371,6 +1587,22 @@ export class Simulation {
         a.tx = p.x;
         a.tz = p.z;
         const d = Math.hypot(p.x - a.x, p.z - a.z);
+        // issue #31: a defending mother confronting the predator: give up (always against a sow; against a chital mother
+        // unless very hungry)
+        const pm = p.mother !== 0 ? this.byId.get(p.mother) : undefined;
+        if (pm && pm.alive && pm.beh === B.Defend && pm.targetId === a.id) {
+          const msp = SPECIES[pm.sp]!;
+          const near = Math.hypot(pm.x - a.x, pm.z - a.z) < (msp.id === 'boar' ? 15 : 6);
+          if (near && (msp.id === 'boar' || a.hunger < 0.85)) {
+            this.interactions.huntsAbandoned++;
+            a.fear = msp.id === 'boar' ? 0.6 : 0.45;
+            a.threatX = pm.x;
+            a.threatZ = pm.z;
+            this.startFlee(a, sp);
+            a.timer = 1;
+            break;
+          }
+        }
         if (a.beh === B.Stalk) {
           a.want = sp.walk * 1.15;
           if (d < 24 || p.beh === B.Flee) a.beh = B.Chase;
@@ -1429,21 +1661,61 @@ export class Simulation {
     }
   }
 
+  /**
+   * Issue #31: a defending mother. A sow charges the predator at a run; contact drives it off and may injure it. A chital
+   * mother moves between her young and the predator and holds there, stamping and facing it. Defence ends when the
+   * predator is gone, has moved away from the young, or she is spent; she never pursues far from her young.
+   */
+  private actDefend(a: Animal, sp: SpeciesDef, dt: number): void {
+    const pred = this.byId.get(a.targetId);
+    const young = this.dependentYoung(a);
+    if (!pred || !pred.alive || pred.off || !young || Math.hypot(pred.x - young.x, pred.z - young.z) > 40 || a.stamina < 0.05 || Math.hypot(a.x - young.x, a.z - young.z) > 45) {
+      a.beh = B.Idle;
+      a.timer = 0;
+      a.want = 0;
+      return;
+    }
+    if (sp.id === 'boar') {
+      a.tx = pred.x;
+      a.tz = pred.z;
+      a.want = sp.run;
+      a.stamina = Math.max(0, a.stamina - dt / sp.sprintS);
+      if (Math.hypot(pred.x - a.x, pred.z - a.z) < 1.8) {
+        this.interactions.chargeContacts++;
+        if (this.rng.chance(0.5)) {
+          pred.health -= 0.12;
+          this.interactions.jackalInjuries++;
+        }
+        pred.fear = 0.8;
+        pred.threatX = a.x;
+        pred.threatZ = a.z;
+        if (pred.beh === B.Stalk || pred.beh === B.Chase) this.interactions.huntsAbandoned++;
+        this.startFlee(pred, SPECIES[pred.sp]!);
+        pred.timer = 2;
+        a.beh = B.Idle;
+        a.timer = this.rng.range(1, 2);
+        a.want = 0;
+      }
+      return;
+    }
+    // chital: stand between the young and the predator, then hold and face it
+    const gx = young.x + (pred.x - young.x) * 0.35;
+    const gz = young.z + (pred.z - young.z) * 0.35;
+    a.tx = gx;
+    a.tz = gz;
+    const d = Math.hypot(gx - a.x, gz - a.z);
+    a.want = d > 1.5 ? sp.walk * 2.2 : 0;
+    if (d <= 1.5) a.heading += clamp(angleDiff(a.heading, Math.atan2(pred.x - a.x, pred.z - a.z)), -dt * 3, dt * 3);
+  }
+
   private attack(pred: Animal, prey: Animal): void {
     const psp = SPECIES[prey.sp]!;
     const mat = maturityDays(psp);
     let p = psp.id === 'hare' ? 0.5 : prey.age < mat * 0.45 ? 0.6 : 0.28;
-    // defended young: a nearby adult of the prey species can drive the jackal off
-    if (psp.id !== 'hare') {
-      let guard = false;
-      this.hash.query(prey.x, prey.z, 12, (o) => {
-        if (o.sp === prey.sp && o.alive && o.age > mat) guard = true;
-      });
-      if (guard) {
-        p *= psp.id === 'boar' ? 0.25 : 0.6;
-        if (psp.id === 'boar' && this.rng.chance(0.3)) pred.health -= 0.15;
-      }
-    }
+    // issue #31: no blanket protection from nearby adults. Only the prey's own mother, physically at its side and
+    // defending, blocks the strike (the predator must then deal with her: see actDefend).
+    const pm = prey.mother !== 0 ? this.byId.get(prey.mother) : undefined;
+    if (pm && pm.alive && pm.beh === B.Defend && Math.hypot(pm.x - prey.x, pm.z - prey.z) < 2.5) p = 0;
     if (this.rng.next() < p) {
       this.kill(prey, 'predation');
       const c = this.carcasses[this.carcasses.length - 1]!;
@@ -1488,7 +1760,34 @@ export class Simulation {
         this.drink(a, w, dtH);
       } else a.beh = B.Idle;
     } else if (c.action === 'rest') a.beh = B.Rest;
+    else if (c.action === 'defend') {
+      // issue #31: the player's mother defends her young against the nearest predator near them (none: nothing happens)
+      const y = this.dependentYoung(a);
+      const t = y ? this.youngThreat(a) : null;
+      if (t) {
+        if (a.beh !== B.Defend) this.interactions.defends++;
+        a.beh = B.Defend;
+        a.targetId = t.id;
+        this.actDefend(a, sp, 1 / 60);
+      } else a.beh = B.Idle;
+    }
     else if (a.beh !== B.Rest) a.beh = B.Idle;
+  }
+
+  /** Issue #31 (UI cue): the nearest predator within 30 m of this mother's youngest dependent, if any. */
+  youngThreat(a: Animal): Animal | null {
+    const y = this.dependentYoung(a);
+    if (!y) return null;
+    const ysp = SPECIES[y.sp]!;
+    let best: Animal | null = null;
+    let bd = 30 * 30;
+    this.hash.query(y.x, y.z, 30, (o, d2) => {
+      if (o.alive && ysp.predators.includes(SPECIES[o.sp]!.id) && d2 < bd) {
+        bd = d2;
+        best = o;
+      }
+    });
+    return best;
   }
 
   /** Water underfoot or within a neck's reach ahead (used for player-controlled drinking and UI prompts). */
@@ -2370,7 +2669,7 @@ export class Simulation {
       fertility: [...this.fertility], births: [...this.births], deaths: this.deaths.map((r) => [...r]),
       history: this.history.map((h) => ({ ...h, pops: [...h.pops] })), statAcc: this.statAcc, groupAcc: this.groupAcc, rainAcc: this.rainAcc,
       groups: [...this.groups].map(([id, g]) => [id, g.x, g.z, g.n]), eaten: [...this.eaten],
-      territories: [...this.territories.values()].map((t) => ({ ...t })), territoryStats: { ...this.territoryStats }, terrAccH: this.terrAccH,
+      territories: [...this.territories.values()].map((t) => ({ ...t })), territoryStats: { ...this.territoryStats }, interactions: { ...this.interactions }, terrAccH: this.terrAccH,
       ...(this.boundary.open ? { boundary: { ...this.boundary }, regional: this.regional.filter((a) => a.alive).map((a) => ({ ...a })), migRng: this.migRng!.state, migration: JSON.parse(JSON.stringify(this.migration)) as MigrationStats, sectorSuit: [...this.sectorSuit], regAccH: this.regAccH } : {}), founders: this.founders,
     };
   }
@@ -2403,6 +2702,7 @@ export class Simulation {
     this.territories.clear();
     for (const t of s.territories ?? []) this.territories.set(t.group, { ...t });
     if (s.territoryStats) this.territoryStats = { ...s.territoryStats };
+    this.interactions = { ...emptyInteractions(), ...(s.interactions ?? {}) };
     this.terrAccH = s.terrAccH ?? 0;
     this.founders = s.founders ?? 0;
     if (s.boundary?.open) {
