@@ -11,6 +11,7 @@ import { QUALITY_ORDER, QualityName } from '../render/quality';
 import { FpsTarget, FramePacer, GovernorStats } from '../render/qualityGovernor';
 import { drawChart } from '../ui/chart';
 import { Curiosity } from './Curiosity';
+import { SocialChronicle, chronicleTime, describeEntry } from './SocialChronicle';
 
 /** F3 line: what the last downgrade trial measured (not a CPU/GPU classification). */
 function govLine(s: GovernorStats): string {
@@ -24,6 +25,11 @@ export interface SaveData {
   worldId: string;
   sim: SimSnapshot;
   cam: { x: number; y: number; z: number; yaw: number; pitch: number; roll?: number; fov?: number };
+  /**
+   * Social Lens history (SocialChronicle snapshot). Optional and presentation-only: older saves load with an empty
+   * history, and a damaged history never blocks loading the world. Not part of the ecology save version.
+   */
+  chronicle?: unknown;
 }
 /** Graphics start-up decision: an explicit player choice, or Auto from the hardware assessment. */
 export interface GraphicsChoice {
@@ -60,6 +66,11 @@ export function toast(msg: string, error = false): void {
   setTimeout(() => d.remove(), error ? 9000 : 4000);
 }
 
+/** Escape text placed into innerHTML (history text is built from numbers and fixed strings, but keep it safe). */
+function esc(t: string): string {
+  return t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+}
+
 function meters(el: HTMLElement, rows: [string, number, string][]): void {
   if (el.children.length !== rows.length) {
     el.innerHTML = rows.map(() => '<div class="meter"><span></span><div class="bar"><div></div></div><span></span></div>').join('');
@@ -91,8 +102,8 @@ export class Game {
   private readonly cam = { x: 770, y: 30, z: 640, yaw: 2.2, pitch: -0.12, roll: 0, fly: 14, dist: 9 };
   /** Curiosity Mode look-at point (the camera eases toward subjects rather than snapping). */
   private readonly look = { x: 0, y: 0, z: 0 };
-  /** Bounded record of notable events seen this session, for the Social Lens. Not simulation state. */
-  private readonly sessionLog: { day: number; ids: number[]; text: string }[] = [];
+  /** Persistent, bounded Social Lens history (real events and observed state changes; saved with the world). */
+  readonly chronicle: SocialChronicle;
   private frozenTime: number | null = null;
   /** QA/profiling: artificial main-thread work per rendered frame (ms), to test quality degradation and recovery. */
   debugLoadMs = 0;
@@ -124,6 +135,13 @@ export class Game {
     private readonly hooks: { fatal: (msg: string) => void; restart: (seed: number, save?: SaveData) => void }, save?: SaveData) {
     this.engine = new Engine(canvas, this.sim, gfx.initial, gfx.ceiling);
     this.curiosity = new Curiosity(this.sim);
+    this.chronicle = new SocialChronicle(this.sim);
+    if (save?.chronicle) {
+      const r = this.chronicle.restore(save.chronicle);
+      if (r.rejected) console.warn(`Social Lens history: ${r.rejected} damaged entries ignored`);
+    }
+    this.chronicle.attach();
+    this.curiosity.chronicle = this.chronicle;
     this.engine.auto = gfx.auto;
     this.setFps(gfx.fps);
     if (save) {
@@ -138,7 +156,6 @@ export class Game {
     this.engine.onQualityChange = () => this.refreshMenu();
     this.bindUi();
     this.unsub.push(this.sim.events.on((e) => {
-      this.logEvent(e);
       if (this.speed > 10) return;
       const name = SPECIES[e.sp]!.name.split(' (')[0]!.toLowerCase();
       const near = (e.x - this.cam.x) ** 2 + (e.z - this.cam.z) ** 2 < 350 * 350;
@@ -173,20 +190,6 @@ export class Game {
     }, { signal: this.abort.signal });
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
-  }
-
-  private logEvent(e: import('@untamed/ecology').SimEvent): void {
-    const day = this.sim.env.timeH / 24;
-    const nm = (sp: number): string => SPECIES[sp]!.name.split(' (')[0]!.toLowerCase();
-    let entry: { day: number; ids: number[]; text: string } | null = null;
-    if (e.type === 'kill') entry = { day, ids: [e.predator, e.prey], text: `killed a ${nm(e.sp)}` };
-    else if (e.type === 'birth') entry = { day, ids: [e.id], text: e.n > 1 ? `gave birth to ${e.n} young` : 'gave birth' };
-    else if (e.type === 'alarm') entry = { day, ids: [e.id], text: 'took fright at a predator' };
-    if (!entry) return;
-    const last = this.sessionLog[this.sessionLog.length - 1];
-    if (last && last.text === entry.text && last.ids[0] === entry.ids[0] && day - last.day < 0.02) return;
-    this.sessionLog.push(entry);
-    if (this.sessionLog.length > 300) this.sessionLog.splice(0, 100);
   }
 
   // ---------------------------------------------------------------- UI wiring
@@ -353,6 +356,14 @@ export class Game {
     $('insFollow').textContent = this.following ? 'Stop following' : 'Follow';
   }
 
+  private fadeShown = -1;
+  private setFade(o: number): void {
+    const v = Math.round(clamp(o, 0, 1) * 100) / 100;
+    if (v === this.fadeShown) return;
+    this.fadeShown = v;
+    $('fade').style.opacity = String(v);
+  }
+
   private ticker(msg: string): void {
     const now = performance.now();
     if (now - this.lastTick < 1500) return;
@@ -427,6 +438,7 @@ export class Game {
       return;
     }
     this.controlled = a.id;
+    this.chronicle.possessed(a);
     this.selected = a.id;
     this.following = false;
     this.restToggle = false;
@@ -446,6 +458,8 @@ export class Game {
     }
     if (this.controlled) {
       // hand the animal back to its own decision-making; its state is untouched
+      const was = this.sim.byId.get(this.controlled);
+      if (was && was.alive) this.chronicle.released(was);
       this.sim.setControlled(null);
       this.controlled = 0;
       this.following = true;
@@ -458,6 +472,7 @@ export class Game {
       this.cam.yaw = Math.atan2(dx, dz);
       this.cam.pitch = clamp(Math.atan2(dy, Math.hypot(dx, dz)), -1.4, 1.4);
       this.curiosity.stop();
+      this.setFade(0);
       this.cam.roll = 0;
     }
     if (m === 'curiosity' && this.mode !== 'curiosity') {
@@ -489,7 +504,7 @@ export class Game {
   // ---------------------------------------------------------------- persistence
   async save(silent: boolean): Promise<void> {
     try {
-      const data: SaveData = { worldId: this.worldId, sim: this.sim.snapshot(), cam: { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch, roll: this.cam.roll, fov: this.engine.camera.fov } };
+      const data: SaveData = { worldId: this.worldId, sim: this.sim.snapshot(), cam: { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch, roll: this.cam.roll, fov: this.engine.camera.fov }, chronicle: this.chronicle.snapshot() };
       await this.store.put(SAVE_SLOT, sealEnvelope(data, SAVE_FORMAT, SAVE_VERSION, Date.now()));
       $('mSaveInfo').textContent = `Saved ${new Date().toLocaleTimeString()} (day ${this.sim.env.day})`;
       if (!silent) toast('World saved to this browser.');
@@ -579,6 +594,8 @@ export class Game {
         this.look.z = pose.tz;
         this.engine.camera.position.set(c.x, c.y, c.z);
         this.engine.camera.lookAt(this.look.x, this.look.y, this.look.z);
+        // documentary cuts: the director relocates only while this overlay is opaque
+        this.setFade(1 - this.curiosity.fade);
         return;
       }
     }
@@ -717,6 +734,7 @@ export class Game {
       }
       this.prevNow = now;
       this.updateAudio(dt);
+      if (this.ready) this.chronicle.tick(dt);
       this.uiT += dt;
       if (this.uiT > 0.2) {
         this.uiT = 0;
@@ -804,7 +822,8 @@ export class Game {
     } else if (this.selected && this.mode !== 'wildlife' && this.mode !== 'curiosity') this.select(0);
 
     if (this.mode === 'curiosity') {
-      const cap = this.captions ? this.curiosity.caption() : null;
+      // captions describe the picture on screen: they wait while a cut is in progress
+      const cap = this.captions && !this.curiosity.director.isCutting() ? this.curiosity.caption() : null;
       $('cuCaption').classList.toggle('hidden', !cap);
       if (cap) {
         $('cuWhat').textContent = cap[0];
@@ -869,7 +888,8 @@ export class Game {
     out.push(members > 1 ? `<b>Group</b> ${sp.groupNoun} of ${members}` : `<b>Group</b> alone (${sp.groupNoun})`);
     if (a.mother) {
       const m = this.sim.byId.get(a.mother);
-      out.push(`<b>Mother</b> #${a.mother} ${m && m.alive ? (m.group === a.group ? '— alive, same group' : '— alive, different group') : '— no longer alive'}`);
+      const died = m && m.alive ? null : this.chronicle.deathOf(a.mother);
+      out.push(`<b>Mother</b> #${a.mother} ${m && m.alive ? (m.group === a.group ? '— alive, same group' : '— alive, different group') : died ? `— ${esc(describeEntry(died))}, ${chronicleTime(died.t, YEAR_DAYS)}` : '— no longer alive'}`);
     } else out.push('<b>Mother</b> not recorded (founding animal)');
     if (offspring) out.push(`<b>Offspring alive</b> ${offspring}${dependants ? ` (${dependants} still dependent)` : ''}`);
     const env = this.sim.env;
@@ -883,9 +903,14 @@ export class Game {
     if (env.vegFrac(c) < 0.15 && sp.diet.veg > 0.5) pressures.push('on depleted forage');
     if (Number.isNaN(a.waterX)) pressures.push('knows no water source');
     out.push(`<b>Pressures</b> ${pressures.length ? pressures.join(', ') : 'none acute'}`);
-    const mine = this.sessionLog.filter((e) => e.ids.includes(a.id)).slice(-3);
-    for (const e of mine) out.push(`<b>Day ${Math.floor(e.day) % YEAR_DAYS + 1}</b> ${e.ids[0] === a.id ? e.text : 'was killed'}`);
-    if (!mine.length) out.push('<i>No notable events observed this session.</i>');
+    const hist = this.chronicle.entriesFor(a.id);
+    const shown = hist.slice(-5);
+    if (shown.length) out.push(`<b>History</b> ${hist.length > shown.length ? `latest ${shown.length} of ${hist.length}` : `${hist.length} recorded`}`);
+    for (let i = shown.length - 1; i >= 0; i--) {
+      const e = shown[i]!;
+      out.push(`<span class="hist"><b>${chronicleTime(e.t, YEAR_DAYS)}</b>${e.noticed ? ' (noticed)' : ''} ${esc(describeEntry(e))}</span>`);
+    }
+    if (!shown.length) out.push('<i>No recorded events yet. History is kept from when this world was first observed.</i>');
     return out;
   }
 
@@ -911,6 +936,7 @@ export class Game {
     this.abort.abort();
     for (const u of this.unsub) u();
     this.curiosity.dispose();
+    this.chronicle.dispose();
     this.engine.dispose();
   }
 
@@ -1031,8 +1057,10 @@ export class Game {
     return { quality: this.engine.quality.name, ceiling: this.engine.qualityCeiling, auto: this.engine.auto, resScale: this.engine.resScale, frameMs: this.engine.frameMs, fpsTarget: this.pacer.target, divisor: this.pacer.divisor,
       refreshMs: this.pacer.refreshMs, calibrating: this.engine.governor.calibrating, gpu: this.gfx.gpu, basis: this.gfx.basis, ...this.engine.info(), chunks: this.engine.terrain.loaded, heapMB: mem ? mem.usedJSHeapSize / 1048576 : null, governor: this.engine.governor.stats };
   }
-  debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean } {
-    return { key: this.curiosity.subject?.key ?? null, tag: this.curiosity.tag, switches: this.curiosity.director.switches, paused: this.curiosity.paused };
+  debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean; cuts: number; glides: number; fade: number; cutting: boolean; why: string | null; style: string; decisions: number } {
+    const s = this.curiosity.director.getShotInfo();
+    return { key: this.curiosity.subject?.key ?? null, tag: this.curiosity.tag, switches: this.curiosity.director.switches, paused: this.curiosity.paused,
+      cuts: s.cuts, glides: s.glides, fade: this.curiosity.fade, cutting: s.cutting, why: s.why, style: s.style, decisions: s.decisions };
   }
 
   /** For automated tests and debugging. */

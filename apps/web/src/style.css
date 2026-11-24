@@ -96,3 +96,5 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
   #inspect, #wild { max-height: 46vh; overflow: auto; }
   #curio { bottom: 70px; }
 }
+#fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: -1; }
+.lens .hist { display: block; color: var(--fg); }
