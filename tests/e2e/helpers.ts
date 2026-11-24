@@ -14,7 +14,7 @@ export interface G {
   debugGfx(): { quality: string; ceiling: string; auto: boolean; resScale: number; frameMs: number; fpsTarget: number; divisor: number; refreshMs: number; calibrating: boolean; gpu: string; basis: string; calls: number; triangles: number; geometries: number; textures: number; chunks: number; heapMB: number | null; governor: { trials: number; helped: number; rolledBack: number; holdS: number; last: { kind: string; from: string; to: string; beforeMs: number; afterMs: number; verdict: string } | null } };
   debugStepTo(tick: number): number;
   engine: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean };
+  debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean; cuts: number; relocations: number; glides: number; fade: number; cutting: boolean; why: string | null; style: string; decisions: number };
   debugTerrain(): { chunks: number; meshes: number; inGroup: number; liveGeometries: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; applied: number; stale: number; superseded: number; workerFailures: number };
   debugFreeze(t: number | null): void; debugLuma(): { mean: number; std: number }; debugGrounding(): { max: number; n: number };
   debugPath(points: [number, number][], speed: number, above?: number): Promise<void>;
@@ -39,6 +39,8 @@ export function watch(page: Page): Problems {
 export async function enter(page: Page, opts: { quality?: string; seed?: number | string; qa?: boolean; settings?: Record<string, unknown> } = {}): Promise<void> {
   // saved preferences are injected before the app reads them
   if (opts.settings) await page.addInitScript((st) => localStorage.setItem('untamed.settings', JSON.stringify(st)), opts.settings);
+  // the first-run field guide is covered by its own test (experience.spec.ts); other scenarios start as returning players
+  await page.addInitScript(() => localStorage.setItem('untamed.coach', 'done'));
   await page.goto(opts.qa ? '/?qa=1' : '/');
   await page.selectOption('#startQuality', opts.quality ?? 'low');
   await page.fill('#seed', String(opts.seed ?? 1));

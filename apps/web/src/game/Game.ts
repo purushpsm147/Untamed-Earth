@@ -66,6 +66,25 @@ export function toast(msg: string, error = false): void {
   setTimeout(() => d.remove(), error ? 9000 : 4000);
 }
 
+const SECTORS = ['ahead', 'ahead-right', 'right', 'behind-right', 'behind', 'behind-left', 'left', 'ahead-left'];
+const ARROWS = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+/** Direction of (dx, dz) relative to a camera yaw (forward = (sin yaw, cos yaw), right = (-cos yaw, sin yaw)). */
+export function relativeDirection(dx: number, dz: number, yaw: number): { word: string; arrow: string } {
+  const fwd = dx * Math.sin(yaw) + dz * Math.cos(yaw);
+  const rt = -dx * Math.cos(yaw) + dz * Math.sin(yaw);
+  const k = ((Math.round(Math.atan2(rt, fwd) / (Math.PI / 4)) % 8) + 8) % 8;
+  return { word: SECTORS[k]!, arrow: ARROWS[k]! };
+}
+
+/** First-run field guide: information only (no goals, rewards or progression); each tip is marked done when the player has done it. */
+const COACH: { text: string; done: (g: Game) => boolean }[] = [
+  { text: 'Look around by dragging the mouse (or J/L and I/K). Fly with W A S D, rise and sink with Space and Q. Hold Shift to go faster.', done: (g) => g.coachFlags.moved && g.coachFlags.looked },
+  { text: 'Click an animal to see what it is doing, how it is, and who it lives with (the Social Lens). Double-click to follow it.', done: (g) => g.selected !== 0 },
+  { text: 'Press G to follow the selected animal, or V to let Curiosity Mode find something worth watching. Any key gives you the camera back.', done: (g) => g.following || g.mode === 'curiosity' },
+  { text: 'Press P (or "Take control" on a spotted deer) to live as that deer: E graze, F drink, R rest, Shift run, X release it. It keeps its own body and needs.', done: (g) => g.mode === 'wildlife' },
+  { text: 'The valley runs on its own whether you watch or not. [ and ] change the speed of time; H shows every control.', done: () => false },
+];
+
 /** Escape text placed into innerHTML (history text is built from numbers and fixed strings, but keep it safe). */
 function esc(t: string): string {
   return t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
@@ -100,6 +119,19 @@ export class Game {
   achievedRate = 1;
   ready = false;
   private readonly cam = { x: 770, y: 30, z: 640, yaw: 2.2, pitch: -0.12, roll: 0, fly: 14, dist: 9 };
+  /** Free-flight velocity (m/s), eased toward the commanded velocity so starts and stops are smooth but responsive. */
+  private readonly vel = { x: 0, y: 0, z: 0 };
+  /** Follow transition: 0 at engage, 1 when the orbit camera has arrived (glide, not snap). */
+  private followBlend = 1;
+  private readonly followFrom = { x: 0, y: 0, z: 0 };
+  /** Interface preferences (persisted with the other settings). */
+  hintsOn = true;
+  toggleActions = false;
+  private sticky: 'eat' | 'drink' | null = null;
+  /** Field guide: step index, -1 = dismissed; flags record what the player has already done. */
+  coachStep = -1;
+  readonly coachFlags = { moved: false, looked: false };
+  private readonly trend = new Map<string, number[]>();
   /** Curiosity Mode look-at point (the camera eases toward subjects rather than snapping). */
   private readonly look = { x: 0, y: 0, z: 0 };
   /** Persistent, bounded Social Lens history (real events and observed state changes; saved with the world). */
@@ -152,6 +184,7 @@ export class Game {
     else {
       this.cam.y = this.sim.valley.height(this.cam.x, this.cam.z) + 9;
     }
+    this.loadPrefs();
     this.engine.onThunder(() => this.audio.thunder());
     this.engine.onQualityChange = () => this.refreshMenu();
     this.bindUi();
@@ -258,6 +291,28 @@ export class Game {
       this.curiosity.reducedMotion = (e.target as HTMLInputElement).checked;
       this.storeSettings();
     });
+    this.on('mLarge', 'change', (e) => {
+      document.body.classList.toggle('large', (e.target as HTMLInputElement).checked);
+      this.storeSettings();
+    });
+    this.on('mHints', 'change', (e) => {
+      this.hintsOn = (e.target as HTMLInputElement).checked;
+      this.storeSettings();
+      this.uiT = 99;
+    });
+    this.on('mToggle', 'change', (e) => {
+      this.toggleActions = (e.target as HTMLInputElement).checked;
+      this.sticky = null;
+      this.storeSettings();
+    });
+    this.on('mTips', 'click', () => {
+      this.coachStep = 0;
+      this.coachFlags.moved = this.coachFlags.looked = false;
+      this.setMenu(false);
+      this.uiT = 99;
+    });
+    this.on('coachNext', 'click', () => this.advanceCoach());
+    this.on('coachClose', 'click', () => this.endCoach());
     this.on('mMusic', 'input', (e) => {
       this.audio.setMusic(Number((e.target as HTMLInputElement).value));
       this.storeSettings();
@@ -318,9 +373,33 @@ export class Game {
     this.refreshButtons();
   }
 
+  private loadPrefs(): void {
+    let st: { largeText?: boolean; hints?: boolean; toggleActions?: boolean } = {};
+    try {
+      st = JSON.parse(localStorage.getItem('untamed.settings') ?? '{}') as typeof st;
+    } catch {
+      /* defaults */
+    }
+    this.hintsOn = st.hints ?? true;
+    this.toggleActions = st.toggleActions ?? false;
+    document.body.classList.toggle('large', st.largeText === true);
+    $<HTMLInputElement>('mLarge').checked = st.largeText === true;
+    $<HTMLInputElement>('mHints').checked = this.hintsOn;
+    $<HTMLInputElement>('mToggle').checked = this.toggleActions;
+    let coach: string | null = null;
+    try {
+      coach = localStorage.getItem('untamed.coach');
+    } catch {
+      /* no storage: show the guide */
+    }
+    // ?qa=1 is the automated review start (paused, identical state): it starts without the guide overlay
+    this.coachStep = coach === 'done' || new URLSearchParams(location.search).has('qa') ? -1 : 0;
+  }
+
   private storeSettings(): void {
     try {
       localStorage.setItem('untamed.settings', JSON.stringify({
+        largeText: document.body.classList.contains('large'), hints: this.hintsOn, toggleActions: this.toggleActions,
         quality: this.engine.qualityCeiling, auto: this.engine.auto, volume: Number($<HTMLInputElement>('mVolume').value), muted: this.audio.muted,
         music: Number($<HTMLInputElement>('mMusic').value), reducedMotion: this.curiosity.reducedMotion, fps: this.pacer.target,
       }));
@@ -344,9 +423,61 @@ export class Game {
     this.engine.setFpsTarget(fps === 0 ? 60 : fps);
   }
 
+  private advanceCoach(): void {
+    if (this.coachStep < 0) return;
+    this.coachStep++;
+    if (this.coachStep >= COACH.length) this.endCoach();
+    else this.uiT = 99;
+  }
+  private endCoach(): void {
+    this.coachStep = -1;
+    $('coach').classList.add('hidden');
+    try {
+      localStorage.setItem('untamed.coach', 'done');
+    } catch {
+      /* it will simply show again next time */
+    }
+  }
+  private updateCoach(): void {
+    const el = $('coach');
+    // the guide only speaks in Observer: Curiosity stays clean, Wildlife and Experiment have their own panels
+    if (this.coachStep < 0 || this.mode !== 'observer' || this.menuOpen) {
+      el.classList.add('hidden');
+      return;
+    }
+    // skip tips the player has already acted on (each tip is marked done by doing it, never required)
+    while (this.coachStep < COACH.length - 1 && COACH[this.coachStep]!.done(this)) this.coachStep++;
+    el.classList.remove('hidden');
+    $('coachStep').textContent = `${this.coachStep + 1}/${COACH.length}`;
+    const t = COACH[this.coachStep]!.text;
+    if ($('coachText').textContent !== t) $('coachText').textContent = t;
+    $('coachNext').textContent = this.coachStep === COACH.length - 1 ? 'Done' : 'Next tip';
+  }
+
+  /** One line of context-sensitive controls for the current mode (discoverability; hidden with the Hints option). */
+  private hintText(): string {
+    if (!this.hintsOn) return '';
+    switch (this.mode) {
+      case 'wildlife': return 'WASD move · Shift run · E graze · F drink · R rest · Wheel zoom · X release · H help';
+      case 'curiosity': return 'N skip · Follow/Become below · any movement key or drag takes the camera back · V exit';
+      case 'experiment': return 'Sliders change the simulation inputs · T charts · [ ] time · WASD fly · H help';
+      default:
+        if (this.following) return 'Drag to orbit · Wheel distance · P live as this deer · X stop following · V Curiosity';
+        if (this.selected) return 'G follow · P live as this deer · X deselect · Show group rings its group · V Curiosity';
+        return 'WASD fly · drag to look · Space/Q up/down · click an animal · double-click to follow · V Curiosity · H help';
+    }
+  }
+
   private refreshButtons(): void {
-    document.querySelectorAll<HTMLButtonElement>('#modes button').forEach((b) => b.classList.toggle('on', b.dataset.mode === this.mode));
-    document.querySelectorAll<HTMLButtonElement>('#speeds button').forEach((b) => b.classList.toggle('on', Number(b.dataset.speed) === this.speed));
+    document.querySelectorAll<HTMLButtonElement>('#modes button').forEach((b) => {
+      b.classList.toggle('on', b.dataset.mode === this.mode);
+      b.setAttribute('aria-pressed', String(b.dataset.mode === this.mode));
+    });
+    document.querySelectorAll<HTMLButtonElement>('#speeds button').forEach((b) => {
+      b.classList.toggle('on', Number(b.dataset.speed) === this.speed);
+      b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === this.speed));
+    });
+    $('insFollow').setAttribute('aria-pressed', String(this.following));
     $('experiment').classList.toggle('hidden', this.mode !== 'experiment');
     $('wild').classList.toggle('hidden', this.mode !== 'wildlife');
     $('curio').classList.toggle('hidden', this.mode !== 'curiosity');
@@ -354,6 +485,15 @@ export class Game {
     document.querySelectorAll<HTMLElement>('.wildOnly').forEach((b) => b.classList.toggle('hidden', this.mode !== 'wildlife'));
     $('insFollow').classList.toggle('on', this.following);
     $('insFollow').textContent = this.following ? 'Stop following' : 'Follow';
+  }
+
+  /** Glide from wherever the camera is into the orbit position instead of snapping (about 0.8 s). */
+  private startFollowBlend(): void {
+    const p = this.engine.camera.position;
+    this.followFrom.x = p.x;
+    this.followFrom.y = p.y;
+    this.followFrom.z = p.z;
+    this.followBlend = 0;
   }
 
   private fadeShown = -1;
@@ -387,7 +527,9 @@ export class Game {
     if (open) {
       if (this.input.captured) this.input.toggleCapture();
       this.refreshMenu();
-    }
+      // keyboard users land on the first control of the dialog
+      $('mResume').focus({ preventScroll: true });
+    } else if (document.activeElement instanceof HTMLElement && $('menu').contains(document.activeElement)) document.activeElement.blur();
   }
 
   toggleStats(show?: boolean): void {
@@ -414,6 +556,7 @@ export class Game {
       const a = this.sim.byId.get(this.selected);
       this.cam.dist = a && SPECIES[a.sp]!.mass < 5 ? 4 : 9;
       this.cam.roll = 0;
+      this.startFollowBlend();
     }
     this.refreshButtons();
   }
@@ -446,12 +589,15 @@ export class Game {
     this.mode = 'wildlife';
     this.cam.dist = 7;
     this.cam.roll = 0;
+    this.sticky = null;
+    this.startFollowBlend();
     if (this.speed > 10 || this.speed === 0) this.setSpeed(1);
     $('inspect').classList.add('hidden');
     this.refreshButtons();
   }
 
   setMode(m: Mode): void {
+    this.vel.x = this.vel.y = this.vel.z = 0;
     if (m === 'wildlife') {
       this.takeControl(this.selected);
       return;
@@ -568,10 +714,19 @@ export class Game {
       else if (this.following) this.toggleFollow();
     }
     if (i.pressed('rest')) this.restToggle = !this.restToggle;
+    if (this.toggleActions && this.controlled) {
+      if (i.pressed('eat')) this.sticky = this.sticky === 'eat' ? null : 'eat';
+      if (i.pressed('drink')) this.sticky = this.sticky === 'drink' ? null : 'drink';
+    } else {
+      i.pressed('eat');
+      i.pressed('drink');
+    }
     if (i.click && this.mode !== 'wildlife' && this.mode !== 'curiosity') {
       this.ray.setFromCamera(new THREE.Vector2(i.click.x, i.click.y), this.engine.camera);
       const a = this.engine.animals.pick(this.ray.ray, 400);
       this.select(a ? a.id : this.following ? this.selected : 0);
+      // double-click an animal: select and follow it
+      if (i.dbl && a && !this.following) this.toggleFollow();
     }
   }
 
@@ -619,6 +774,14 @@ export class Game {
       c.x = tx - fx * c.dist;
       c.y = ty + 0.5 - fy * c.dist;
       c.z = tz - fz * c.dist;
+      if (this.followBlend < 1) {
+        // ease from the previous camera position into the orbit (smoothstep over ~0.8 s; faster with reduced motion off)
+        this.followBlend = Math.min(1, this.followBlend + dt / 0.8);
+        const k = this.followBlend * this.followBlend * (3 - 2 * this.followBlend);
+        c.x = this.followFrom.x + (c.x - this.followFrom.x) * k;
+        c.y = this.followFrom.y + (c.y - this.followFrom.y) * k;
+        c.z = this.followFrom.z + (c.z - this.followFrom.z) * k;
+      }
       const floor = Math.max(v.height(c.x, c.z), v.waterSurface(c.z) + this.sim.env.stage) + 0.4;
       if (c.y < floor) c.y = floor;
       camera.position.set(c.x, c.y, c.z);
@@ -633,8 +796,11 @@ export class Game {
           mx = (yx * i.moveZ - yz * i.moveX) / m;
           mz = (yz * i.moveZ + yx * i.moveX) / m;
           this.restToggle = false;
+          this.sticky = null;
         }
-        this.sim.control = { mx, mz, run: i.fast, action: i.isHeld('eat') ? 'eat' : i.isHeld('drink') ? 'drink' : this.restToggle ? 'rest' : null };
+        const eat = i.isHeld('eat') || this.sticky === 'eat';
+        const drink = i.isHeld('drink') || this.sticky === 'drink';
+        this.sim.control = { mx, mz, run: i.fast, action: eat ? 'eat' : drink ? 'drink' : this.restToggle ? 'rest' : null };
       }
       return;
     }
@@ -653,20 +819,28 @@ export class Game {
       camera.updateProjectionMatrix();
     }
     if (i.zoom) c.fly = clamp(c.fly * (1 - i.zoom * 0.15), 2, 160);
-    const sp = c.fly * (i.fast ? 3.5 : 1) * dt;
+    const spd = c.fly * (i.fast ? 3.5 : 1);
     // free-flight speed commanded this frame (m/s), for diagnostics and frame-rate-independent tests
-    this.camSpeed = (Math.hypot(i.moveX, i.moveZ, i.moveY) > 0 ? sp / Math.max(dt, 1e-6) : 0);
+    this.camSpeed = Math.hypot(i.moveX, i.moveZ, i.moveY) > 0 ? spd : 0;
+    if (this.camSpeed > 0) this.coachFlags.moved = true;
+    if (i.lookX || i.lookY) this.coachFlags.looked = true;
+    // ease the velocity toward the command: ~90% of the change in 0.2 s, so flight starts and stops smoothly but
+    // still answers within a frame or two (exact exponential approach, frame-rate independent)
+    const ease = 1 - Math.exp(-12 * dt);
+    this.vel.x += ((fx * i.moveZ - Math.cos(c.yaw) * i.moveX) * spd - this.vel.x) * ease;
+    this.vel.z += ((fz * i.moveZ + Math.sin(c.yaw) * i.moveX) * spd - this.vel.z) * ease;
+    this.vel.y += ((fy * i.moveZ + i.moveY) * spd - this.vel.y) * ease;
     const ox = c.x;
     const oz = c.z;
-    c.x += (fx * i.moveZ - Math.cos(c.yaw) * i.moveX) * sp;
-    c.z += (fz * i.moveZ + Math.sin(c.yaw) * i.moveX) * sp;
+    c.x += this.vel.x * dt;
+    c.z += this.vel.z * dt;
     // ruins are solid below roof height: slide along whichever axis is still free
     if (v.blocked(c.x, c.z, 0.7) && c.y < v.heightFast(c.x, c.z) + 7.5 && !v.blocked(ox, oz, 0.7)) {
       if (!v.blocked(c.x, oz, 0.7)) c.z = oz;
       else if (!v.blocked(ox, c.z, 0.7)) c.x = ox;
       else ((c.x = ox), (c.z = oz));
     }
-    c.y += (fy * i.moveZ + i.moveY) * sp;
+    c.y += this.vel.y * dt;
     c.x = clamp(c.x, 4, REGION_SIZE - 4);
     c.z = clamp(c.z, 4, REGION_SIZE - 4);
     const floor = Math.max(v.height(c.x, c.z), v.waterSurface(c.z) + this.sim.env.stage) + 1.3;
@@ -840,16 +1014,32 @@ export class Game {
     const w = this.controlled ? this.sim.byId.get(this.controlled) : undefined;
     if (w) {
       meters($('wildBars'), this.animalRows(w));
+      this.trendArrows($('wildBars'), w);
       const water = this.sim.waterNear(w);
-      const forage = env.vegFrac(env.cellIndex(w.x, w.z));
+      const cell = env.cellIndex(w.x, w.z);
+      const forage = env.vegFrac(cell);
+      // what the deer is doing, as the simulation records it (its behaviour), and whether the action can work here
+      const eating = this.sim.control.action === 'eat';
+      const drinking = this.sim.control.action === 'drink';
+      let status = `<b>${BEHAVIOR_NAMES[w.beh]}</b>`;
+      if (eating) status += forage > 0.12 ? ` — grazing, forage here ${Math.round(forage * 100)}%` : ' — nothing left to graze here; move on';
+      else if (drinking) status += water ? (water === 2 ? ' — drinking from a foul pool' : ' — drinking') : ' — no water within reach';
+      $('wildStatus').innerHTML = status;
+      $('wildSense').innerHTML = this.senseLines(w).map((l) => `<div>${l}</div>`).join('');
       const tips: string[] = [];
-      if (w.fear > 0.3) tips.push('Predator close — run (Shift)!');
+      if (w.fear > 0.3) tips.push('Predator sensed — run (Shift)!');
       if (water) tips.push(water === 2 ? 'F: drink (this pool smells foul)' : 'F: drink');
       tips.push(forage > 0.12 ? `E: graze (forage ${Math.round(forage * 100)}%)` : 'Grazed bare here — move on');
       tips.push(this.restToggle ? 'Resting… (move to get up)' : 'R: rest');
+      if (this.toggleActions && this.sticky) tips.push(`${this.sticky === 'eat' ? 'E' : 'F'} again to stop`);
       $('wildPrompt').textContent = tips.join(' · ');
       $('vignette').style.opacity = String(Math.max(clamp((w.fear - 0.25) * 0.9, 0, 0.6), clamp((0.4 - w.health) * 2, 0, 0.7)));
     } else $('vignette').style.opacity = '0';
+
+    const hint = this.hintText();
+    if ($('hints').textContent !== hint) $('hints').textContent = hint;
+    $('hints').classList.toggle('hidden', !hint || this.mode === 'curiosity');
+    this.updateCoach();
 
     if (!$('diag').classList.contains('hidden')) {
       const inf = this.engine.info();
@@ -868,6 +1058,70 @@ export class Game {
         `seed ${this.sim.seed}  pos ${this.cam.x.toFixed(0)}, ${this.cam.z.toFixed(0)}`,
       ].join('\n');
     }
+  }
+
+  /**
+   * Perception-derived cues for the player's deer, from what that animal itself holds: the threat position it last
+   * perceived (fear > 0.3), its own group, and the drinking site it remembers. Directions are relative to the camera.
+   * Nothing is revealed that the animal does not know (no omniscient predator radar).
+   */
+  private senseLines(w: Animal): string[] {
+    const out: string[] = [];
+    const yaw = this.cam.yaw;
+    if (w.fear > 0.3 && Number.isFinite(w.threatX)) {
+      const dx = w.threatX - w.x;
+      const dz = w.threatZ - w.z;
+      const d = relativeDirection(dx, dz, yaw);
+      out.push(`<b>Threat sensed</b> ${d.arrow} ${d.word}, about ${Math.round(Math.hypot(dx, dz))} m (fear ${Math.round(w.fear * 100)}%)`);
+    }
+    let n = 0;
+    let sx = 0;
+    let sz = 0;
+    let nearest = Infinity;
+    for (const o of this.sim.animals) {
+      if (!o.alive || o === w || o.sp !== w.sp || o.group !== w.group) continue;
+      n++;
+      sx += o.x;
+      sz += o.z;
+      nearest = Math.min(nearest, Math.hypot(o.x - w.x, o.z - w.z));
+    }
+    if (n > 0) {
+      const cx = sx / n - w.x;
+      const cz = sz / n - w.z;
+      const dist = Math.hypot(cx, cz);
+      const d = relativeDirection(cx, cz, yaw);
+      out.push(`<b>Herd</b> ${n} others; nearest ${Math.round(nearest)} m${dist > 8 ? `, centre ${d.arrow} ${d.word} ${Math.round(dist)} m` : ', around you'}`);
+    } else out.push('<b>Herd</b> none — this deer is alone');
+    if (Number.isFinite(w.waterX)) {
+      const dx = w.waterX - w.x;
+      const dz = w.waterZ - w.z;
+      const dist = Math.hypot(dx, dz);
+      const d = relativeDirection(dx, dz, yaw);
+      out.push(dist < 4 ? '<b>Water</b> the remembered drinking place is here' : `<b>Water</b> remembered ${d.arrow} ${d.word}, ${Math.round(dist)} m`);
+    } else out.push('<b>Water</b> knows no drinking place yet');
+    return out;
+  }
+
+  /** Append a rising/falling marker to need meters when a value moved by > 1.5% over the last ~2 s of play. */
+  private trendArrows(el: HTMLElement, a: Animal): void {
+    const vals = [a.health, 1 - a.hunger, 1 - a.thirst, a.energy, a.stamina, a.fear];
+    const key = `w${a.id}`;
+    const hist = this.trend.get(key) ?? [];
+    hist.push(...vals);
+    // ten HUD refreshes (0.2 s each) of six values
+    while (hist.length > 6 * 10) hist.splice(0, 6);
+    this.trend.clear();
+    this.trend.set(key, hist);
+    vals.forEach((v, i) => {
+      const old = hist[i]!;
+      const m = el.children[i];
+      if (!m) return;
+      const pct = m.children[2] as HTMLElement;
+      const d = v - old;
+      const arrow = d > 0.015 ? ' ▲' : d < -0.015 ? ' ▼' : '';
+      pct.textContent = `${Math.round(clamp(v, 0, 1) * 100)}%${arrow}`;
+      pct.title = arrow ? (d > 0 ? 'rising' : 'falling') : 'steady';
+    });
   }
 
   /** Relationships and pressures read directly from simulation state; nothing here is invented. */
@@ -1057,10 +1311,10 @@ export class Game {
     return { quality: this.engine.quality.name, ceiling: this.engine.qualityCeiling, auto: this.engine.auto, resScale: this.engine.resScale, frameMs: this.engine.frameMs, fpsTarget: this.pacer.target, divisor: this.pacer.divisor,
       refreshMs: this.pacer.refreshMs, calibrating: this.engine.governor.calibrating, gpu: this.gfx.gpu, basis: this.gfx.basis, ...this.engine.info(), chunks: this.engine.terrain.loaded, heapMB: mem ? mem.usedJSHeapSize / 1048576 : null, governor: this.engine.governor.stats };
   }
-  debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean; cuts: number; glides: number; fade: number; cutting: boolean; why: string | null; style: string; decisions: number } {
+  debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean; cuts: number; relocations: number; glides: number; fade: number; cutting: boolean; why: string | null; style: string; decisions: number } {
     const s = this.curiosity.director.getShotInfo();
     return { key: this.curiosity.subject?.key ?? null, tag: this.curiosity.tag, switches: this.curiosity.director.switches, paused: this.curiosity.paused,
-      cuts: s.cuts, glides: s.glides, fade: this.curiosity.fade, cutting: s.cutting, why: s.why, style: s.style, decisions: s.decisions };
+      cuts: s.cuts, relocations: s.relocations, glides: s.glides, fade: this.curiosity.fade, cutting: s.cutting, why: s.why, style: s.style, decisions: s.decisions };
   }
 
   /** For automated tests and debugging. */
@@ -1072,6 +1326,7 @@ export class Game {
   }
   debugCam(x: number, z: number, above: number, yaw: number, pitch: number): void {
     this.following = false;
+    this.vel.x = this.vel.y = this.vel.z = 0;
     Object.assign(this.cam, { x, z, y: this.sim.valley.height(x, z) + above, yaw, pitch, roll: 0 });
     this.engine.camera.fov = 62;
     this.engine.camera.updateProjectionMatrix();

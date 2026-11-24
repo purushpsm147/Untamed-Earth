@@ -130,6 +130,8 @@ export interface ShotInfo {
   readonly link: string | null;
   readonly cutting: boolean;
   readonly cuts: number;
+  /** Times the camera was relocated while the picture was black (the moment of each completed cut). */
+  readonly relocations: number;
   readonly glides: number;
   readonly decisions: number;
   readonly losBlockedAzimuths: number;
@@ -364,6 +366,7 @@ export class CuriosityDirector {
   private decisionT = 0;
   private decisions = 0;
   private cuts = 0;
+  private relocations = 0;
   private glides = 0;
   private scanOffset = 0;
   /** Running cut: fade out (camera keeps the old shot), hold black, jump, fade in. */
@@ -461,6 +464,7 @@ export class CuriosityDirector {
       link: this.currentTarget?.link ?? null,
       cutting: this.cut !== null,
       cuts: this.cuts,
+      relocations: this.relocations,
       glides: this.glides,
       decisions: this.decisions,
       losBlockedAzimuths: this.shot?.blocked ?? 0,
@@ -492,6 +496,7 @@ export class CuriosityDirector {
     this.decisionT = 0;
     this.decisions = 0;
     this.cuts = 0;
+    this.relocations = 0;
     this.glides = 0;
     this.scanOffset = 0;
     this.cut = null;
@@ -1137,6 +1142,7 @@ export class CuriosityDirector {
         this.pose = { x: d.x, y, z: d.z, lookX: d.lx, lookY: d.ly, lookZ: d.lz, fov: this.fovFor(target), fadeAlpha: 0 };
         c.phase = 'in';
         c.t = 0;
+        this.relocations++;
         return;
       }
       // fade in while the shot continues normally below
