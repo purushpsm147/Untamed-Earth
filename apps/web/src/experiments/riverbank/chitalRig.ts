@@ -73,7 +73,9 @@ export const SKELETON = {
     HL: leg(false, 1, BONE.HL0), HR: leg(false, -1, BONE.HR0),
   } as Record<LegId, LegJoints>,
   /** Muzzle tip in bind pose (for grazing/drinking reach). */
-  muzzle: v(0, 1.0, 0.85),
+  muzzle: v(0, 0.925, 0.96),
+  /** Top of the head behind the ears (start of the head loft). */
+  poll: v(0, 1.11, 0.655),
   /** Body pivot used for terrain pitch/roll. */
   pivot: v(0, 0.74, -0.04),
 };
@@ -87,10 +89,10 @@ export const SKELETON = {
   set(BONE.pelvis, v(0, 0.79, -0.3), -1);
   set(BONE.chest, v(0, 0.79, 0.12), BONE.pelvis);
   set(BONE.neck, v(0, 0.7, 0.4), BONE.chest);
-  set(BONE.head, v(0, 1.17, 0.6), BONE.neck);
+  set(BONE.head, v(0, 1.08, 0.7), BONE.neck);
   set(BONE.tail, v(0, 0.8, -0.58), BONE.pelvis);
-  set(BONE.earL, v(0.045, 1.215, 0.595), BONE.head);
-  set(BONE.earR, v(-0.045, 1.215, 0.595), BONE.head);
+  set(BONE.earL, v(0.046, 1.13, 0.69), BONE.head);
+  set(BONE.earR, v(-0.046, 1.13, 0.69), BONE.head);
   for (const id of LEGS) {
     const L = SKELETON.legs[id];
     for (let k = 0; k < L.j.length - 1; k++) set(L.bone0 + k, L.j[k]!.clone(), k === 0 ? L.parent : L.bone0 + k - 1);
@@ -440,8 +442,8 @@ export function solveRig(st: RigState, inp: RigInput, terrain: TerrainFn, bonesO
     // in locomotion the sweep centres under the limb pivot (scapula / hip), standing it returns to the rest stance
     const zRest = toeBind.z * (1 - amp) + (Lg.j[0]!.z + (Lg.front ? 0.01 : -0.01)) * amp;
     // lying: hooves tucked under the body (fore) and forward beside the belly (hind)
-    const toeLieZ = Lg.front ? 0.04 : -0.12;
-    const toeLieX = Lg.front ? Lg.side * 0.07 : Lg.side * 0.2;
+    const toeLieZ = Lg.front ? 0.04 : -0.06;
+    const toeLieX = Lg.front ? Lg.side * 0.07 : Lg.side * 0.17;
     const tx = toeBind.x * (1 - lie) + toeLieX * lie;
     const tz = (zRest + fp.f * sweep) * (1 - lie) + toeLieZ * lie;
     const groundToe = toModelY(terrain(wx(tx, tz), wz(tx, tz)));
@@ -488,7 +490,7 @@ export function solveRig(st: RigState, inp: RigInput, terrain: TerrainFn, bonesO
     }
     // 2) one searched bone (humerus / femur): starts from a share of the swing, then rotates only as far as needed
     //    to keep the distal pair just short of full extension. This is where ungulates get stance reach.
-    const upper0 = swingA * (Lg.front ? 0.3 : 0.45) + (Lg.front ? -0.8 : 0.75) * lie;
+    const upper0 = swingA * (Lg.front ? 0.3 : 0.45) + (Lg.front ? -0.8 : 0.7) * lie;
     const lim = (legLen(Lg, k + 1) + legLen(Lg, k + 2)) * MAX_EXTENSION;
     const base = joints[k]!;
     const over = (a: number): number => place(base, k, a).distanceTo(F) - lim;

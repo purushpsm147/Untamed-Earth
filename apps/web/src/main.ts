@@ -20,6 +20,9 @@ if (profiling) glCounts = (await import('./profile/glCounter')).installGlCounter
 const canvas = $<HTMLCanvasElement>('view');
 const input = new Input(canvas, $('stick'));
 const audio = new AudioEngine();
+/** ?slice=riverbank: VIS-01 naturalism experiment (lazy-loaded; no code on the default path). */
+if (params.get('slice') === 'riverbank') void import('./experiments/riverbank/RiverbankSlice').then((m) => m.startRiverbankSlice(canvas, params));
+else if (params.get('slice') === 'studio') void import('./experiments/riverbank/ChitalStudio').then((m) => m.startChitalStudio(canvas, params));
 let game: Game | null = null;
 /** Called once each time a world becomes ready (used by the profiler to sequence restarts). */
 let onReady: ((g: Game) => void) | null = null;
