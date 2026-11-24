@@ -119,3 +119,22 @@ export async function terrainSettled(page: Page, timeout = 90_000): Promise<void
     return t.mismatched + t.pending + t.inFlight + t.queued;
   }, { timeout, intervals: [500] }).toBe(0);
 }
+
+/**
+ * Wait until a rendering change has fully landed: terrain streaming idle for the current camera and preset, then the
+ * renderer's live geometry count unchanged across two samples a second apart (GPU objects are created when first drawn,
+ * and scatter/grass buffers resize over a few frames). Returns the settled debugGfx(). A fixed sleep is not enough on
+ * slow software-rendered runners: QA-01 local run 2026-11-24 read Medium at 80 geometries after 3.5 s, then 104 and 105.
+ */
+export async function gfxSettled(page: Page, timeout = 90_000): Promise<ReturnType<G['debugGfx']>> {
+  await terrainSettled(page, timeout);
+  const end = Date.now() + timeout;
+  let prev = await g(page, (G) => G.debugGfx());
+  for (;;) {
+    await page.waitForTimeout(1000);
+    const cur = await g(page, (G) => G.debugGfx());
+    if (cur.geometries === prev.geometries && cur.chunks === prev.chunks) return cur;
+    if (Date.now() > end) throw new Error(`renderer did not settle within ${timeout} ms: geometries ${prev.geometries} -> ${cur.geometries}`);
+    prev = cur;
+  }
+}

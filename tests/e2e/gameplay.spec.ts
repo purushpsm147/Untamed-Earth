@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PLACES, enter, frames, g, hold, watch } from './helpers';
+import { PLACES, enter, frames, g, gfxSettled, hold, watch } from './helpers';
 
 test.describe('gameplay scenarios', () => {
   test('observer camera: every direction, every area, terrain clearance and bounds', async ({ page }) => {
@@ -385,8 +385,8 @@ test.describe('gameplay scenarios', () => {
         await page.keyboard.press('Escape');
         await page.selectOption('#mQuality', q);
         await page.click('#mResume');
-        await page.waitForTimeout(3500);
-        const s = await g(page, (G) => G.debugGfx());
+        // read only once the preset change has fully landed (streaming + GPU objects), not after a fixed sleep
+        const s = await gfxSettled(page);
         expect(s.quality).toBe(q);
         expect(s.auto).toBe(false);
         expect(s.calls).toBeGreaterThan(5);
