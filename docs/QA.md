@@ -1,11 +1,22 @@
 # QA report
 
-Last updated: 2026-11-16, Living Valley V1 next pass (Auto quality under CPU load, resting poses, documentary camera). Environment for every result below: Linux
-container, Node 22, headless Chromium 153 with **SwiftShader (software rasteriser), no GPU**, plus GitHub Actions
-(ubuntu-latest, same software renderer). **No physical GPU or phone has been tested.** Frame times support no
-performance claims; see PERFORMANCE.md for the profiling procedure to run on real hardware.
+Last updated: 2026-11-24 by QA-01 (Platform, QA and Release Engineering; see `docs/handover/PLATFORM_HANDOVER.md`). Earlier
+sections below were written on 2026-11-16 and are kept as history. Environment for software results: Linux container,
+Node 22, headless Chromium 153 with **SwiftShader (software rasteriser), no GPU**, plus GitHub Actions (ubuntu-latest,
+same software renderer). Software frame times support no performance claims. **Physical hardware:** one laptop (HP
+Victus 16: Radeon Vega 8 iGPU and RTX 3060 Laptop, Edge 157, 2026-11-15), archived in `docs/evidence/profile-hp-victus16-*.json`
+(see PERFORMANCE.md). **No phone, Firefox or Safari has been tested.**
 
-## Gate status
+## Gate status at integration `3a0e7f9` + PR #43 (2026-11-24)
+| Check | Where | Result |
+|---|---|---|
+| `npm ci`, typecheck, build | local | Pass. Main JS 676 kB (181 kB gzip) + worker + lazy chunks |
+| Unit + headless (22 files) | local | **132/132** |
+| Browser suites (smoke, reliability, gameplay, documentary) | local | 21 tests with the new regression test. Reliability 6/6 on `daf0ffa`; full-run result in the CI record below |
+| GitHub Actions on integration HEAD `3a0e7f9` | CI | **Run 322: failure** (19/20). Cause: `terrainSettled()` read pre-teleport counters. Test-synchronisation defect, fixed in `daf0ffa` (PR #43) |
+| GitHub Actions on PR #43 | CI | runs 353 (push) and 355 (PR) on `daf0ffa`; results recorded below once finished |
+
+## Gate status on 2026-11-16 (history)
 | Check | Where | Result |
 |---|---|---|
 | Typecheck, build | local | Pass. JS 710 kB (194 kB gzip) + 11 kB worker + lazily loaded profiler (4 kB) |
@@ -31,6 +42,13 @@ performance claims; see PERFORMANCE.md for the profiling procedure to run on rea
 | **130** | **`263e584`** | **Success** | — | [run](https://github.com/purushpsm147/Untamed-Earth/actions/runs/43818776943) |
 | 129 | `3a9d068` | Fail (1) | Traversal and observer fixes held. New assertion from this pass ("SwiftShader's downgrade trial measures a gain") failed: on the CI runner the trial never registered a gain in 90 s. Root cause in the governor: 1.2 s windows at ~4 fps hold ~5 frames, and means are hitch-sensitive | Each window now needs >= 8 frames and compares medians (new unit test: slow hitchy device keeps helpful downgrades); browser test checks the verdict is measured and applied consistently, not which verdict a given machine produces |
 | 124 | `49ac48c` | Fail (2) | Same traversal flake; observer camera Space rose 0.93 m in a fixed 700 ms hold on a saturated runner | Hold until the camera moves (bounded 20 s), > 1 m threshold unchanged |
+| 131, 132 | `42abea5`, `a0e08ba` | Success | docs; PR #14 | — |
+| 220 | `5cf7b4a` | Success | PR #20 critical thirst | [run](https://github.com/purushpsm147/Untamed-Earth/actions/runs/43916688742) |
+| 246 | `9e25ecc` | Cancelled | Superseded by 247 | — |
+| 247 | `deb1de8` | Success | PR #19 (test stabilisation) on top of PR #23 | [run](https://github.com/purushpsm147/Untamed-Earth/actions/runs/43932288080) |
+| 275 | `0acc437` | Success | PR #24 behaviour audit | [run](https://github.com/purushpsm147/Untamed-Earth/actions/runs/44032676828) |
+| **282** | **`78bb515`** | **Success** | PR #25: 120 unit, 20 browser | [run](https://github.com/purushpsm147/Untamed-Earth/actions/runs/44050126945) |
+| 322 | `3a0e7f9` | Fail (1) | Reliability "terrain converges after violent camera travel": `terrainSettled()` passed, then `mismatched` = 97. Streaming state is recomputed only in the next frame's `TerrainView.update()`; after `debugCam()` an already-settled old position read all zeros. Deterministic reproduction: teleport + read in one task → 0. Not a product defect | `terrainSettled()` waits for an `update()` pass that started after the call (`debugState().updates`), assertions unchanged; regression test added (`daf0ffa`, PR #43) · [run](https://github.com/purushpsm147/Untamed-Earth/actions/runs/44116004501) |
 
 ## What the tests cover
 
@@ -56,7 +74,7 @@ performance claims; see PERFORMANCE.md for the profiling procedure to run on rea
 - Gameplay: camera in every direction and all four areas; deer walk/run speeds, grazing that removes forage, drinking only at water, rest, perceived predator and escape, release with identity intact; click-select, follow, Social Lens matches simulation state; experiment levers, pause, exact reset; save–close–reopen restores the same state hash; runtime quality changes leave the ecosystem untouched; repeated chunk traversal; every panel by mouse and keyboard; Curiosity Mode (subjects, hold, skip, pause, captions, instant hand-back, Become); 80 seeded random actions with invariants after each.
 - Documentary walk-through (`documentary.spec.ts`, records video): fixed start with deer in view, Curiosity, interruption, inspector shows the simulation record, save–close–reopen restores the same hash and the same deer.
 - Reliability, governor: a constant 80 ms feed (rendering cannot help) is probed once and undone on the real renderer (pixel ratio, draw distance, shadows restored); on SwiftShader the real downgrade's trial measures a gain and keeps it.
-- Reliability: live WebGL objects identical after 4 restarts; terrain converges after violent travel with stale results discarded; world loads on the main thread if the Worker dies; Auto detects the software renderer and lowers resolution under real overload while manual settings are respected and persisted; governor decisions drive real renderer settings up to the ceiling, and the simulation hash at tick 300 matches a fixed-quality control.
+- Reliability: live WebGL objects identical after 4 restarts; terrain converges after violent travel with stale results discarded; terrain readiness is judged only after a streaming pass for the current camera (regression for CI 322); world loads on the main thread if the Worker dies; Auto detects the software renderer and lowers resolution under real overload while manual settings are respected and persisted; governor decisions drive real renderer settings up to the ceiling, and the simulation hash at tick 300 matches a fixed-quality control.
 
 ## Measurements (software renderer)
 | What | Value |
@@ -96,8 +114,11 @@ profile report: `docs/evidence/profile-swiftshader-2026-11-15.json`.
 | Pinch-zoom disabled on mobile | P3 | Viewport meta fixed |
 
 ## Not verified
-Real GPUs, phones, Firefox and WebKit; the governor's upgrade path under real headroom; audio output; touch and
-gamepad on devices; long (30 min+) browser soak; memory budgets; visual quality judged against photorealism goals.
+Phones; Firefox and WebKit; any GPU other than the Victus pair; the governor under CPU-only load on real hardware
+after `c86a691`; Ultra and full-screen 1080p; audio output (never listened to); touch and gamepad on devices; long
+(30 min+) browser soak and > 20 restarts; WebGL context restore (context loss shows a reload message); offline launch
+(no service worker exists); memory budgets; visual quality judged against photorealism goals.
+Procedure for collecting the missing evidence: `docs/handover/HARDWARE_VALIDATION.md`. Beta checklist: `docs/handover/RELEASE_READINESS.md`.
 
 ## Known issues
 - At the 3.5 m safety minimum a myna is still only ~6% of frame height.
@@ -105,5 +126,6 @@ gamepad on devices; long (30 min+) browser soak; memory budgets; visual quality 
 - Animals steer locally with wall-following (no path-finding): occasionally one gives up on a destination behind a long obstacle. The camera passes through trees.
 - Herds have no leader; the lying pose is a rigid-leg fold (no knee joint).
 - Auto quality under CPU-only load: fixed and tested in software; real-hardware re-run pending.
+- The Victus hardware reports do not record which commit they measured (it was a build between `6c1a3e4` and `eb92959`). New `?profile=1` reports include `build.sha`.
 - Determinism is per JavaScript engine (see SIMULATION.md).
 - Jackal/hare dynamics are seed-sensitive (see SIMULATION.md).
