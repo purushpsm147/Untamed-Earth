@@ -61,7 +61,12 @@ interface LiveVoice {
   readonly category: VoiceCategory;
   endAt: number;
   ended: number;
+  /** Stolen by the voice budget: fading out over ~50 ms, no longer counted as an active voice. */
+  stolen: boolean;
 }
+
+/** After a voice's last source ends, its filter and HRTF panner still ring briefly: release nodes after this. */
+const TAIL_S = 0.3;
 
 const WING_HZ: Partial<Record<SpeciesId, number>> = { crow: 5.5, myna: 11 };
 const HOOVED: ReadonlySet<SpeciesId> = new Set<SpeciesId>(['chital', 'boar']);
@@ -109,6 +114,7 @@ export class EcoSoundscape {
   private readonly requests: VoiceRequest[] = [];
   private riverOccT = -1;
   private disposed = false;
+  private readonly offline: boolean;
   private listener: ListenerPose = { x: 0, y: 0, z: 0, yaw: 0 };
   private lastBeds: BedTargets | null = null;
   /** Nodes currently connected (beds + live voices): the disposal gate checks this returns to the bed baseline. */
@@ -122,6 +128,7 @@ export class EcoSoundscape {
   constructor(readonly host: AudioHost, opts: Partial<SoundscapeOptions> & { sampler: WorldSampler }) {
     this.opts = { seed: 1, panningModel: 'HRTF', planner: {}, eventCalls: true, level: 1, ...opts };
     this.ctx = host.ctx;
+    this.offline = typeof OfflineAudioContext !== 'undefined' && host.ctx instanceof OfflineAudioContext;
     this.rng = new PresentationRng(this.opts.seed * 7919 + 13);
     this.planner = new SoundscapePlanner(this.opts.seed, this.opts.planner);
     this.out = this.ctx.createGain();
@@ -246,7 +253,7 @@ export class EcoSoundscape {
     setPos(pan, pos, at);
     lp.connect(vg).connect(pan).connect(this.out);
     plan.build(g, lp, at, this.noise);
-    const v: LiveVoice = { id: adm.id, graph: g, gain: vg, category, endAt: at + plan.dur, ended: 0 };
+    const v: LiveVoice = { id: adm.id, graph: g, gain: vg, category, endAt: at + plan.dur, ended: 0, stolen: false };
     this.voices.set(v.id, v);
     this.liveNodes += g.nodes.length;
     for (const s of g.sources) s.onended = () => this.sourceEnded(v);
@@ -264,7 +271,12 @@ export class EcoSoundscape {
 
   private sourceEnded(v: LiveVoice): void {
     v.ended++;
-    if (v.ended >= v.graph.sources.length) this.releaseVoice(v);
+    if (v.ended < v.graph.sources.length) return;
+    // Offline rendering: 'ended' fires at an arbitrary point of the render, so releasing there would cut tails at
+    // non-reproducible positions. Nodes of an offline render are released by dispose() after rendering.
+    if (this.offline) return;
+    // Live: keep the tail (filter + HRTF) and release a little later. Wall-clock delay is fine: it only frees nodes.
+    setTimeout(() => this.releaseVoice(v), TAIL_S * 1000);
   }
 
   private releaseVoice(v: LiveVoice): void {
@@ -280,6 +292,7 @@ export class EcoSoundscape {
   private fadeOut(id: number, at: number): void {
     const v = this.voices.get(id);
     if (!v) return;
+    v.stolen = true;
     v.gain.gain.cancelScheduledValues(at);
     v.gain.gain.setTargetAtTime(0, at, 0.015);
     for (const s of v.graph.sources) {
@@ -379,12 +392,19 @@ export class EcoSoundscape {
   }
 
   telemetry(): {
-    liveVoices: number; liveNodes: number; bedNodes: number; poolPeak: number; route: Record<'play' | DropReason, number>;
+    liveVoices: number; fadingVoices: number; allocatedVoices: number; liveNodes: number; bedNodes: number; poolPeak: number; route: Record<'play' | DropReason, number>;
     counters: EcoSoundscape['counters']; beds: BedTargets | null; lull: boolean;
   } {
     this.pool.expire(this.ctx.currentTime);
+    const now = this.ctx.currentTime;
+    let active = 0;
+    let fading = 0;
+    for (const v of this.voices.values()) {
+      if (v.stolen) fading++;
+      else if (v.endAt > now) active++;
+    }
     return {
-      liveVoices: this.voices.size, liveNodes: this.liveNodes, bedNodes: this.bedNodeCount, poolPeak: this.pool.stats.peak, route: { ...this.router.stats },
+      liveVoices: active, fadingVoices: fading, allocatedVoices: this.voices.size, liveNodes: this.liveNodes, bedNodes: this.bedNodeCount, poolPeak: this.pool.stats.peak, route: { ...this.router.stats },
       counters: { ...this.counters }, beds: this.lastBeds, lull: this.planner.inLull,
     };
   }

@@ -23,5 +23,9 @@ export default defineConfig({
     { name: 'documentary', testMatch: 'tests/e2e/documentary.spec.ts', use: { video: 'on' } },
     // opt-in visual evidence for movement modes (not in npm run test:e2e)
     { name: 'locomotion-capture', testMatch: 'tests/e2e/locomotion-capture.spec.ts', use: { video: 'on' } },
+    // AUD-01 soundscape lab gates; the browser must refuse audio without a user gesture
+    { name: 'audio', testMatch: 'tests/e2e/audio-lab.spec.ts', use: { launchOptions: { args: [...gl.args, '--autoplay-policy=user-gesture-required'] } } },
+    // opt-in: renders the review recordings to test-artifacts/audio (npm run audio:render)
+    { name: 'audio-render', testMatch: 'tests/e2e/audio-render.spec.ts', timeout: 900_000 },
   ],
 });
