@@ -1,0 +1,40 @@
+import { expect, it } from 'vitest';
+import { B, SPECIES, SPECIES_INDEX, Simulation, maturityDays, type Animal } from '@untamed/ecology';
+// Issue #31 repro (PR #35 @ 89d3a45): a hungry jackal that alerts on a passing adult chital never leaves Alert while the
+// chital grazes within 25 m, so it never hunts a hare in plain reach. Staging copied from tests/unit/maternal.test.ts.
+const C = SPECIES_INDEX.chital, J = SPECIES_INDEX.jackal, H = SPECIES_INDEX.hare;
+function stage(seed = 5) {
+  const sim = new Simulation(seed);
+  const protos = SPECIES.map((_, i) => sim.animals.find((a) => a.sp === i)!);
+  for (const a of sim.animals) a.alive = false;
+  sim.territories.clear(); (sim as unknown as { dead: boolean }).dead = true; sim.step(0.1);
+  sim.env.timeH = Math.floor(sim.env.timeH / 24) * 24 + 12;
+  for (let z = 300; z < 1100; z += 37) for (let x = 300; x < 1100; x += 37) {
+    let ok = true;
+    for (let dz = -40; dz <= 40 && ok; dz += 10) for (let dx = -40; dx <= 40 && ok; dx += 10) if (sim.valley.waterDepth(x + dx, z + dz, sim.env.stage) > -0.3 || sim.valley.blocked(x + dx, z + dz, 1)) ok = false;
+    if (ok) return { sim, x, z, protos };
+  }
+  throw new Error('no spot');
+}
+function put(sim: Simulation, protos: Animal[], sp: number, x: number, z: number, o: Partial<Animal> = {}): Animal {
+  const a: Animal = { ...protos[sp]!, id: sim.nextId++, alive: true, x, z, px: x, pz: z, tx: x, tz: z, alt: 0, speed: 0, want: 0, beh: B.Idle, timer: 0.5, hunger: 0.2, thirst: 0.2, health: 1, energy: 0.9, stamina: 1, fear: 0, pregnantH: 0, cooldownH: 0, mother: 0, young: 0, controlled: false, group: sim.nextId++, homeX: x, homeZ: z, off: false, transit: 0, ...o } as Animal;
+  sim.animals.push(a); sim.byId.set(a.id, a); return a;
+}
+for (const withChital of [false, true]) it(`hungry jackal and a hare 15 m away; adult chital grazing 18 m away: ${withChital}`, () => {
+  const { sim, x, z, protos } = stage();
+  const j = put(sim, protos, J, x, z, { age: maturityDays(SPECIES[J]!) * 2, hunger: 0.7 });
+  const h = put(sim, protos, H, x + 15, z, { age: maturityDays(SPECIES[H]!) * 2 });
+  let c: Animal | null = null;
+  if (withChital) { c = put(sim, protos, C, x - 30, z, { age: maturityDays(SPECIES[C]!) * 2, sex: 1 }); c.heading = Math.PI / 2; c.speed = 1; c.want = 1; c.beh = B.Wander; c.tx = x - 18; c.tz = z; }
+  if (c) { j.beh = B.Alert; j.targetId = c.id; j.timer = 2; c.x = x - 18; c.px = c.x; c.tx = c.x; c.beh = B.Forage; c.speed = 0; c.want = 0; }
+  const beh: Record<string, number> = {}; let hunted = false;
+  const names = Object.fromEntries(Object.entries(B).map(([k, v]) => [v, k]));
+  for (let i = 0; i < 4 * 300; i++) { // 300 s real = 5 game hours at 0.25 s
+    if (c && c.alive) { c.tx = c.x; c.tz = c.z; if (c.beh !== B.Flee) { c.beh = B.Forage; } } // it stops and grazes once near
+    sim.step(0.25);
+    beh[names[j.beh]!] = (beh[names[j.beh]!] ?? 0) + 1;
+    if (j.beh === B.Stalk || j.beh === B.Chase) hunted = true;
+  }
+  process.stderr.write([withChital ? 'WITH chital' : 'no chital', JSON.stringify(beh), 'hunted', hunted, 'hare alive', h.alive, 'chital d', c ? Math.hypot(c.x - j.x, c.z - j.z).toFixed(1) : '-', 'interactions', JSON.stringify((sim as unknown as { interactions: unknown }).interactions)].join(' ') + '\n');
+  expect(true).toBe(true);
+});

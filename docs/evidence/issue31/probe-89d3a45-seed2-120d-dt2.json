@@ -1,0 +1,87 @@
+{
+ "seeds": "2-2",
+ "days": 120,
+ "dt": 2,
+ "encounters": {
+  "healthyAdult|sated": {
+   "n": 2781,
+   "beh": {
+    "Alert": 0.852,
+    "Rest": 0.078,
+    "SeekCarrion": 0.017,
+    "SeekWater": 0.016,
+    "Wander": 0.014,
+    "Feed": 0.014,
+    "Flee": 0.005,
+    "Forage": 0.002,
+    "Idle": 0.001,
+    "Drink": 0
+   }
+  },
+  "healthyAdult|hungry": {
+   "n": 21115,
+   "beh": {
+    "Alert": 0.966,
+    "Forage": 0.015,
+    "Rest": 0.011,
+    "Chase": 0.002,
+    "SeekCarrion": 0.002,
+    "Flee": 0.001,
+    "Stalk": 0.001,
+    "SeekWater": 0,
+    "Idle": 0,
+    "Drink": 0,
+    "Feed": 0
+   }
+  },
+  "vulnerable|sated": {
+   "n": 417,
+   "beh": {
+    "Rest": 0.508,
+    "Alert": 0.281,
+    "Forage": 0.106,
+    "Wander": 0.077,
+    "SeekWater": 0.012,
+    "Flee": 0.007,
+    "Drink": 0.005,
+    "SeekCarrion": 0.002,
+    "Idle": 0.002
+   }
+  },
+  "vulnerable|hungry": {
+   "n": 1703,
+   "beh": {
+    "Alert": 0.795,
+    "Forage": 0.129,
+    "Rest": 0.048,
+    "Chase": 0.016,
+    "SeekCarrion": 0.006,
+    "Flee": 0.003,
+    "Idle": 0.001,
+    "SeekWater": 0.001,
+    "Stalk": 0.001
+   }
+  }
+ },
+ "approachingHealthyAdult": {
+  "samples": 875,
+  "jackalFacingWithin45deg": 0.475
+ },
+ "fawnSync": {
+  "fawnSamples": 556362,
+  "momRestingNear": 272386,
+  "fawnRestingWhenMomRestsNear": 0.853,
+  "momRestingFar": 8066,
+  "fawnRestWhileMomActive": 807,
+  "restLatencyS_median": 2,
+  "restLatencyS_p90": 8,
+  "episodes": 1916,
+  "wakeLatencyS_median": 0,
+  "wakeLatencyS_p90": 2
+ },
+ "kills": {
+  "chitalYoung": 3,
+  "chitalAdult": 0,
+  "hare": 54
+ }
+}
