@@ -1,0 +1,5 @@
+# benchmarks/ecology/boundary-death-location-probe.ts on ce83f68, D variant ({"open":true}), 160 days, dt 2
+# key = cause | off | inRegionalList | transit | origin | inValley ; seed 1 (26 jackal deaths) and seed 4 (15)
+seed 1: in valley 11, outside valley (corridor, in transit) 15; of the outside deaths: dehydration 6, starvation 9
+seed 4: in valley 1, outside valley (corridor, in transit) 14; of the outside deaths: dehydration 7, starvation 7
+No death was of an off-map (regional-list) animal: the deaths are on-map records stalled in the 24 m corridor.

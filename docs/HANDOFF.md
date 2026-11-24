@@ -1,3 +1,28 @@
+# Ecology checkpoint — 2026-11-24 (ECO-01, session …RhnJjYtuCmrEar82u, branch `ccr-776cce8c-3adley`)
+
+- **Frozen evaluation complete.**
+  - Actions run 45378622930, 690 seeds, every job on its pinned SHA, all successful.
+  - Report: `docs/ECOLOGY_CONSOLIDATED_REPORT.md`. Data: `docs/evidence/eval-actions/`.
+- **Integrity.** The conservation ledger closes for 690/690 records; 92/92 state hashes are identical across
+  environments.
+- **Findings.**
+  - Memory raises jackal persistence and predation, and hurts hares.
+  - Territories regulate jackal breeding but bring back jackal extinction; no effect on hares.
+  - Open boundary at `ce83f68`: hare extinction 28 → 3, chital extinction 1 → 20 (predator-release starvation
+    crash). Jackal results depend on the off-map assumptions (G 28/30).
+- **Defect in PR #34 (`ce83f68`).** Animals stall in the transit corridor: `Idle`, at maximum thirst, for days.
+  - 7.7–10.2% of on-map jackal-days; 48% of on-map jackal deaths are dehydration.
+  - Evidence: `docs/evidence/boundary-transit-stall/`.
+  - Verdict: the open boundary does **not** meet acceptance. Fix under amendment 3b, then re-run D/E/F/G.
+- **#31.**
+  - Fawn rest synchrony: 0% on frozen code, 86–89% with PR #35.
+  - PR #35's Defend ↔ Alert standoff is fixed at `ee4d36e` (verified here). M at `89d3a45` is superseded.
+- **Proposals:** `docs/OBSERVATION_CONTRACTS_V2.md` and `docs/ECOLOGY_RESEARCH_ROADMAP.md`.
+- **Ownership split with `…SBKWnauofqyDvXkjC`** (agreed on #37): it owns PR branches #27/#28/#30/#34/#35, the
+  evaluation store and the stall fix. This session owns the Actions execution, the consolidated report, the verdict,
+  the roadmap and the contracts.
+- **Gates on this branch:** typecheck OK; unit tests 132/132. Build and e2e not run (no app code changed).
+
 # Continuation handoff — 2026-11-15 (latest: Living Valley V1 session, Claude)
 
 ## Branch and state

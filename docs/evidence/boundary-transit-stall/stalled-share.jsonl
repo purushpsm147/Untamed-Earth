@@ -1,0 +1,3 @@
+{"seed":1,"days":365,"jDays":462,"jTransit":51,"hDays":46747,"hTransit":487,"hStall":376,"jStall":47,"hareShareInTransit":0.01,"hareShareStalled10h":0.008,"jackalShareInTransit":0.11,"jackalShareStalled10h":0.102}
+{"seed":7,"days":365,"jDays":391,"jTransit":37,"hDays":52940,"hTransit":269,"hStall":222,"jStall":30,"hareShareInTransit":0.005,"hareShareStalled10h":0.004,"jackalShareInTransit":0.095,"jackalShareStalled10h":0.077}
+{"seed":4,"days":365,"jDays":271,"jTransit":34,"hDays":121192,"hTransit":415,"hStall":314,"jStall":27,"hareShareInTransit":0.003,"hareShareStalled10h":0.003,"jackalShareInTransit":0.125,"jackalShareStalled10h":0.1}

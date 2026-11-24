@@ -1,0 +1,70 @@
+{
+ "seed": 4,
+ "days": 70,
+ "stalledSamples": [
+  [
+   "transit=-1 beh=Idle edge=-10..0 targetInside=false want=0 speed=still thirst=max",
+   12729
+  ],
+  [
+   "transit=-1 beh=Idle edge=-10..0 targetInside=false want=0 speed=still thirst=ok",
+   7957
+  ],
+  [
+   "transit=1 beh=Wander edge=<-20 targetInside=true want=>0 speed=still thirst=max",
+   3408
+  ],
+  [
+   "transit=1 beh=Wander edge=<-20 targetInside=true want=>0 speed=still thirst=ok",
+   1882
+  ],
+  [
+   "transit=1 beh=Idle edge=-20..-10 targetInside=false want=0 speed=still thirst=max",
+   1206
+  ],
+  [
+   "transit=1 beh=Idle edge=<-20 targetInside=true want=0 speed=still thirst=max",
+   1139
+  ],
+  [
+   "transit=1 beh=Idle edge=-10..0 targetInside=false want=0 speed=still thirst=max",
+   1086
+  ],
+  [
+   "transit=1 beh=Idle edge=<-20 targetInside=false want=0 speed=still thirst=max",
+   871
+  ],
+  [
+   "transit=1 beh=Idle edge=<-20 targetInside=true want=0 speed=still thirst=ok",
+   627
+  ],
+  [
+   "transit=1 beh=Idle edge=-10..0 targetInside=false want=0 speed=still thirst=ok",
+   590
+  ],
+  [
+   "transit=1 beh=Wander edge=-10..0 targetInside=true want=>0 speed=moving thirst=ok",
+   518
+  ],
+  [
+   "transit=1 beh=Wander edge=-20..-10 targetInside=true want=>0 speed=moving thirst=ok",
+   513
+  ]
+ ],
+ "example": {
+  "id": 281,
+  "sp": 3,
+  "x": 1420.7,
+  "z": -23.1,
+  "tx": 1420,
+  "tz": -23.1,
+  "edge": -23.1,
+  "timer": 0.5,
+  "stuck": 0,
+  "mode": 0,
+  "transit": 1,
+  "exitKind": "excursion",
+  "health": 0.19773333333332865,
+  "hunger": 1
+ }
+}
