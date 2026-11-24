@@ -229,6 +229,29 @@ describe('jackal awareness', () => {
     }
   });
 
+  it('watching is bounded: once the chital stops approaching, the jackal stops watching within a few game minutes', () => {
+    const { sim, x, z } = stage();
+    const j = jackal(sim, x, z, { hunger: 0.1 });
+    const c = put(sim, C, x + 20, z, { age: maturityDays(SPECIES[C]!) * 2, sex: 1 });
+    let alert = false;
+    run(sim, 6, 0.25, () => { Object.assign(c, { beh: B.Wander, timer: 1e9, tx: x + 12, tz: z, want: SPECIES[C]!.walk }); alert ||= j.beh === B.Alert; });
+    expect(alert).toBe(true);
+    // it stops 12 m away and grazes; within ~0.1 game h (6 s real at 1x) the jackal is no longer watching
+    run(sim, 20, 0.25, () => Object.assign(c, { beh: B.Forage, timer: 1e9, tx: c.x, tz: c.z, want: 0 }));
+    expect(j.beh).not.toBe(B.Alert);
+  });
+
+  it('a hungry jackal hunts a hare in reach instead of watching a grazing chital (scenario from the PR #35 review at 7be3162; guards, does not by itself reproduce)', () => {
+    const { sim, x, z } = stage();
+    const j = jackal(sim, x, z, { hunger: 0.7 });
+    put(sim, SPECIES_INDEX.hare, x + 15, z, { age: maturityDays(SPECIES[SPECIES_INDEX.hare]!) * 2 });
+    const c = put(sim, C, x - 18, z, { age: maturityDays(SPECIES[C]!) * 2, sex: 1, beh: B.Forage });
+    Object.assign(j, { beh: B.Alert, targetId: c.id, timer: 2, alertSince: sim.env.timeH });
+    let hunted = false;
+    run(sim, 300, 0.25, () => { if (c.alive && c.beh !== B.Flee) Object.assign(c, { beh: B.Forage, tx: c.x, tz: c.z }); hunted ||= j.beh === B.Stalk || j.beh === B.Chase; });
+    expect(hunted).toBe(true);
+  });
+
   it('withdraws from an adult boar at close range', () => {
     const { sim, x, z } = stage();
     const j = jackal(sim, x, z, { hunger: 0.1 });

@@ -37,6 +37,8 @@ export interface Animal {
   off?: boolean;
   /** Issue #31: id of this mother's most recent offspring (0/absent none). */
   young?: number;
+  /** Issue #31: game hour when the current Alert began (bounds watching). */
+  alertSince?: number;
   sp: number;
   x: number; z: number; alt: number;
   px: number; pz: number; palt: number;
@@ -156,6 +158,8 @@ export const emptyInteractions = (): InteractionStats => ({ defends: 0, chargeCo
 export const CHITAL_HIDE_DAYS = (10 * 48) / 365;
 /** A predator takes prey up to this multiple of its own mass when the prey is healthy. */
 export const PREY_MASS_RATIO = 2.5;
+/** How long a predator keeps watching an animal that has stopped approaching (game hours; 3 game minutes). */
+export const ALERT_HOLD_H = 0.05;
 
 export interface SimSnapshot {
   version: number;
@@ -988,8 +992,16 @@ export class Simulation {
         return;
       }
       const closing = ((bg.x - bg.px) * (a.x - bg.x) + (bg.z - bg.pz) * (a.z - bg.z)) / (d || 1) > 0.02;
-      if (closing || a.beh === B.Alert) {
-        if (a.beh !== B.Alert) this.interactions.alerts++;
+      // watching is bounded: it lasts while the animal keeps coming, or briefly after it stops (ALERT_HOLD_H), and a
+      // hungry predator with prey in view hunts instead (fixes the Alert standoff found on PR #35: a jackal stayed alert
+      // for game hours beside a grazing or defending chital and never hunted)
+      const holding = a.beh === B.Alert && a.alertSince !== undefined && this.env.timeH - a.alertSince < ALERT_HOLD_H;
+      const huntInstead = !!pr && a.hunger > 0.5;
+      if ((closing || holding) && !huntInstead) {
+        if (a.beh !== B.Alert) {
+          this.interactions.alerts++;
+          a.alertSince = this.env.timeH;
+        }
         a.beh = B.Alert;
         a.targetId = bg.id;
         a.want = 0;
