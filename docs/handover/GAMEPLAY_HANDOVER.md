@@ -103,6 +103,35 @@ Public API unchanged (start/interrupt/update/skip/focus/pushEvent/framing/getPos
   `SAVE_VERSION` is unchanged; older saves load with an empty history.
 - The Social Lens shows the latest 5 entries with simulation time, and how a dead mother died.
 
+### 2.4 Observer — `apps/web/src/game/Game.ts`, `apps/web/src/input/Input.ts`
+- Free-flight velocity eases toward the command (exponential, rate 12/s: ~90 % in 0.2 s, frame-rate independent).
+  `debugCamera().speed` still reports the *commanded* speed (existing tests compare it).
+- Follow and possession glide from the current camera into the orbit (smoothstep ~0.8 s) instead of snapping.
+- Double-click an animal: select and follow (native `dblclick`, so two clicks inside one slow frame still count).
+- One context hint line per mode (bottom centre; hidden in Curiosity; menu option "Show control hints").
+
+### 2.5 Wildlife (chital only)
+- Status: the simulation's behaviour name plus whether the action can work here ("nothing left to graze here",
+  "no water within reach").
+- Perception-derived cues, all from the possessed deer's own fields (no omniscient radar): sensed threat direction and
+  distance (`threatX/Z`, only while fear > 0.3), own group size / nearest / centre direction, remembered drinking site
+  (`waterX/Z`). Directions are relative to the camera (ahead, behind-left, ... with arrows).
+- Need meters show ▲/▼ when a value moved by > 1.5 % over the last ~2 s.
+- Option: E / F toggle instead of hold (accessibility; off by default).
+
+### 2.6 Onboarding and accessibility
+- Field guide: five tips shown on the first visit, in Observer only; each is marked done when the player does it
+  (move+look, select, follow/Curiosity, become a deer); "Hide tips" persists (`localStorage untamed.coach`); "Show the
+  field guide again" in the menu. Information only: no goals, rewards, scores or unlocks. `?qa=1` starts without it.
+- `aria-pressed` on mode, speed and Follow buttons; captions, ticker and toasts are polite live regions; the menu is a
+  `role=dialog` with focus moved to Resume; Pause has an `aria-label`; "Larger interface text" option.
+- Black cut overlay sits beneath the HUD (`z-index:-1` inside `#hud`) so controls stay visible during a fade.
+
+### 2.7 Guided journey — `docs/JOURNEY.md`, `tests/e2e/journey.spec.ts`
+Seven stages from the documentary start: arrival, Social Lens, Curiosity, living as a chital, time and charts,
+drought experiment, save/close/Continue with the lived-as deer's history intact. `npm run journey` (compressed) or
+`JOURNEY_FULL=1 npm run journey` (~14 min), unedited video + stage screenshots + JSON stage log.
+
 ---
 
 ## 3. Tests
@@ -112,6 +141,9 @@ Public API unchanged (start/interrupt/update/skip/focus/pushEvent/framing/getPos
 | Director (existing 15, Gemini/GPT-6/integration) | `tests/unit/curiosity.test.ts` | pass; the glide-cap test now runs with cuts disabled (`cutDistanceM: Infinity`) so the original assertion is unchanged |
 | Director V1 (9 new) | same file: cut only on black + visible speed cap, glide when near, cadence, group shot, herd flight hold, continuity, side-on + LOS avoidance, no fade flash, determinism | pass |
 | Social Lens history (6 new) | `tests/unit/social-chronicle.test.ts`: real participants, hash unchanged, save/load round trip via structured clone, bounds, damaged data, noticed transitions | pass |
+| Browser: experience (5 new) | `tests/e2e/experience.spec.ts` (in `npm run test:e2e`): history survives save/close/Continue (exact snapshot and lines); documentary Curiosity jumps only with a relocation on black, no caption over black, fade cleared on exit, no internal labels; observer coast-and-settle, double-click follow, follow glide by per-frame sampling; chital cues equal the deer's own state, toggle actions; field guide, hints, ARIA, dialog focus, persisted preferences | pass locally and in CI run 45399663928 |
+| Browser: existing Curiosity comfort test | `gameplay.spec.ts:498`: the 25 m per-100 ms step limit now exempts only an interval in which a relocation-on-black happened (limit unchanged) | pass (CI 45399663928) |
+| Browser: journey | `tests/e2e/journey.spec.ts` (opt-in, video) | see review package |
 
 Baseline before changes on `3a0e7f9`: typecheck OK, unit 132/132, build OK, browser 19/20 — the failing one is
 `gameplay.spec.ts:378` (GPU geometry count varies by 13 > 6 across quality changes at the same place). It is
@@ -119,14 +151,20 @@ pre-existing and in QA-01's area; not caused by UX-01.
 
 ---
 
-## 4. Outstanding (in progress / next)
-- Observer: eased free flight, glide into follow, double-click follow, contextual control hints.
-- Wildlife (chital): perception-derived feedback (sensed threat direction, herd, remembered water), need trends,
-  clearer action feedback; optional toggle instead of hold.
-- Onboarding (first-run field guide, dismissible, no rewards), accessibility (live regions, aria-pressed, dialog
-  semantics and focus, larger text option).
-- Browser regression tests for the above, Social Lens persistence across real save/reload, Curiosity cuts.
-- Guided 10–15 min journey (`docs/JOURNEY.md`) with an automated, recorded walkthrough.
+CI on PR #45 (`40f8371`, run 45399663928): 24/25 browser tests; the failure is the pre-existing
+`gameplay.spec.ts:378` (also red on the base, reported to QA-01).
+
+Shared-file coordination (DIRECTOR TASK OPS-02: QA owns shared e2e helpers): UX-01 made two additive edits to
+`tests/e2e/helpers.ts` (field-guide flag in `enter()`, `debugCuriosity` type); recorded with QA-01 and on PR #45.
+
+## 4. Outstanding / next
+- Director review of PR #45 and the decisions listed there (cut thresholds, "why this shot" captions default on).
+- Human review on real hardware: motion comfort of glides/cuts, readability of HUD at 1080p and on a phone, screen
+  reader pass, touch and gamepad (none possible in this container).
+- Ecology-owned items surfaced by UX (not changed here, for ECO-01): sprinting is labelled `Flee`; possessed animals
+  are exempt from background mortality (#32 audit); jackals ignore an approaching non-prey chital (#31).
+- Possible next UX steps (need approval): Curiosity "watch this one" (focus on the selected animal), per-profile
+  director tuning (Addendum III profiles), caption verbosity setting, keybinding remap.
 
 ## 5. Known limitations
 - All evidence is software-rendered (SwiftShader); no GPU, phone, touch, gamepad or screen-reader testing.
