@@ -1,0 +1,181 @@
+configurations: {'A': 60, 'B': 60, 'C': 60, 'D': 60, 'E': 60, 'F': 60}
+
+## Distributions, median [IQR]
+measure                                          A                         B                         C                         D                         E                         F
+jackal_days                       1697 [1146-2280]          3634 [2446-4940]          2002 [1373-2557]             570 [461-911]              114 [75-156]          1974 [1533-2578]
+jackal_end                                 0 [0-1]                  7 [1-14]                   1 [0-2]                   1 [0-1]                   0 [0-0]                   3 [1-6]
+jackal_resident_end                        0 [0-1]                  7 [1-14]                   1 [0-2]                   0 [0-0]                   0 [0-0]                   0 [0-0]
+jackal_litters                            7 [5-10]                16 [10-24]                   6 [4-7]                   1 [0-2]                   0 [0-0]                   6 [4-7]
+hare_days                      31469 [19855-48649]        19316 [9362-27388]       18089 [12883-32604]       63942 [49847-76610]       64589 [51743-74592]       48716 [29243-60530]
+hare_end                                33 [2-112]                  1 [0-40]                  2 [0-49]               81 [21-170]              115 [39-202]                 26 [0-77]
+hare_min30                               16 [2-34]                  1 [0-12]                  2 [0-18]                41 [14-86]                58 [20-86]                 13 [0-40]
+hare_resident_end                       33 [2-112]                  1 [0-40]                  2 [0-49]                56 [4-112]              115 [39-202]                  4 [0-29]
+chital_end                                6 [3-12]                 10 [4-13]                 11 [5-18]                   2 [0-4]                   1 [0-4]                  4 [1-10]
+kills_total                          291 [197-351]             373 [313-458]             342 [275-408]              124 [96-150]                31 [23-46]             407 [333-503]
+kills_hare                           182 [125-242]             209 [161-292]             210 [156-246]              107 [80-124]                27 [18-36]             318 [247-391]
+kills_per_jackal_day             0.173 [0.139-0.2]       0.116 [0.093-0.144]        0.181 [0.154-0.21]        0.198 [0.149-0.22]       0.304 [0.218-0.344]       0.218 [0.187-0.234]
+hare_edge_kill_ratio            2.489 [1.431-4.92]       3.018 [1.457-9.093]        2.83 [1.422-6.829]       1.687 [1.277-2.818]       1.737 [0.355-4.586]       2.104 [1.354-3.131]
+hare_edge_kill_share           0.127 [0.104-0.139]         0.122 [0.1-0.139]       0.137 [0.106-0.159]       0.098 [0.072-0.121]       0.038 [0.011-0.067]       0.156 [0.139-0.175]
+chital_edge_kill_ratio         4.999 [3.193-6.924]       4.757 [3.279-7.788]       5.365 [3.216-8.587]            3.67 [0-9.022]                0 [0-7.17]      6.465 [4.607-10.408]
+terr_inside                                    n/a                       n/a        1.751 [1.37-2.058]       0.644 [0.436-0.948]               1 [0.504-1]           1.332 [1-1.729]
+terr_straddle                                  n/a                       n/a                   0 [0-0]       1.016 [0.803-1.241]       2.362 [1.882-2.951]       1.271 [0.978-1.556]
+full_pairs_inside                              n/a                       n/a       0.836 [0.468-1.175]       0.205 [0.112-0.326]       0.542 [0.197-0.942]       0.729 [0.455-0.962]
+
+## Extinction at day 365 (local / resident lineage) and recolonisation
+chital                                8/8/r0 of 60              3/3/r0 of 60              1/1/r0 of 60            20/20/r0 of 60            24/24/r0 of 60            14/14/r0 of 60
+boar                                  0/0/r0 of 60              2/2/r0 of 60              0/0/r0 of 60              0/0/r0 of 60              0/0/r0 of 60              0/0/r0 of 60
+jackal                              38/38/r0 of 60              8/8/r0 of 60            28/28/r0 of 60           28/57/r30 of 60            60/60/r0 of 60            12/49/r7 of 60
+hare                                12/12/r0 of 60            30/30/r0 of 60            28/28/r0 of 60              3/8/r0 of 60              2/2/r0 of 60            17/26/r1 of 60
+
+## A -> B (memory), n = 60: seeds higher / lower in B, sign test
+  jackal_days             53 /   7   p = 0.0000
+  jackal_litters          53 /   6   p = 0.0000
+  hare_days               14 /  46   p = 0.0000
+  hare_end                12 /  39   p = 0.0002
+  hare_min30              13 /  37   p = 0.0009
+  chital_end              29 /  26   p = 0.7877
+  kills_total             46 /  13   p = 0.0000
+  kills_hare              35 /  24   p = 0.1925
+  kills_per_jackal_day     7 /  53   p = 0.0000
+  hare_edge_kill_share    32 /  28   p = 0.6989
+  extinction chital   newly extinct   2 / rescued   7   p = 0.1797
+  extinction boar     newly extinct   2 / rescued   0   p = 0.5000
+  extinction jackal   newly extinct   3 / rescued  33   p = 0.0000
+  extinction hare     newly extinct  21 / rescued   3   p = 0.0003
+
+## B -> C (territories), n = 60: seeds higher / lower in C, sign test
+  jackal_days             12 /  48   p = 0.0000
+  jackal_litters           3 /  56   p = 0.0000
+  hare_days               27 /  33   p = 0.5190
+  hare_end                27 /  17   p = 0.1742
+  hare_min30              24 /  20   p = 0.6516
+  chital_end              31 /  24   p = 0.4188
+  kills_total             24 /  35   p = 0.1925
+  kills_hare              33 /  27   p = 0.5190
+  kills_per_jackal_day    52 /   8   p = 0.0000
+  hare_edge_kill_share    35 /  25   p = 0.2451
+  extinction chital   newly extinct   1 / rescued   3   p = 0.6250
+  extinction boar     newly extinct   0 / rescued   2   p = 0.5000
+  extinction jackal   newly extinct  24 / rescued   4   p = 0.0002
+  extinction hare     newly extinct  12 / rescued  14   p = 0.8450
+
+## C -> D (open boundary), n = 60: seeds higher / lower in D, sign test
+  jackal_days              3 /  57   p = 0.0000
+  jackal_litters           4 /  52   p = 0.0000
+  hare_days               59 /   1   p = 0.0000
+  hare_end                44 /  14   p = 0.0001
+  hare_min30              48 /  10   p = 0.0000
+  chital_end               9 /  48   p = 0.0000
+  kills_total              0 /  60   p = 0.0000
+  kills_hare               2 /  58   p = 0.0000
+  kills_per_jackal_day    31 /  29   p = 0.8974
+  hare_edge_kill_share    17 /  43   p = 0.0011
+  extinction chital   newly extinct  20 / rescued   1   p = 0.0000
+  extinction boar     newly extinct   0 / rescued   0   p = 1.0000
+  extinction jackal   newly extinct  16 / rescued  16   p = 1.0000
+  extinction hare     newly extinct   1 / rescued  26   p = 0.0000
+
+## E -> D (immigration (D has inflow, E none)), n = 60: seeds higher / lower in D, sign test
+  jackal_days             57 /   3   p = 0.0000
+  jackal_litters          38 /   4   p = 0.0000
+  hare_days               31 /  29   p = 0.8974
+  hare_end                26 /  34   p = 0.3663
+  hare_min30              27 /  32   p = 0.6029
+  chital_end              29 /  21   p = 0.3222
+  kills_total             56 /   4   p = 0.0000
+  kills_hare              58 /   2   p = 0.0000
+  kills_per_jackal_day    12 /  47   p = 0.0000
+  hare_edge_kill_share    49 /  10   p = 0.0000
+  extinction chital   newly extinct  11 / rescued  15   p = 0.5572
+  extinction boar     newly extinct   0 / rescued   0   p = 1.0000
+  extinction jackal   newly extinct   0 / rescued  32   p = 0.0000
+  extinction hare     newly extinct   3 / rescued   2   p = 1.0000
+
+## F -> D (flee exits (D allows, F not)), n = 60: seeds higher / lower in D, sign test
+  jackal_days              1 /  59   p = 0.0000
+  jackal_litters           4 /  55   p = 0.0000
+  hare_days               49 /  11   p = 0.0000
+  hare_end                44 /  15   p = 0.0002
+  hare_min30              43 /  16   p = 0.0006
+  chital_end              20 /  29   p = 0.2529
+  kills_total              0 /  60   p = 0.0000
+  kills_hare               0 /  60   p = 0.0000
+  kills_per_jackal_day    21 /  39   p = 0.0273
+  hare_edge_kill_share     3 /  57   p = 0.0000
+  extinction chital   newly extinct  12 / rescued   6   p = 0.2379
+  extinction boar     newly extinct   0 / rescued   0   p = 1.0000
+  extinction jackal   newly extinct  21 / rescued   5   p = 0.0025
+  extinction hare     newly extinct   2 / rescued  16   p = 0.0013
+
+## A -> D (M2 -> open), n = 60: seeds higher / lower in D, sign test
+  jackal_days              5 /  55   p = 0.0000
+  jackal_litters           1 /  56   p = 0.0000
+  hare_days               53 /   7   p = 0.0000
+  hare_end                38 /  22   p = 0.0519
+  hare_min30              39 /  20   p = 0.0183
+  chital_end               7 /  43   p = 0.0000
+  kills_total              4 /  55   p = 0.0000
+  kills_hare               8 /  52   p = 0.0000
+  kills_per_jackal_day    42 /  18   p = 0.0027
+  hare_edge_kill_share    19 /  41   p = 0.0062
+  extinction chital   newly extinct  14 / rescued   2   p = 0.0042
+  extinction boar     newly extinct   0 / rescued   0   p = 1.0000
+  extinction jackal   newly extinct  12 / rescued  22   p = 0.1214
+  extinction hare     newly extinct   3 / rescued  12   p = 0.0352
+
+## D: boundary counters per seed-year, median [IQR] (jackal | hare)
+  exitExcursion             164 [118-239] | 614 [492-840]
+  exitEmigration               18 [10-25] | 253 [158-402]
+  exitFlee                        0 [0-0] | 131 [102-178]
+  exitAborted                     0 [0-1] | 28 [16-40]
+  entryVisit                177 [137-259] | 775 [606-947]
+  entryReturn                  23 [16-29] | 304 [214-466]
+  settled                         2 [1-4] | 727 [483-865]
+  departed                        0 [0-1] | 0 [0-0]
+  offBirths                    56 [42-76] | 362 [301-416]
+  offDeathsBackground          35 [28-47] | 232 [188-280]
+  offDeathsAge                    8 [6-9] | 35 [27-43]
+  offDeathsPredation              0 [0-0] | 10 [7-12]
+  pursuitCaptured                 0 [0-0] | 10 [7-12]
+  pursuitEscaped                  0 [0-0] | 8 [7-11]
+  suppressed                      0 [0-0] | 0 [0-0]
+  mortality jackal: off-map 0.388 / animal-year (2707 deaths, 6984 animal-years); on-map 2.223 (1951, 877)
+  mortality hare: off-map 0.597 / animal-year (16793 deaths, 28120 animal-years); on-map 1.886 (155627, 82530)
+
+## E: boundary counters per seed-year, median [IQR] (jackal | hare)
+  exitExcursion                   2 [1-2] | 0 [0-0]
+  exitEmigration                  3 [1-3] | 22 [12-31]
+  exitFlee                        0 [0-0] | 8 [7-10]
+  exitAborted                     0 [0-0] | 1 [0-2]
+  entryVisit                      0 [0-0] | 0 [0-0]
+  entryReturn                     0 [0-0] | 0 [0-0]
+  settled                         0 [0-0] | 0 [0-0]
+  departed                        0 [0-1] | 0 [0-0]
+  offBirths                 206 [161-228] | 520 [476-558]
+  offDeathsBackground        120 [96-138] | 409 [379-448]
+  offDeathsAge                 17 [14-20] | 73 [66-81]
+  offDeathsPredation              0 [0-0] | 2 [1-2]
+  pursuitCaptured                 0 [0-0] | 2 [1-2]
+  pursuitEscaped                  0 [0-0] | 2 [0-3]
+  suppressed           31304 [19174-38739] | 30456 [25590-33932]
+  mortality jackal: off-map 0.366 / animal-year (7969 deaths, 21765 animal-years); on-map 0.856 (165, 193)
+  mortality hare: off-map 0.592 / animal-year (29250 deaths, 49368 animal-years); on-map 1.805 (139298, 77165)
+
+## F: boundary counters per seed-year, median [IQR] (jackal | hare)
+  exitExcursion             170 [121-226] | 622 [492-1054]
+  exitEmigration                15 [9-23] | 205 [142-408]
+  exitFlee                        0 [0-0] | 0 [0-0]
+  exitAborted                     0 [0-0] | 0 [0-0]
+  entryVisit                192 [134-233] | 751 [567-1181]
+  entryReturn                  22 [13-35] | 187 [121-348]
+  settled                         2 [1-3] | 565 [373-941]
+  departed                        0 [0-1] | 0 [0-0]
+  offBirths                    63 [37-80] | 193 [137-260]
+  offDeathsBackground          37 [26-51] | 107 [72-160]
+  offDeathsAge                    7 [5-9] | 15 [12-24]
+  offDeathsPredation              0 [0-0] | 0 [0-0]
+  pursuitCaptured                 0 [0-0] | 0 [0-0]
+  pursuitEscaped                  0 [0-0] | 0 [0-0]
+  suppressed                      0 [0-0] | 0 [0-0]
+  mortality jackal: off-map 0.406 / animal-year (2834 deaths, 6989 animal-years); on-map 0.982 (2569, 2615)
+  mortality hare: off-map 0.587 / animal-year (8234 deaths, 14039 animal-years); on-map 2.018 (123068, 60976)
