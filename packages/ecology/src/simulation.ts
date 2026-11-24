@@ -376,6 +376,9 @@ export class Simulation {
       sex: this.rng.chance(0.5) ? 0 : 1, health: 1, hunger: 0.2, thirst: 0.2, energy: 0.8, stamina: 1, fear: 0, beh: B.Idle,
       tx: x, tz: z, tAlt: 0, targetId: 0, threatX: x, threatZ: z, pregnantH: 0, cooldownH: 0, homeX, homeZ, group, mother,
       waterX: NaN, waterZ: NaN, timer: this.rng.range(0, 3), crowd: 0, alive: true, controlled: false,
+      // fields set later in life are present from birth, so every animal record keeps one shape (property access in
+      // the hot loops stays monomorphic)
+      young: 0, alertSince: NaN, transit: 0, origin: 0, off: false, onH: 0, settled: false,
     };
     this.animals.push(a);
     this.byId.set(a.id, a);
@@ -995,7 +998,7 @@ export class Simulation {
       // watching is bounded: it lasts while the animal keeps coming, or briefly after it stops (ALERT_HOLD_H), and a
       // hungry predator with prey in view hunts instead (fixes the Alert standoff found on PR #35: a jackal stayed alert
       // for game hours beside a grazing or defending chital and never hunted)
-      const holding = a.beh === B.Alert && a.alertSince !== undefined && this.env.timeH - a.alertSince < ALERT_HOLD_H;
+      const holding = a.beh === B.Alert && a.alertSince !== undefined && !Number.isNaN(a.alertSince) && this.env.timeH - a.alertSince < ALERT_HOLD_H;
       const huntInstead = !!pr && a.hunger > 0.5;
       if ((closing || holding) && !huntInstead) {
         if (a.beh !== B.Alert) {
