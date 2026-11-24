@@ -1,0 +1,84 @@
+# Fault-tolerant ecology evaluation (issue #29 / #31). Triggered by a push that changes eval/request.json on this
+# branch. plan -> matrix of small seed batches (one seed per runner core) on frozen code SHAs -> per-batch artifacts
+# (uploaded even if the job fails or times out) -> one collector that validates and commits results ([skip ci]).
+# Re-running the trigger resumes: completed seeds are never rerun or overwritten.
+name: ecology-eval
+on:
+  push:
+    branches: [experiment/open-boundary-eval]
+    paths: [eval/request.json]
+permissions:
+  contents: write
+concurrency:
+  group: ecology-eval
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: echo "matrix=$(python3 eval/plan.py --max 250)" >> "$GITHUB_OUTPUT"
+  run:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        if: matrix.config != 'none'
+      - uses: actions/checkout@v4
+        if: matrix.config != 'none'
+        with:
+          ref: ${{ matrix.sha }}
+          path: code
+      - uses: actions/setup-node@v4
+        if: matrix.config != 'none'
+        with:
+          node-version: 22.23.4
+          cache: npm
+          cache-dependency-path: code/package-lock.json
+      - name: Install frozen code dependencies
+        if: matrix.config != 'none'
+        run: cd code && npm ci --no-audit --no-fund
+      - name: Run seeds
+        if: matrix.config != 'none'
+        run: bash eval/run-batch.sh "${{ matrix.config }}" "${{ matrix.seeds }}" '${{ matrix.variant }}' "${{ matrix.spacing }}" "$PWD/out"
+      - name: Record runner
+        if: always() && matrix.config != 'none'
+        run: mkdir -p out && { node --version; nproc; uname -a; echo "${{ matrix.sha }}"; } > out/runner.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.config != 'none'
+        with:
+          name: ${{ matrix.verify && 'verify' || 'eval' }}-${{ matrix.config }}-${{ strategy.job-index }}
+          path: out/
+          retention-days: 30
+          if-no-files-found: warn
+  collect:
+    needs: run
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          path: artifacts
+      - name: Validate and store results (single writer)
+        run: mkdir -p artifacts && python3 eval/collect.py artifacts | tee collect.log
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add eval/results eval/manifest.json eval/conflicts.json eval/verify
+          git diff --cached --quiet && exit 0
+          git commit -q -m "evidence(eval): collect run ${{ github.run_id }} [skip ci]"
+          for i in 1 2 3 4; do git push && exit 0; git pull --rebase -q; sleep $((i*5)); done
+          exit 1
