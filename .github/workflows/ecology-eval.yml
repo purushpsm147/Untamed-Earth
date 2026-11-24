@@ -1,0 +1,163 @@
+name: Ecology frozen evaluation (issue #29 / #31)
+
+# Frozen, pre-registered paired-seed evaluation. Each configuration runs from its PINNED commit; nothing in this
+# workflow changes simulation code or parameters. Configurations and parameters: docs/OPEN_BOUNDARY_DESIGN.md
+# (revision 3 + amendment 3a, commit ce83f68) and docs/MATERNAL_BEHAVIOUR.md (configuration M, investigation only).
+# Runs only when this file changes on the ecology development branch, or by manual dispatch.
+
+on:
+  push:
+    branches: [ccr-776cce8c-3adley]
+    paths: ['.github/workflows/ecology-eval.yml']
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Comma-separated configuration ids to run (empty = all)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ecology-eval-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SHA_A: ac287338184e9aa4da8cb41dc1a47357feae3780 # baseline/m2-b1
+  SHA_B: 868ca7ba33cefc3ab52c406d79ef7d9bf191fb17 # baseline/memory-b1
+  SHA_C: 6980dded60867784e2dab1168852a880b07ab09f # baseline/territories-b1
+  SHA_OPEN: ce83f68b4584a2c051ea08b9b85a26af326dc9e2 # feat/open-boundary, amendment 3a (D/E/F, sensitivity, G)
+  SHA_M: 89d3a458f2fcf1112b3d3f0df5b9851ff7d8d289 # feat/maternal-instincts (#31), closed boundary
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - id: plan
+        env:
+          ONLY: ${{ github.event.inputs.only }}
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import json, os
+          e = os.environ
+          # id, sha, variant (configureBoundary JSON), jackal spacing (0 = default), seeds
+          cfgs = [
+            ('A', e['SHA_A'], '', 0, 60),
+            ('B', e['SHA_B'], '', 0, 60),
+            ('C', e['SHA_C'], '', 0, 60),
+            ('D', e['SHA_OPEN'], '{"open":true}', 0, 60),
+            ('E', e['SHA_OPEN'], '{"open":true,"inflow":false}', 0, 60),
+            ('F', e['SHA_OPEN'], '{"open":true,"fleeExit":false}', 0, 60),
+            # sensitivity, 30 seeds each (pre-registered ids; '/' and '.' removed for file names)
+            ('S-W720', e['SHA_OPEN'], '{"open":true,"ringW":720}', 0, 30),
+            ('S-W2160', e['SHA_OPEN'], '{"open":true,"ringW":2160}', 0, 30),
+            ('S-H05', e['SHA_OPEN'], '{"open":true,"hareCapacity":0.5}', 0, 30),
+            ('S-H15', e['SHA_OPEN'], '{"open":true,"hareCapacity":1.5}', 0, 30),
+            ('S-K13', e['SHA_OPEN'], '{"open":true,"connectivity":0.3333333333333333}', 0, 30),
+            ('S-K1', e['SHA_OPEN'], '{"open":true,"connectivity":1}', 0, 30),
+            ('S-J720', e['SHA_OPEN'], '{"open":true}', 720, 30),
+            ('S-J1200', e['SHA_OPEN'], '{"open":true}', 1200, 30),
+            ('G', e['SHA_OPEN'], '{"open":true,"offmapHazard":2}', 0, 30),
+            # issue #31 investigation (not part of the #29 acceptance set): paired against C
+            ('M', e['SHA_M'], '', 0, 60),
+          ]
+          only = [s.strip() for s in (e.get('ONLY') or '').split(',') if s.strip()]
+          inc = []
+          for cid, sha, variant, spacing, n in cfgs:
+            if only and cid not in only:
+              continue
+            for s0 in range(1, n + 1, 8):
+              inc.append({'cfg': cid, 'sha': sha, 'variant': variant, 'spacing': spacing, 's0': s0, 's1': min(n, s0 + 7)})
+          print('matrix=' + json.dumps({'include': inc}))
+          EOF
+
+  run:
+    needs: plan
+    name: ${{ matrix.cfg }} seeds ${{ matrix.s0 }}-${{ matrix.s1 }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify pinned commit
+        run: test "$(git rev-parse HEAD)" = "${{ matrix.sha }}"
+      - name: Run seeds (one process per core)
+        env:
+          CFG: ${{ matrix.cfg }}
+          VARIANT: ${{ matrix.variant }}
+          SPACING: ${{ matrix.spacing }}
+        run: |
+          mkdir -p out
+          extra=()
+          [ -n "$VARIANT" ] && extra+=(--variant "$VARIANT")
+          [ "$SPACING" != "0" ] && extra+=(--spacing "$SPACING")
+          printf '%s\n' "${extra[@]}" > out/args.txt
+          seq ${{ matrix.s0 }} ${{ matrix.s1 }} | xargs -P "$(nproc)" -I{} \
+            node --import tsx benchmarks/open-boundary-eval.ts --config "$CFG" --seeds {}-{} --days 365 --dt 2 --outdir out "${extra[@]}"
+          n=$(ls out/"$CFG"-*.json | wc -l); want=$(( ${{ matrix.s1 }} - ${{ matrix.s0 }} + 1 ))
+          echo "wrote $n of $want seeds"; test "$n" -eq "$want"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runs-${{ matrix.cfg }}-${{ matrix.s0 }}
+          path: out/*.json
+          retention-days: 30
+
+  aggregate:
+    needs: run
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: runs-*
+          path: runs
+          merge-multiple: true
+      - name: Manifest and pre-registered analysis (script from the pinned open-boundary commit)
+        run: |
+          D=docs/evidence/eval-actions
+          mkdir -p $D
+          python3 - <<'EOF' > $D/manifest.tsv
+          import glob, json
+          print('config\tseed\tcommit\tvariant\tspacing\thash\twallS\tendPops\textinct')
+          rows = []
+          for f in glob.glob('runs/*.json'):
+            r = json.load(open(f)); m = r['meta']
+            rows.append((m['config'], m['seed'], m['commit'], m['variant'], m.get('spacing'), r['hash'], m['wallS'], '/'.join(map(str, r['endPops'])), ','.join(r['extinct'])))
+          for row in sorted(rows): print('\t'.join(map(str, row)))
+          EOF
+          git show ${SHA_OPEN}:benchmarks/open-boundary-analysis.py > /tmp/oba.py
+          python3 /tmp/oba.py runs A B C D E F > $D/analysis-A-F.txt 2>&1 || true
+          python3 /tmp/oba.py runs D S-W720 S-W2160 S-H05 S-H15 S-K13 S-K1 S-J720 S-J1200 G > $D/analysis-sensitivity.txt 2>&1 || true
+          tar czf $D/runs.tar.gz -C runs .
+          echo "run ${{ github.run_id }} at $(date -u +%FT%TZ); workflow commit ${{ github.sha }}" > $D/RUN.txt
+          cut -f1 $D/manifest.tsv | sort | uniq -c | tee -a $D/RUN.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eval-aggregate
+          path: docs/evidence/eval-actions
+      - name: Commit evidence to the ecology development branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/evidence/eval-actions
+          git commit -m "evidence(eval): frozen A-F, sensitivity and M runs from Actions run ${{ github.run_id }}"
+          for i in 1 2 3 4; do git pull --rebase origin ${{ github.ref_name }} && git push origin HEAD:${{ github.ref_name }} && exit 0; sleep $((i*10)); done
+          exit 1
