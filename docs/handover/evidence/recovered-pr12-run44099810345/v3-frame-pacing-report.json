@@ -1,0 +1,265 @@
+{
+  "capturedAtIso": "2026-11-17T14:16:32.555Z",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+  "platform": "CI software renderer; performance figures not comparable to physical GPUs",
+  "warmupFrames": 8,
+  "sampleFrames": 36,
+  "runs": {},
+  "riverbank_vista_720p_baseline": {
+    "screenshot": "docs/evidence/slice1-v3/slice1-riverbank_vista-baseline-720p.png",
+    "diagnostics": {
+      "mode": "baseline",
+      "preset": "riverbank_vista",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "activeChitalCount": 8,
+      "maxStanceHoofErrorMeters": 0.00003239698713919381,
+      "heroPitchRad": 0.4,
+      "heroRollRad": -0.07035900060416418,
+      "heroHoofClearancesMeters": {
+        "FL": 0.0000017313226390314185,
+        "FR": 0.0000017677545494088065,
+        "BL": 0.000005051626949192922,
+        "BR": 0.000012285869328110266
+      },
+      "drawCalls": 70,
+      "triangles": 673578,
+      "framePacingMs": {
+        "sampleCount": 32,
+        "mean": 681.731,
+        "min": 70.2,
+        "p50": 770.8,
+        "p95": 806.1,
+        "p99": 930,
+        "max": 930
+      }
+    }
+  },
+  "riverbank_vista_720p_naturalistic": {
+    "screenshot": "docs/evidence/slice1-v3/slice1-riverbank_vista-naturalistic-720p.png",
+    "diagnostics": {
+      "mode": "naturalistic",
+      "preset": "riverbank_vista",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "activeChitalCount": 8,
+      "maxStanceHoofErrorMeters": 0.00003239698713919381,
+      "heroPitchRad": 0.4,
+      "heroRollRad": -0.07035900060416418,
+      "heroHoofClearancesMeters": {
+        "FL": 0.0000017313226390314185,
+        "FR": 0.0000017677545494088065,
+        "BL": 0.000005051626949192922,
+        "BR": 0.000012285869328110266
+      },
+      "drawCalls": 455,
+      "triangles": 1058702,
+      "framePacingMs": {
+        "sampleCount": 11,
+        "mean": 495.555,
+        "min": 84.9,
+        "p50": 568.8,
+        "p95": 771.2,
+        "p99": 771.2,
+        "max": 771.2
+      }
+    }
+  },
+  "chital_closeup_720p_baseline": {
+    "screenshot": "docs/evidence/slice1-v3/slice1-chital_closeup-baseline-720p.png",
+    "diagnostics": {
+      "mode": "baseline",
+      "preset": "chital_closeup",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "activeChitalCount": 8,
+      "maxStanceHoofErrorMeters": 0.00003239698713919381,
+      "heroPitchRad": 0.4,
+      "heroRollRad": -0.07035900060416418,
+      "heroHoofClearancesMeters": {
+        "FL": 0.0000017313226390314185,
+        "FR": 0.0000017677545494088065,
+        "BL": 0.000005051626949192922,
+        "BR": 0.000012285869328110266
+      },
+      "drawCalls": 40,
+      "triangles": 582598,
+      "framePacingMs": {
+        "sampleCount": 29,
+        "mean": 493.083,
+        "min": 119.1,
+        "p50": 482.1,
+        "p95": 858.1,
+        "p99": 904.3,
+        "max": 904.3
+      }
+    }
+  },
+  "chital_closeup_720p_naturalistic": {
+    "screenshot": "docs/evidence/slice1-v3/slice1-chital_closeup-naturalistic-720p.png",
+    "diagnostics": {
+      "mode": "naturalistic",
+      "preset": "chital_closeup",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "activeChitalCount": 8,
+      "maxStanceHoofErrorMeters": 0.00003239698713919381,
+      "heroPitchRad": 0.4,
+      "heroRollRad": -0.07035900060416418,
+      "heroHoofClearancesMeters": {
+        "FL": 0.0000017313226390314185,
+        "FR": 0.0000017677545494088065,
+        "BL": 0.000005051626949192922,
+        "BR": 0.000012285869328110266
+      },
+      "drawCalls": 280,
+      "triangles": 954438,
+      "framePacingMs": {
+        "sampleCount": 31,
+        "mean": 592.861,
+        "min": 91.3,
+        "p50": 673.9,
+        "p95": 768.9,
+        "p99": 926.6,
+        "max": 926.6
+      }
+    }
+  },
+  "riverbank_vista_1080p_baseline": {
+    "screenshot": "docs/evidence/slice1-v3/slice1-riverbank_vista-baseline-1080p.png",
+    "diagnostics": {
+      "mode": "baseline",
+      "preset": "riverbank_vista",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "activeChitalCount": 8,
+      "maxStanceHoofErrorMeters": 0.00003239698713919381,
+      "heroPitchRad": 0.4,
+      "heroRollRad": -0.07035900060416418,
+      "heroHoofClearancesMeters": {
+        "FL": 0.0000017313226390314185,
+        "FR": 0.0000017677545494088065,
+        "BL": 0.000005051626949192922,
+        "BR": 0.000012285869328110266
+      },
+      "drawCalls": 70,
+      "triangles": 673578,
+      "framePacingMs": {
+        "sampleCount": 10,
+        "mean": 392.38,
+        "min": 60,
+        "p50": 497.7,
+        "p95": 731.7,
+        "p99": 731.7,
+        "max": 731.7
+      }
+    }
+  },
+  "riverbank_vista_1080p_naturalistic": {
+    "screenshot": "docs/evidence/slice1-v3/slice1-riverbank_vista-naturalistic-1080p.png",
+    "diagnostics": {
+      "mode": "naturalistic",
+      "preset": "riverbank_vista",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "activeChitalCount": 8,
+      "maxStanceHoofErrorMeters": 0.00003239698713919381,
+      "heroPitchRad": 0.4,
+      "heroRollRad": -0.07035900060416418,
+      "heroHoofClearancesMeters": {
+        "FL": 0.0000017313226390314185,
+        "FR": 0.0000017677545494088065,
+        "BL": 0.000005051626949192922,
+        "BR": 0.000012285869328110266
+      },
+      "drawCalls": 455,
+      "triangles": 1058702,
+      "framePacingMs": {
+        "sampleCount": 5,
+        "mean": 156.88,
+        "min": 68.6,
+        "p50": 107.9,
+        "p95": 281.4,
+        "p99": 281.4,
+        "max": 281.4
+      }
+    }
+  },
+  "chital_closeup_1080p_baseline": {
+    "screenshot": "docs/evidence/slice1-v3/slice1-chital_closeup-baseline-1080p.png",
+    "diagnostics": {
+      "mode": "baseline",
+      "preset": "chital_closeup",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "activeChitalCount": 8,
+      "maxStanceHoofErrorMeters": 0.00003239698713919381,
+      "heroPitchRad": 0.4,
+      "heroRollRad": -0.07035900060416418,
+      "heroHoofClearancesMeters": {
+        "FL": 0.0000017313226390314185,
+        "FR": 0.0000017677545494088065,
+        "BL": 0.000005051626949192922,
+        "BR": 0.000012285869328110266
+      },
+      "drawCalls": 40,
+      "triangles": 582598,
+      "framePacingMs": {
+        "sampleCount": 18,
+        "mean": 502.561,
+        "min": 30.8,
+        "p50": 480.8,
+        "p95": 884.9,
+        "p99": 884.9,
+        "max": 884.9
+      }
+    }
+  },
+  "chital_closeup_1080p_naturalistic": {
+    "screenshot": "docs/evidence/slice1-v3/slice1-chital_closeup-naturalistic-1080p.png",
+    "diagnostics": {
+      "mode": "naturalistic",
+      "preset": "chital_closeup",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "activeChitalCount": 8,
+      "maxStanceHoofErrorMeters": 0.00003239698713919381,
+      "heroPitchRad": 0.4,
+      "heroRollRad": -0.07035900060416418,
+      "heroHoofClearancesMeters": {
+        "FL": 0.0000017313226390314185,
+        "FR": 0.0000017677545494088065,
+        "BL": 0.000005051626949192922,
+        "BR": 0.000012285869328110266
+      },
+      "drawCalls": 280,
+      "triangles": 954438,
+      "framePacingMs": {
+        "sampleCount": 11,
+        "mean": 541.855,
+        "min": 101.3,
+        "p50": 803.1,
+        "p95": 904.7,
+        "p99": 904.7,
+        "max": 904.7
+      }
+    }
+  },
+  "contactFailures": []
+}
