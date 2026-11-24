@@ -38,6 +38,8 @@ export class TerrainView {
   /** Number of chunks currently holding a mesh / expected in range (for the loading bar). */
   loaded = 0;
   wanted = 1;
+  /** QA: number of update() passes. A caller that moved the camera must see this advance before trusting `mismatched`. */
+  private updates = 0;
 
   constructor(private readonly valley: Valley) {
     this.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
@@ -135,6 +137,7 @@ export class TerrainView {
   }
 
   update(cam: THREE.Vector3): void {
+    this.updates++;
     const lo = -APRON;
     const hi = CHUNKS + APRON;
     let wanted = 0;
@@ -204,7 +207,7 @@ export class TerrainView {
   }
 
   /** QA: streaming health. `mismatched` counts in-range chunks whose mesh is missing or not at the wanted LOD. */
-  debugState(): { chunks: number; meshes: number; inGroup: number; liveGeometries: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; applied: number; stale: number; superseded: number; workerFailures: number } {
+  debugState(): { chunks: number; meshes: number; inGroup: number; liveGeometries: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; updates: number; applied: number; stale: number; superseded: number; workerFailures: number } {
     let meshes = 0;
     let mismatched = 0;
     let pending = 0;
@@ -213,7 +216,7 @@ export class TerrainView {
       if (c.live && (!c.mesh || c.res !== c.want)) mismatched++;
       if (c.pending) pending++;
     }
-    return { chunks: this.chunks.size, meshes, inGroup: this.group.children.length, liveGeometries: this.geoCreated - this.geoDisposed, mismatched, pending, inFlight: this.inFlight, queued: this.queue.length, worker: this.worker !== null, ...this.counters };
+    return { chunks: this.chunks.size, meshes, inGroup: this.group.children.length, liveGeometries: this.geoCreated - this.geoDisposed, mismatched, pending, inFlight: this.inFlight, queued: this.queue.length, worker: this.worker !== null, updates: this.updates, ...this.counters };
   }
 
   dispose(): void {
