@@ -109,6 +109,22 @@ decide, and physically respond. Unrelated adults have no maternal abilities. Pro
 | Charge injury | 50% of contacts, −0.12 health | Assumed |
 | Chital mother abandon threshold | hunger 0.85 | Assumed |
 
+## Browser captures (`docs/evidence/maternal/`)
+Opt-in project `maternal-capture`, seed 2, medium quality, rendered with SwiftShader.
+- Each scene places real animal records at an open spot. Everything after placement is the simulation.
+- Each capture is triggered by the behaviour actually occurring. The simulation is paused for the screenshot; rendering
+  continues.
+- All six conditions occurred and are recorded in `maternal.json`:
+
+| # | Scene | Simulation state at capture |
+|---|---|---|
+| 1 | Fawn settles beside its resting mother | Both resting |
+| 2 | Mother gets up and walks off | Mother walking; fawn "Following mother" |
+| 3 | Jackal near the fawn | Mother "Defending young" (head high); fawn fleeing to her; jackal alert |
+| 4 | Sow, piglet, jackal | Sow "Defending young" at a run (charge); piglet sheltering; jackal alert |
+| 5 | After the charge | Jackal fleeing (withdrew). The run's counters record a charge contact with an injury |
+| 6 | Adult chital walks toward a jackal | Jackal "Alert", facing it; it does not attack |
+
 ## Not yet done
 - The paired-seed evaluation:
   - juvenile mortality (`juvenileDeaths`, cohort survival);
@@ -117,4 +133,4 @@ decide, and physically respond. Unrelated adults have no maternal abilities. Pro
   - population stability;
   - all against configuration C (territories, closed, B1).
   It will run with the same per-seed runner after the #29 runs, which hold the CPU.
-- Playwright demonstrations of maternal awareness, fawn rest and wake, jackal stalk and withdraw, and the sow's defence.
+
