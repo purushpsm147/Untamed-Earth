@@ -49,6 +49,9 @@ interface Record {
   entries: ChronicleEntry[];
 }
 
+/** Alarm entries kept per animal (the Social Lens summarises them). */
+export const MAX_ALARMS = 3;
+
 const KINDS: ReadonlySet<string> = new Set<ChronicleKind>(['born', 'gave-birth', 'killed', 'was-killed', 'died', 'alarm', 'left-group', 'joined-group', 'weaned', 'matured', 'possessed', 'released', 'mother-died']);
 
 export class SocialChronicle {
@@ -118,9 +121,18 @@ export class SocialChronicle {
     const last = r.entries[r.entries.length - 1];
     if (last && last.kind === entry.kind && last.other === entry.other && entry.t - last.t < 0.5 && (entry.kind === 'alarm' || entry.kind === 'possessed' || entry.kind === 'released')) return;
     r.entries.push(entry);
+    // Alarms are frequent and low in information: keep only the latest few, and never let them push out births,
+    // kills, group changes or the player's possession (journey run: a drought at 1000x filled a deer's history with
+    // alarms and evicted "you lived as this animal").
+    if (entry.kind === 'alarm') {
+      let alarms = 0;
+      for (const x of r.entries) if (x.kind === 'alarm') alarms++;
+      if (alarms > MAX_ALARMS) r.entries.splice(r.entries.findIndex((x) => x.kind === 'alarm'), 1);
+    }
     if (r.entries.length > this.perAnimal) {
-      // keep the first entry (birth / first record) as an anchor, drop the oldest after it
-      r.entries.splice(r.entries[0]!.kind === 'born' ? 1 : 0, 1);
+      // drop the oldest alarm first; otherwise the oldest entry, keeping a birth record as the anchor
+      const al = r.entries.findIndex((x) => x.kind === 'alarm');
+      r.entries.splice(al >= 0 ? al : r.entries[0]!.kind === 'born' ? 1 : 0, 1);
     }
   }
 

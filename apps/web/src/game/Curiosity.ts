@@ -191,7 +191,7 @@ export class Curiosity {
     if (t.link) parts.push(`Continuing the story: ${t.link}.`);
     else if (t.why === 'event') parts.push('Why this shot: something just happened here.');
     else if (t.why === 'group') parts.push('Why this shot: the group is the subject.');
-    else if (t.why === 'activity') parts.push('Why this shot: the most active subject nearby.');
+    else if (t.why === 'activity') parts.push('Why this shot: it was the most active animal nearby when chosen.');
     else if (t.why === 'scenic') parts.push('Nothing notable nearby: a quiet look at the valley.');
     const id = t.animalId;
     if (this.chronicle && id !== null && t.kind !== 'group') {

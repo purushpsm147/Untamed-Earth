@@ -994,8 +994,9 @@ export class CuriosityDirector {
   private shotDistances(snapshot: WorldSnapshotView, target: ObservationTarget): { standoff: number; height: number; style: ShotInfo['style'] } {
     if (target.kind === 'group') {
       const r = target.radius ?? 8;
-      // fit the group in about 80% of a 54° field of view
-      const standoff = clamp((r + 2) / Math.tan((54 * Math.PI) / 360 * 0.8), Math.max(this.cfg.minStandoffM, 10), 90);
+      // fit the group's measured spread (about 1.6 sd) across a 54° field of view, so the animals read at a size
+      // that shows behaviour rather than dots (journey review: 80% fit left an 8-deer herd too small)
+      const standoff = clamp((r + 2) / Math.tan((54 * Math.PI) / 360), Math.max(this.cfg.minStandoffM, 10), 70);
       return { standoff, height: clamp(standoff * 0.3, 2, 14), style: 'wide' };
     }
     const f = this.framing(snapshot, target);

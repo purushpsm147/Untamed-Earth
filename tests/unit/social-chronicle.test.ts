@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SAVE_VERSION, Simulation } from '@untamed/ecology';
 import { openEnvelope, sealEnvelope } from '@untamed/persistence';
-import { SocialChronicle, describeEntry } from '../../apps/web/src/game/SocialChronicle';
+import { MAX_ALARMS, SocialChronicle, describeEntry } from '../../apps/web/src/game/SocialChronicle';
 
 /** Step a world at the 1000x tick size until the predicate holds (bounded). */
 function runUntil(sim: Simulation, chron: SocialChronicle, pred: () => boolean, maxTicks = 40000): void {
@@ -117,5 +117,23 @@ describe('SocialChronicle (persistent Social Lens history)', () => {
         expect(later[later.length - 1]!.n).toBe(a.group);
       }
     }
+  });
+
+  it('a flood of alarms never evicts possession, births or other notable entries', () => {
+    const sim = new Simulation(3);
+    const chron = new SocialChronicle(sim, 12);
+    chron.attach();
+    const deer = sim.animals.find((a) => a.sp === 0 && a.alive)!;
+    chron.possessed(deer);
+    chron.released(deer);
+    // 200 alarm episodes, each an hour apart (not collapsed as repeats)
+    for (let k = 0; k < 200; k++) {
+      sim.env.timeH += 1;
+      sim.events.emit({ type: 'alarm', sp: deer.sp, id: deer.id, x: deer.x, z: deer.z });
+    }
+    const kinds = chron.entriesFor(deer.id).map((e) => e.kind);
+    expect(kinds).toContain('possessed');
+    expect(kinds).toContain('released');
+    expect(kinds.filter((k) => k === 'alarm').length).toBe(MAX_ALARMS);
   });
 });

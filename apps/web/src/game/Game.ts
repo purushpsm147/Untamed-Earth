@@ -441,7 +441,7 @@ export class Game {
   private updateCoach(): void {
     const el = $('coach');
     // the guide only speaks in Observer: Curiosity stays clean, Wildlife and Experiment have their own panels
-    if (this.coachStep < 0 || this.mode !== 'observer' || this.menuOpen) {
+    if (this.coachStep < 0 || this.mode !== 'observer' || this.menuOpen || !$('stats').classList.contains('hidden')) {
       el.classList.add('hidden');
       return;
     }
@@ -1158,13 +1158,17 @@ export class Game {
     if (Number.isNaN(a.waterX)) pressures.push('knows no water source');
     out.push(`<b>Pressures</b> ${pressures.length ? pressures.join(', ') : 'none acute'}`);
     const hist = this.chronicle.entriesFor(a.id);
-    const shown = hist.slice(-5);
-    if (shown.length) out.push(`<b>History</b> ${hist.length > shown.length ? `latest ${shown.length} of ${hist.length}` : `${hist.length} recorded`}`);
+    // alarms are summarised in one line; the other entries are listed, newest first
+    const alarms = hist.filter((e) => e.kind === 'alarm');
+    const notable = hist.filter((e) => e.kind !== 'alarm');
+    const shown = notable.slice(-5);
+    if (hist.length) out.push(`<b>History</b> ${notable.length > shown.length ? `latest ${shown.length} of ${notable.length}` : `${notable.length} recorded`}`);
     for (let i = shown.length - 1; i >= 0; i--) {
       const e = shown[i]!;
       out.push(`<span class="hist"><b>${chronicleTime(e.t, YEAR_DAYS)}</b>${e.noticed ? ' (noticed)' : ''} ${esc(describeEntry(e))}</span>`);
     }
-    if (!shown.length) out.push('<i>No recorded events yet. History is kept from when this world was first observed.</i>');
+    if (alarms.length) out.push(`<span class="hist"><b>${chronicleTime(alarms[alarms.length - 1]!.t, YEAR_DAYS)}</b> took fright at a predator${alarms.length > 1 ? ` (latest of the last ${alarms.length} recorded)` : ''}</span>`);
+    if (!hist.length) out.push('<i>No recorded events yet. History is kept from when this world was first observed.</i>');
     return out;
   }
 

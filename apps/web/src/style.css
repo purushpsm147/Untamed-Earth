@@ -46,9 +46,9 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 10px 0; }
 #topbar button.on { background: rgba(120, 150, 80, 0.75); }
 .panel { position: absolute; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; backdrop-filter: blur(8px); width: 270px; }
 .phead { display: flex; justify-content: space-between; align-items: center; font-weight: 600; margin-bottom: 4px; }
-#inspect, #wild { left: 12px; bottom: 12px; }
+#inspect, #wild { left: 12px; bottom: 12px; max-height: 46vh; overflow: auto; }
 #stats { right: 12px; top: 58px; width: 370px; max-height: calc(100% - 70px); overflow: auto; }
-#experiment { left: 12px; top: 64px; width: 280px; max-height: calc(100% - 340px); overflow: auto; }
+#experiment { left: 12px; top: 64px; width: 280px; max-height: calc(100% - 64px - 46vh - 24px); overflow: auto; }
 #experiment input[type='text'] { width: 84px; }
 #legend { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; margin: 4px 0 8px; }
 #legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; }
@@ -99,7 +99,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: -1; }
 .lens .hist { display: block; color: var(--fg); }
 #hints { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); text-shadow: 0 1px 3px #000; color: #d4dacd; white-space: nowrap; max-width: 96vw; overflow: hidden; text-overflow: ellipsis; }
-#coach { left: 12px; top: 64px; width: 300px; pointer-events: none !important; }
+#coach { right: 12px; top: 64px; width: 300px; pointer-events: none !important; }
 #coach button { pointer-events: auto; }
 #coachText { font-size: 13px; margin-top: 4px; }
 #wildStatus { font-size: 12px; margin: 6px 0 0; color: var(--fg); }

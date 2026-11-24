@@ -1,3 +1,9 @@
+> **Living Valley V1 update (UX-01, PR #45).** The director below has been reworked into a documentary director:
+> 0.5 s decision cadence, herd/group subjects, narrative continuity, side-on shot planning with line-of-sight checks,
+> and fade cuts for distant subjects. Its public API and safety rules are unchanged. The current behaviour is
+> described in `docs/handover/GAMEPLAY_HANDOVER.md` §2.1. This report is kept as the record of the original
+> contribution.
+
 # Untamed Earth — Gemini Argon Engineering Report
 
 **Target Repository:** `https://github.com/purushpsm147/Untamed-Earth`  
