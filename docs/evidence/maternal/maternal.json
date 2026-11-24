@@ -1,0 +1,196 @@
+{
+  "1-fawn-resting-beside-mother": {
+    "tick": 644,
+    "near": [
+      {
+        "id": 217,
+        "sp": 0,
+        "beh": "Resting",
+        "x": 300,
+        "z": 300,
+        "fear": 0
+      },
+      {
+        "id": 219,
+        "sp": 0,
+        "beh": "Resting",
+        "x": 303,
+        "z": 301,
+        "fear": 0
+      }
+    ],
+    "interactions": {
+      "defends": 0,
+      "chargeContacts": 0,
+      "jackalInjuries": 0,
+      "huntsAbandoned": 0,
+      "alerts": 0,
+      "withdrawals": 0,
+      "hiderBolts": 0
+    },
+    "extra": null
+  },
+  "2-fawn-follows-mother": {
+    "tick": 1150,
+    "near": [
+      {
+        "id": 217,
+        "sp": 0,
+        "beh": "Resting",
+        "x": 321.2,
+        "z": 305.3,
+        "fear": 0
+      },
+      {
+        "id": 219,
+        "sp": 0,
+        "beh": "Resting",
+        "x": 317.9,
+        "z": 304.5,
+        "fear": 0
+      }
+    ],
+    "interactions": {
+      "defends": 0,
+      "chargeContacts": 0,
+      "jackalInjuries": 0,
+      "huntsAbandoned": 0,
+      "alerts": 0,
+      "withdrawals": 0,
+      "hiderBolts": 0
+    },
+    "extra": null
+  },
+  "3-chital-mother-defends": {
+    "tick": 1614,
+    "near": [
+      {
+        "id": 222,
+        "sp": 0,
+        "beh": "Defending young",
+        "x": 303.2,
+        "z": 299.9,
+        "fear": 0.29
+      },
+      {
+        "id": 224,
+        "sp": 0,
+        "beh": "Fleeing",
+        "x": 299.2,
+        "z": 299.9,
+        "fear": 0.75
+      },
+      {
+        "id": 226,
+        "sp": 2,
+        "beh": "Alert",
+        "x": 315,
+        "z": 300,
+        "fear": 0
+      }
+    ],
+    "interactions": {
+      "defends": 1,
+      "chargeContacts": 0,
+      "jackalInjuries": 0,
+      "huntsAbandoned": 0,
+      "alerts": 1,
+      "withdrawals": 0,
+      "hiderBolts": 0
+    },
+    "extra": null
+  },
+  "4-sow-charges": {
+    "tick": 1826,
+    "near": [
+      {
+        "id": 228,
+        "sp": 1,
+        "beh": "Resting",
+        "x": 350.3,
+        "z": 304.5,
+        "fear": 0
+      },
+      {
+        "id": 230,
+        "sp": 1,
+        "beh": "Following mother",
+        "x": 347.2,
+        "z": 305.3,
+        "fear": 0.22
+      },
+      {
+        "id": 232,
+        "sp": 2,
+        "beh": "Foraging",
+        "x": 377.1,
+        "z": 309.8,
+        "fear": 0.16
+      }
+    ],
+    "interactions": {
+      "defends": 3,
+      "chargeContacts": 0,
+      "jackalInjuries": 0,
+      "huntsAbandoned": 0,
+      "alerts": 2,
+      "withdrawals": 1,
+      "hiderBolts": 0
+    },
+    "extra": null
+  },
+  "5-jackal-withdraws": {
+    "tick": 2227,
+    "near": [
+      {
+        "id": 127,
+        "sp": 3,
+        "beh": "Fleeing",
+        "x": 373.4,
+        "z": 340.6,
+        "fear": 0.94
+      },
+      {
+        "id": 232,
+        "sp": 2,
+        "beh": "Chasing",
+        "x": 366.6,
+        "z": 345.6,
+        "fear": 0.01
+      }
+    ],
+    "interactions": {
+      "defends": 5,
+      "chargeContacts": 1,
+      "jackalInjuries": 1,
+      "huntsAbandoned": 0,
+      "alerts": 3,
+      "withdrawals": 1,
+      "hiderBolts": 0
+    },
+    "extra": null
+  },
+  "6-jackal-alert": {
+    "tick": 2683,
+    "near": [
+      {
+        "id": 234,
+        "sp": 2,
+        "beh": "Resting",
+        "x": 300,
+        "z": 300,
+        "fear": 0
+      }
+    ],
+    "interactions": {
+      "defends": 7,
+      "chargeContacts": 2,
+      "jackalInjuries": 2,
+      "huntsAbandoned": 0,
+      "alerts": 4,
+      "withdrawals": 1,
+      "hiderBolts": 0
+    },
+    "extra": null
+  }
+}

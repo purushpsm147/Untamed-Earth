@@ -34,6 +34,15 @@ async function stageScene(page: Page, spec: { key: string; sp: number; dx: numbe
   }, spec);
 }
 
+/** Advance the running game until `cond` (evaluated in the page with `ids`) holds, up to maxFrames. */
+async function until(page: Page, cond: string, ids: Record<string, number>, maxFrames = 1200): Promise<boolean> {
+  for (let f = 0; f < maxFrames; f += 10) {
+    if (await page.evaluate(([c, i]) => { const sim = window.__untamed.sim; const A = (k: string) => sim.byId.get((i as Record<string, number>)[k]); return !!new Function('sim', 'A', `return (${c});`)(sim, A); }, [cond, ids] as const)) return true;
+    await frames(page, 10);
+  }
+  return false;
+}
+
 async function look(page: Page, id: number, name: string, report: Record<string, unknown>, extra: (G: unknown) => unknown = () => null): Promise<void> {
   await g(page, (G) => G.setSpeed(0));
   await page.evaluate((i) => { const G = window.__untamed; G.select(i); G.following = true; }, id);
@@ -63,8 +72,9 @@ test('maternal behaviour scenes from real simulation state', async ({ page }) =>
   await page.evaluate((ids) => { const sim = window.__untamed.sim; const y = sim.byId.get(ids.fawn); const m = sim.byId.get(ids.mother); y.mother = m.id; y.group = m.group; m.young = y.id; }, s1);
   await frames(page, 400);
   await look(page, s1.fawn!, '1-fawn-resting-beside-mother', report);
-  await page.evaluate((ids) => { const m = window.__untamed.sim.byId.get(ids.mother); Object.assign(m, { beh: 1, tx: m.x + 40, tz: m.z + 10, timer: 20, want: 1.3, energy: 1 }); }, s1);
-  await frames(page, 300);
+  // the mother gets up (rested) and walks off: the fawn should wake and follow
+  await page.evaluate((ids) => { const m = window.__untamed.sim.byId.get(ids.mother); Object.assign(m, { beh: 1, tx: m.x + 40, tz: m.z + 10, timer: 20, want: 1.3, energy: 1, hunger: 0.5 }); }, s1);
+  report.followSeen = await until(page, "A('fawn').beh === 13 && A('mother').speed > 0.3", s1);
   await look(page, s1.fawn!, '2-fawn-follows-mother', report);
 
   // 2. a jackal near a fawn: the mother steps between them
@@ -74,7 +84,7 @@ test('maternal behaviour scenes from real simulation state', async ({ page }) =>
     { key: 'jackal', sp: 2, dx: 15, dz: 0, age: 'adult', sex: 1, o: { hunger: 0.6 } },
   ]);
   await page.evaluate((ids) => { const sim = window.__untamed.sim; const y = sim.byId.get(ids.fawn); const m = sim.byId.get(ids.mother); y.mother = m.id; y.group = m.group; m.young = y.id; }, s2);
-  await frames(page, 240);
+  report.defendSeen = await until(page, "A('mother').beh === 16", s2);
   await look(page, s2.mother!, '3-chital-mother-defends', report);
 
   // 3. a sow with a piglet and a jackal: she charges, it withdraws
@@ -84,9 +94,9 @@ test('maternal behaviour scenes from real simulation state', async ({ page }) =>
     { key: 'jackal', sp: 2, dx: 13, dz: 0, age: 'adult', sex: 1, o: { hunger: 0.6 } },
   ]);
   await page.evaluate((ids) => { const sim = window.__untamed.sim; const y = sim.byId.get(ids.piglet); const m = sim.byId.get(ids.sow); y.mother = m.id; y.group = m.group; m.young = y.id; }, s3);
-  await frames(page, 90);
+  report.chargeSeen = await until(page, "A('sow').beh === 16 && A('sow').speed > 2", s3);
   await look(page, s3.sow!, '4-sow-charges', report);
-  await frames(page, 240);
+  report.withdrawSeen = await until(page, "A('jackal').beh === 6", s3);
   await look(page, s3.jackal!, '5-jackal-withdraws', report);
 
   // 4. a jackal watches an adult chital walking toward it
@@ -95,7 +105,7 @@ test('maternal behaviour scenes from real simulation state', async ({ page }) =>
     { key: 'deer', sp: 0, dx: 22, dz: 0, age: 'adult', sex: 1, o: { beh: 1, timer: 30, want: 1.3 } },
   ]);
   await page.evaluate((ids) => { const sim = window.__untamed.sim; const d = sim.byId.get(ids.deer); d.tx = d.x - 60; d.tz = d.z; }, s4);
-  await frames(page, 200);
+  report.alertSeen = await until(page, "A('jackal').beh === 15", s4);
   await look(page, s4.jackal!, '6-jackal-alert', report);
 
   const fs = await import('node:fs');
