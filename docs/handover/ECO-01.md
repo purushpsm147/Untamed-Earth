@@ -85,3 +85,9 @@ Director desk: #36. **Read this file, #36 and #37 first after any restart.**
     - Hash-identical, with a call-by-call equivalence test.
     - −14.5% on open-boundary code and −7.7% on #35 code.
   - **Not merged into #34 or #35;** awaiting the director. Stopped per ECO-07.
+- **2026-11-25 ECO-08** (#37, comment 7168951080). All local, no push:
+  - Lifecycle fix `e135394` on local `perf/csr-spatial-hash`: insert or clear during a query throws; `clear` releases references; 5 spatial tests.
+  - Checkpoints at dt 0.1, 0.25, 1 and 2: identical hashes and ledgers.
+  - Vitest 100-day test on #35: 55.9 s → 52.9 s (−5.3%); projected slow runner about 116 s.
+  - Optimisation stopped per ECO-07.
+  - **Local-only commits:** `e135394` (wt-ob, `perf/csr-spatial-hash`) and `40c5b39` (wt-m35c). If the director adopts the candidate, push `perf/csr-spatial-hash`, then merge into `feat/open-boundary` and #35.
