@@ -43,3 +43,22 @@ Director desk: #36. **Read this file, #36 and #37 first after any restart.**
 
 ## Outstanding owner actions
 - Archive three idle duplicate sessions (`…RPXTVZ5HzuuLgYdGJ`, `…RKJTSNdP7KSQ3SxS7`, `…T45DhUsfzPQaNUUem`). The permission system blocked me from archiving them.
+
+## Checkpoint 2026-11-25 (session …SBKWnauofqyDvXkjC)
+- **Evaluation complete.** Actions run 45378622930: 690/690 seeds; manifest `ccr-776cce8c-3adley:docs/evidence/eval-actions/` at
+  `7bf4283`. This is the single reconciled manifest (ECO-03).
+- **Cross-environment check.** All 93 local seeds here, including C-60, are hash-identical to it (#37, comment 7141584365).
+- **Verdict (report `c6655ba`).** PR #34 at `ce83f68` fails acceptance because of the transit stall.
+- **Fixed in `fdf0857` on `feat/open-boundary` (amendment 3b, proposed).**
+  - Five root causes, 11 regression tests and a 20-day smoke test.
+  - Probe (seeds 1/4/7, 160 days): transit p99 85–103 h → 0.6 h; corridor starvation and dehydration deaths 65–99 → 0.
+  - Closed hashes are unchanged.
+  - Details: PR #34, comment 7149418545.
+- **Merged into PR #35** (`edc0c48`). PR #35's CI is still red: the 100-day test hits the 120 s timeout. That decision belongs to
+  QA-01 or the director (#35, comment 7141533792).
+- **Waiting on the director (#37, comment 7149420892):**
+  - approval of the D′/E′/F′/G′ re-run at `fdf0857`, which session …RhnJ would execute;
+  - re-freezing M′.
+- **Next for this session:**
+  - after approval, add the D′–G′ entries to `eval/configs.json` and collect the results;
+  - otherwise, continue the PR #35 per-animal performance work.
