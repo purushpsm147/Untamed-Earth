@@ -224,6 +224,8 @@ const SWEEP_M = 1;
  * step and died there of thirst or hunger (docs/OPEN_BOUNDARY_AUDIT.md, finding B1).
  */
 export const EDGE_WALL = 6;
+/** Where a corridor route that ends in the valley ends: far enough inside the wall to be reached by walking. */
+const INSIDE = EDGE_WALL + 8;
 const outsideWall = (x: number, z: number): boolean => x < EDGE_WALL || z < EDGE_WALL || x > REGION_SIZE - EDGE_WALL || z > REGION_SIZE - EDGE_WALL;
 /** Inside the transit corridor's outer line (the region plus CORRIDOR m on every side). */
 const inCorridor = (x: number, z: number): boolean => x >= -CORRIDOR && z >= -CORRIDOR && x <= REGION_SIZE + CORRIDOR && z <= REGION_SIZE + CORRIDOR;
@@ -2030,6 +2032,22 @@ export class Simulation {
   }
 
   /** Physically passable straight crossing from (x, z) along the outward normal, wall to the corridor's outer line. */
+  /** The rest of a straight exit from (x, z) to the corridor's outer line can be walked (same rules as crossingOk). */
+  private routeOutWalkable(sp: SpeciesDef, x: number, z: number): boolean {
+    const [nx, nz] = outwardNormal(x, z);
+    const left = edgeSigned(x, z) + CORRIDOR;
+    let prevH = this.valley.height(x, z);
+    for (let s = 2; s <= left; s += 2) {
+      const px = x + nx * s;
+      const pz = z + nz * s;
+      const h = this.valley.height(px, pz);
+      if (Math.abs(h - prevH) / 2 > MAX_UP_GRADE) return false;
+      if (!maySwim(sp, false) && this.valley.waterSurface(pz) + this.env.stage - h > sp.locomotion.wadeDepth) return false;
+      prevH = h;
+    }
+    return true;
+  }
+
   private crossingOk(sp: SpeciesDef, x: number, z: number, fleeing: boolean): boolean {
     const [nx, nz] = outwardNormal(x, z);
     // the point on the wall line straight across from (x, z)
@@ -2348,14 +2366,19 @@ export class Simulation {
   }
 
   private enterValley(a: Animal, x: number, z: number): void {
+    // within the corridor's outer line: young placed beside their mother (± 1 m) could land just beyond it, where every
+    // step is refused, and stood there for the rest of the run (amendment 3b, defect found in ce83f68)
+    x = clamp(x, -CORRIDOR, REGION_SIZE + CORRIDOR);
+    z = clamp(z, -CORRIDOR, REGION_SIZE + CORRIDOR);
     const [nx, nz] = outwardNormal(x, z);
     a.off = false;
     a.x = a.px = x;
     a.z = a.pz = z;
     a.alt = a.palt = 0;
     a.transit = 1;
-    a.tx = x - nx * (CORRIDOR + 20);
-    a.tz = z - nz * (CORRIDOR + 20);
+    // destination inside the wall on both axes (an entry near a corner is outside the wall on the other axis too)
+    a.tx = clamp(x - nx * (CORRIDOR + 20), INSIDE, REGION_SIZE - INSIDE);
+    a.tz = clamp(z - nz * (CORRIDOR + 20), INSIDE, REGION_SIZE - INSIDE);
     a.beh = B.Wander;
     a.want = SPECIES[a.sp]!.walk;
     a.speed = 0;
@@ -2405,6 +2428,22 @@ export class Simulation {
       a.timer = 0;
       return;
     }
+    // Every transit decision re-establishes the route, because another behaviour (a flight that ended in rest, a young
+    // following its mother, a chase) may have replaced the destination with a point inside the corridor; walking to
+    // that point and idling there pinned animals in the corridor for days (amendment 3b, defect found in ce83f68).
+    // an exit begun in flight (where escape swimming is allowed) whose remaining route cannot be walked is abandoned:
+    // the animal walks back inside the way it came instead of standing at the water's edge in the corridor
+    if (a.transit === -1 && !insideRegion(a.tx, a.tz) && !this.routeOutWalkable(SPECIES[a.sp]!, a.x, a.z)) {
+      const [nx, nz] = outwardNormal(a.x, a.z);
+      a.tx = a.x - nx * (CORRIDOR + 20);
+      a.tz = a.z - nz * (CORRIDOR + 20);
+    }
+    if (a.transit === -1 && !insideRegion(a.tx, a.tz)) this.aimOut(a);
+    else {
+      // inbound, or an exit abandoned for a destination back in the valley: walk to a point inside the wall
+      a.tx = clamp(a.tx, INSIDE, REGION_SIZE - INSIDE);
+      a.tz = clamp(a.tz, INSIDE, REGION_SIZE - INSIDE);
+    }
     a.beh = B.Wander;
     a.want = SPECIES[a.sp]!.walk;
     a.timer = 0.5;
@@ -2415,8 +2454,15 @@ export class Simulation {
     if (this.insideBuilding(x, z)) return false;
     // no animal walks deeper than its wade depth unless it may swim; anything can always retreat toward shallower water
     if (!maySwim(sp, fleeing)) {
-      const d = a?.transit ? this.valley.waterSurface(z) + this.env.stage - this.valley.height(x, z) : this.valley.waterDepth(x, z, this.env.stage);
-      if (d > sp.locomotion.wadeDepth && d >= fromDepth) return false;
+      // beyond the region the corridor has no channel geometry, so depth there is measured against the river surface;
+      // inside the region it is the real depth, as steering reads it. ce83f68 used the surface reading for any animal
+      // in transit, even inside the region, and compared it with the real depth where the animal stood: shallower steps
+      // read as deeper, and steering kept choosing headings the step check refused, pinning animals in the river mouth
+      // for days (amendment 3b)
+      const depthAt = (px: number, pz: number): number => (a?.transit && !insideRegion(px, pz) ? this.valley.waterSurface(pz) + this.env.stage - this.valley.height(px, pz) : this.valley.waterDepth(px, pz, this.env.stage));
+      const d = depthAt(x, z);
+      const from = a?.transit ? depthAt(a.x, a.z) : fromDepth;
+      if (d > sp.locomotion.wadeDepth && d >= from) return false;
     }
     return true;
   }
