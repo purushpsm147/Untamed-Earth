@@ -431,3 +431,66 @@ and no valley outcome metric was consulted.
 
 Regression tests for both are in `tests/unit/open-boundary.test.ts`. The D, E, F and sensitivity runs use the commit that
 adds this amendment.
+
+## Amendment 3b (proposed; needs director approval before any re-run): transit-corridor stall, found by the frozen evaluation
+**Unlike amendment 3a, this comes after results.** The frozen 690-seed evaluation (Actions run 45378622930,
+`docs/ECOLOGY_CONSOLIDATED_REPORT.md` §4 on `ccr-776cce8c-3adley`) found animals stalled in the transit corridor of
+`ce83f68`.
+
+**The `ce83f68` results stay on record unchanged.** Any re-run is a new evaluation, reported beside them, not instead of
+them. **No pre-registered parameter, threshold, configuration, seed or metric changes**; only the corridor walking code
+does. Closed configurations are unaffected: closed-boundary state hashes are identical before and after (seeds 1 and 4,
+10 days, dt 2), because every change applies only to animals in transit.
+
+### Root causes (each reproduced deterministically; each test fails on `ce83f68` and passes with the fix)
+1. **Corner entries aimed outside the wall.** An entrant's destination was moved inward along one axis only. Near a
+   corner the other coordinate stayed outside the wall, for example (20, −12). The animal reached that point and idled,
+   and every transit decision re-issued the same point.
+   **Fix:** the destination is clamped inside the wall on both axes.
+2. **Young entering beside their mother were placed beyond the outer line.** The ± 1 m offset could put them up to 1 m
+   past the line, where every step is refused, so they stood there for the rest of the run.
+   **Fix:** entry positions are clamped to the outer line.
+3. **An exit's route was lost when another behaviour replaced the destination.** A flight ending in rest, or a young
+   following its mother, set the destination to a point inside the corridor. The transit decision kept the animal
+   walking to that point, so it idled there.
+   **Fix:** every transit decision re-establishes the route. Outbound, it re-aims at the outer line. Otherwise
+   (inbound, or an exit abandoned for a destination inside the valley) it aims at a point inside the wall.
+4. **An exit begun in flight could continue into water the animal cannot walk.** Escape swimming is allowed only while
+   fleeing. A hare that fled across the river mouth could neither continue nor turn back once the flight ended.
+   **Fix:** if the rest of the straight exit cannot be walked (the rules `crossingOk` uses), the exit is abandoned and
+   the animal walks back inside. It is counted in `exitAborted`.
+5. **The depth reading for animals in transit was inconsistent.** `ce83f68` measured depth against the river surface
+   for any animal in transit, even inside the region, and compared it with the real depth where the animal stood.
+   Steering, meanwhile, reads the real depth. So steps into shallower water read as deeper, and steering kept choosing
+   headings that the step check refused.
+   **Fix:** the surface reading applies only to points beyond the region, where the corridor has no channel geometry,
+   for both the step and the animal's own position.
+
+### Regression tests (`tests/unit/open-boundary.test.ts`, "transit corridor routes always finish")
+- One scenario per root cause at ticks 0.25 s and 2 s. Each must finish its transit in under 1 game hour.
+- A 20-day open-valley smoke at dt 2 (seed 1):
+  - the longest transit must be under 1 game hour (on `ce83f68`: 6,428 s);
+  - zero starvation or dehydration deaths in the corridor or edge strip.
+- The 60-day smoke suggested in report §4 runs as a probe (below), not in CI, because of the CI time budget raised on
+  PR #35.
+
+### Proposed re-run (needs director approval)
+- **D′, E′, F′** at 60 seeds and **G′** at 30, from the fix commit, with the same variants, days, tick, seeds and
+  analysis script.
+- **A–C** are not re-run.
+- The other sensitivity configurations are re-run only if the director asks for the full grid.
+
+### Evidence: same probe, same seeds, `ce83f68` vs fix
+Read-only probe `benchmarks/ecology/transit-bounds-probe.ts`: configuration D, 160 days, dt 2. Raw output is in
+`docs/evidence/boundary-transit-stall-fix/`.
+
+| Seed | Transit p99, game h (`ce83f68` → fix) | Longest transit, h | Starvation + dehydration deaths in corridor or edge strip |
+|---|---|---|---|
+| 1 | 103.2 → 0.57 | 127.3 → 1.30 | 99 → 0 |
+| 4 | 97.7 → 0.57 | 136.2 → 0.97 | 82 → 0 |
+| 7 | 84.8 → 0.60 | 129.9 → 1.03 | 65 → 0 |
+
+- The median is unchanged at 0.40 h. Predation in the corridor remains (2–4 per seed), and it is legitimate.
+- `benchmarks/ecology/stall-trace.ts` prints the behaviour history of any animal still in transit after 2 game hours.
+  With the fix it finds none on seed 1 over 160 days.
+- **These are mechanism checks, not ecological results.** Population outcomes come only from an approved re-run.

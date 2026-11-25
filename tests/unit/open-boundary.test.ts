@@ -7,7 +7,7 @@ import { CORRIDOR, REGION_SIZE } from '@untamed/worlds';
 const H = SPECIES_INDEX.hare;
 const J = SPECIES_INDEX.jackal;
 const sum = (r: number[]): number => r.reduce((a, b) => a + b, 0);
-type Priv = { stepRegional(): void; crossingOk(sp: unknown, x: number, z: number, f: boolean): boolean };
+type Priv = { stepRegional(): void; crossingOk(sp: unknown, x: number, z: number, f: boolean): boolean; enterValley(a: Animal, x: number, z: number): void };
 const priv = (s: Simulation): Priv => s as unknown as Priv;
 
 function open(seed: number, o: Record<string, unknown> = {}): Simulation {
@@ -243,5 +243,128 @@ describe('open boundary', () => {
     Object.assign(j, { x: -(w - 10), z: 700, homeX: t.x, homeZ: t.z });
     for (let h = 0; h < 200 && j.alive; h++) priv(sim).stepRegional();
     expect(sim.migration!.departed[J]).toBe(0);
+  });
+});
+
+// Amendment 3b: the transit-stall defect found in ce83f68 by the frozen evaluation (docs/ECOLOGY_CONSOLIDATED_REPORT.md
+// §4). Every scenario below stalled for the rest of the run before the fix; each is bounded at 1 game hour (60 s).
+describe('transit corridor routes always finish (amendment 3b)', () => {
+  const insideWall = (a: Animal): boolean => a.x >= 6 && a.z >= 6 && a.x <= REGION_SIZE - 6 && a.z <= REGION_SIZE - 6;
+  /** Clear predators away from a point so no flight interferes with the route under test. */
+  const calm = (sim: Simulation, x: number, z: number): void => {
+    for (const o of sim.animals) if (o.alive && o.sp === J && Math.hypot(o.x - x, o.z - z) < 300) o.alive = false;
+  };
+  /** Steps until the animal is out of transit (inside the wall, or gone off-map); returns game seconds used. */
+  const settle = (sim: Simulation, a: Animal, dt: number): number => {
+    let t = 0;
+    for (; t < 60 && a.alive && !a.off && a.transit; t += dt) sim.step(dt);
+    return t;
+  };
+
+  for (const dt of [0.25, 2]) {
+    it(`an entrant near a corner walks all the way in (tick ${dt} s)`, () => {
+      const sim = open(3);
+      const h = sim.animals.find((a) => a.alive && a.sp === H && a.age > 20)!;
+      sim.animals.splice(sim.animals.indexOf(h), 1); // re-enter it as an arrival would
+      calm(sim, 0, 0);
+      priv(sim).enterValley(h, -CORRIDOR, -12); // west edge, 12 m beyond the south edge as well
+      sim.animals.push(h);
+      expect(insideWall({ ...h, x: h.tx, z: h.tz } as Animal)).toBe(true); // ce83f68 aimed at (20, -12)
+      expect(settle(sim, h, dt)).toBeLessThan(60);
+      expect(h.transit).toBe(0);
+      expect(insideWall(h)).toBe(true);
+    });
+
+    it(`young placed beside an entering mother never start beyond the outer line (tick ${dt} s)`, () => {
+      const sim = open(3);
+      const z = crossingRow(sim);
+      const h = sim.animals.find((a) => a.alive && a.sp === H && a.age > 20)!;
+      sim.animals.splice(sim.animals.indexOf(h), 1);
+      calm(sim, 0, z);
+      priv(sim).enterValley(h, -CORRIDOR - 0.9, z); // the ± 1 m offset given to young entering with their mother
+      sim.animals.push(h);
+      expect(h.x).toBeGreaterThanOrEqual(-CORRIDOR);
+      expect(settle(sim, h, dt)).toBeLessThan(60);
+      expect(insideWall(h)).toBe(true);
+    });
+
+    it(`an exit interrupted when a flight ends in rest resumes and completes (tick ${dt} s)`, () => {
+      const sim = open(3);
+      const z = crossingRow(sim);
+      const h = sim.animals.find((a) => a.alive && a.sp === H && a.age > 20)!;
+      calm(sim, 0, z);
+      // what a flight that carried the hare into the corridor leaves behind: resting, destination = where it stands
+      Object.assign(h, { x: -3, z, px: -3, pz: z, transit: -1, exitKind: 'flee', beh: B.Rest, tx: -3, tz: z, want: 0, speed: 0, timer: 0, fear: 0, hunger: 0.2, thirst: 0.2 });
+      expect(settle(sim, h, dt)).toBeLessThan(60);
+      expect(h.off).toBe(true); // it left the valley
+    });
+
+    it(`an exit abandoned for a destination in the edge strip walks back inside the wall (tick ${dt} s)`, () => {
+      const sim = open(3);
+      const z = crossingRow(sim);
+      const h = sim.animals.find((a) => a.alive && a.sp === H && a.age > 20)!;
+      calm(sim, 0, z);
+      Object.assign(h, { x: -5, z, px: -5, pz: z, transit: -1, exitKind: 'excursion', beh: B.Idle, tx: 3, tz: z, want: 0, speed: 0, timer: 0, fear: 0 });
+      const aborted = sim.migration!.exitAborted[H]!;
+      expect(settle(sim, h, dt)).toBeLessThan(60);
+      expect(insideWall(h)).toBe(true);
+      expect(sim.migration!.exitAborted[H]).toBe(aborted + 1);
+    });
+
+    it(`a hare whose flight carried it into water it cannot walk turns back instead of standing there (tick ${dt} s)`, () => {
+      const sim = open(3);
+      const sp = SPECIES[H]!;
+      // where the river leaves the valley: the crossing can be swum in flight but not walked
+      let x = -1;
+      for (let k = 40; k < REGION_SIZE - 40 && x < 0; k += 3) if (!priv(sim).crossingOk(sp, k, REGION_SIZE - 7, false) && priv(sim).crossingOk(sp, k, REGION_SIZE - 7, true)) x = k;
+      expect(x).toBeGreaterThan(0);
+      const h = sim.animals.find((a) => a.alive && a.sp === H && a.age > 20)!;
+      calm(sim, x, REGION_SIZE);
+      const z = REGION_SIZE + 4;
+      Object.assign(h, { x, z, px: x, pz: z, transit: -1, exitKind: 'flee', beh: B.Forage, tx: x, tz: z, want: 0, speed: 0, timer: 0, fear: 0, hunger: 0.2, thirst: 0.2 });
+      expect(settle(sim, h, dt)).toBeLessThan(60);
+      expect(h.off || insideWall(h)).toBe(true);
+    });
+
+    it(`an animal walking back inside out of the river mouth is not refused by its own depth reading (tick ${dt} s)`, () => {
+      // the state found pinned for days in seed 1 at ce83f68: an exit given up in the river mouth, heading back inside
+      const sim = open(1);
+      const h = sim.animals.find((a) => a.alive && a.sp === H && a.age > 20)!;
+      const x = 611.6;
+      const z = REGION_SIZE + 0.7;
+      calm(sim, x, z);
+      Object.assign(h, { x, z, px: x, pz: z, transit: -1, exitKind: 'flee', beh: B.Wander, tx: x, tz: REGION_SIZE - 20, want: 0, speed: 0, timer: 0, fear: 0, hunger: 0.2, thirst: 0.2 });
+      expect(settle(sim, h, dt)).toBeLessThan(60);
+      expect(insideWall(h)).toBe(true);
+    });
+  }
+
+  it('an open valley at the evaluation tick has no long transits and no starvation or thirst in the corridor (seed 1, 20 days, dt 2)', () => {
+    const sim = open(1);
+    const since = new Map<number, number>();
+    let longest = 0;
+    let corridorDeaths = 0;
+    // observe deaths without changing them: the simulation's own kill, wrapped on this instance only
+    const s = sim as unknown as { kill(a: Animal, cause: string, carcass?: boolean): void };
+    const kill = s.kill.bind(sim);
+    s.kill = (a, cause, carcass) => {
+      if ((cause === 'starvation' || cause === 'dehydration') && (a.transit || !insideWall(a))) corridorDeaths++;
+      kill(a, cause, carcass);
+    };
+    for (let t = 0; t < 20 * 720; t++) {
+      sim.step(2);
+      const now = new Set<number>();
+      for (const a of sim.animals) if (a.alive && !a.off && a.transit) {
+        now.add(a.id);
+        if (!since.has(a.id)) since.set(a.id, t);
+      }
+      for (const [id, t0] of since) if (!now.has(id)) {
+        longest = Math.max(longest, t - t0);
+        since.delete(id);
+      }
+    }
+    for (const t0 of since.values()) longest = Math.max(longest, 20 * 720 - t0);
+    expect(longest * 2).toBeLessThan(3600); // under 1 game hour (ce83f68: some animals stayed in transit for the entire run)
+    expect(corridorDeaths).toBe(0);
   });
 });
