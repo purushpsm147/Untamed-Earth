@@ -62,3 +62,20 @@ Director desk: #36. **Read this file, #36 and #37 first after any restart.**
 - **Next for this session:**
   - after approval, add the D′–G′ entries to `eval/configs.json` and collect the results;
   - otherwise, continue the PR #35 per-animal performance work.
+
+## Checkpoint 2026-11-25 (later, session …SBKW)
+- **DIRECTOR TASK ECO-05** acknowledged (#37, comment 7154300917). Items 1–4 delivered in `23ae221` (#37, comment 7154454475):
+  - every residual `Idle` tick in transit lasts a single tick;
+  - deaths in transit are predation, background or age, with no starvation or dehydration;
+  - the ledger is exact at 0.1, 0.25, 1 and 2 s;
+  - the scenario tests run at all four ticks.
+
+  The re-run stays on hold. RhnJ owns the manifest.
+- **"Flake" label withdrawn** on #34's terrain browser failure. Per QA-01, it is the stale-camera / coarse-placeholder defect fixed by #43.
+- **QA-02 option 2 (#35 timeout): `b122c93`**, a hash-identical speed-up of −11% to −12.5%, merged into #35 as `39305a3`.
+  - Short of the 20% target; option 1 (scheduling) belongs to QA-01.
+  - #35 comment 7155060758.
+- **Next:**
+  - watch the CI result for `39305a3`;
+  - wait for director decisions on the re-run and on M′;
+  - no new work started without a DIRECTOR TASK.
