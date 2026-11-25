@@ -596,10 +596,14 @@ export class CuriosityDirector {
         const ongoing = this.isOngoing(snapshot, currentTracked);
         const maxHold = ongoing ? this.cfg.maxHoldSec * 1.6 : this.cfg.maxHoldSec;
         const holdExpired = this.holdSec >= maxHold;
+        // Hysteresis compares against what the current subject is worth now, but never less than 80% of what it was
+        // worth when chosen: a subject that pauses for a moment is not abandoned at the first opportunity
+        // (browser test gameplay.spec.ts:498 caught switching at exactly minHold).
+        const held = Math.max(this.currentScore, currentTracked.score * 0.8);
         const canPreempt =
           this.holdSec >= this.cfg.minHoldSec &&
           best.key !== currentTracked.key &&
-          best.score >= this.currentScore * this.cfg.switchHysteresis;
+          best.score >= held * this.cfg.switchHysteresis;
 
         if ((holdExpired && best.key !== currentTracked.key) || canPreempt) {
           this.recordCooldown(currentTracked.key, this.cfg.subjectCooldownSec);
@@ -1146,7 +1150,8 @@ export class CuriosityDirector {
         this.relocations++;
         return;
       }
-      // fade in while the shot continues normally below
+      // fade in while the shot continues normally below; the minimum hold counts from when the picture is back
+      if (c.t <= dt) this.holdSec = 0;
       const alpha = clamp(c.t / (this.cfg.fadeInSec * rm), 0, 1);
       if (alpha >= 1) this.cut = null;
       this.glideTo(snapshot, target, dt, alpha);

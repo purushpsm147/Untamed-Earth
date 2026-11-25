@@ -529,4 +529,17 @@ describe('CuriosityDirector', () => {
     };
     expect(run()).toEqual(run());
   });
+
+  it('a subject that pauses is not abandoned at the first opportunity after the minimum hold', () => {
+    const d = new CuriosityDirector({ minHoldSec: 8, maxHoldSec: 30 });
+    d.start({ x: 700, y: 25, z: 540, lookX: 700, lookY: 10, lookZ: 500 });
+    const fleeing = makeAnimal({ id: 1, x: 700, z: 500, beh: 6, speed: 8 });
+    const grazer = makeAnimal({ id: 2, x: 720, z: 505, beh: 2, speed: 0.6 });
+    expect(d.update(makeSnapshot([fleeing, grazer]), 0.1)!.animalId).toBe(1);
+    // the hare stops and rests; a grazing neighbour is now 'more active', but not by enough to abandon the story
+    const resting = { ...fleeing, beh: 5, speed: 0 };
+    for (let i = 0; i < 120; i++) d.update(makeSnapshot([resting, grazer]), 0.1); // 12 s
+    expect(d.getCurrentTarget()!.animalId).toBe(1);
+    expect(d.switches).toBe(1);
+  });
 });
