@@ -1,0 +1,197 @@
+{
+  "autoplay": {
+    "contextsAfter3Restarts": 1
+  },
+  "routing": {
+    "bedNodes": 42,
+    "nodesDuringOneCall": 66,
+    "nodesAfter": 42,
+    "route": {
+      "play": 1,
+      "silent-kind": 0,
+      "unsupported": 1,
+      "out-of-range": 0,
+      "cooldown": 0,
+      "merged": 0,
+      "rate-gate": 0
+    }
+  },
+  "voiceBudget": {
+    "offered": 40,
+    "played": 10,
+    "rejected": 30,
+    "merged": 0,
+    "peakVoices": 8,
+    "fadingAtSample": 2
+  },
+  "determinism": {
+    "ticks": 300,
+    "hash": 2580346954,
+    "reference": 2580346954
+  },
+  "direction": {
+    "HRTF": [
+      {
+        "az": 0,
+        "lrDb": 0
+      },
+      {
+        "az": 90,
+        "lrDb": -11.9
+      },
+      {
+        "az": 180,
+        "lrDb": 0
+      },
+      {
+        "az": -90,
+        "lrDb": 11.9
+      }
+    ],
+    "equalpower": [
+      {
+        "az": 0,
+        "lrDb": 0
+      },
+      {
+        "az": 90,
+        "lrDb": -324.3
+      },
+      {
+        "az": 180,
+        "lrDb": 0
+      },
+      {
+        "az": -90,
+        "lrDb": null
+      }
+    ]
+  },
+  "recording": {
+    "reproducibility": {
+      "hashA": "0f43469f",
+      "hashB": "d60db91c",
+      "maxAbsDiff": 1.862645149230957e-8,
+      "maxDiffDbfs": -154.6,
+      "differingSamples": 2447358,
+      "total": 5760000,
+      "cuesEqual": true,
+      "cues": 37
+    },
+    "renderSpeedX": 16.2,
+    "target": {
+      "t": 41.5,
+      "kind": "alarm",
+      "species": "chital",
+      "d": 45
+    },
+    "hit": {
+      "t": 41.45,
+      "kind": "event-call",
+      "label": "chital-alarm-bark",
+      "species": "chital",
+      "animalId": 30,
+      "why": "alarm event",
+      "provenance": {
+        "source": "sim-event",
+        "event": "alarm",
+        "animalId": 30,
+        "timeH": 837.3583333333203
+      },
+      "distanceM": 45,
+      "azimuthDeg": 45,
+      "terrainOcclusion": 0,
+      "foliageM": 0,
+      "gainDb": -18.4
+    },
+    "eventCalls": 9,
+    "expected": [
+      {
+        "t": 18.6,
+        "kind": "alarm",
+        "species": "hare",
+        "d": 172
+      },
+      {
+        "t": 41.5,
+        "kind": "alarm",
+        "species": "chital",
+        "d": 45
+      },
+      {
+        "t": 42.2,
+        "kind": "alarm",
+        "species": "chital",
+        "d": 42
+      },
+      {
+        "t": 42.6,
+        "kind": "alarm",
+        "species": "chital",
+        "d": 45
+      },
+      {
+        "t": 42.8,
+        "kind": "alarm",
+        "species": "chital",
+        "d": 32
+      },
+      {
+        "t": 43.4,
+        "kind": "alarm",
+        "species": "chital",
+        "d": 41
+      },
+      {
+        "t": 43.5,
+        "kind": "alarm",
+        "species": "chital",
+        "d": 44
+      },
+      {
+        "t": 43.6,
+        "kind": "alarm",
+        "species": "chital",
+        "d": 46
+      },
+      {
+        "t": 43.8,
+        "kind": "alarm",
+        "species": "chital",
+        "d": 39
+      },
+      {
+        "t": 44.8,
+        "kind": "alarm",
+        "species": "chital",
+        "d": 40
+      },
+      {
+        "t": 44.9,
+        "kind": "alarm",
+        "species": "chital",
+        "d": 40
+      },
+      {
+        "t": 49,
+        "kind": "kill",
+        "species": "jackal",
+        "d": 48
+      }
+    ]
+  },
+  "cost": {
+    "frameMsEwma": 0.497,
+    "liveVoices": 11,
+    "peak": 15,
+    "counters": {
+      "eventCalls": 14,
+      "stateCalls": 2,
+      "movement": 302,
+      "thunder": 0,
+      "rejected": 12,
+      "frames": 483,
+      "planMs": 173.79999999993015
+    }
+  }
+}

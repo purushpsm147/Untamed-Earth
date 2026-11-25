@@ -1,6 +1,42 @@
 {
  "dawn-riverbank": {
-  "wavSha256": "bc664d52d2bedf5df26639aa08bd63dc7be72ac5a9c7cf1e8355b34bb1f1d768",
+  "wavSha256": "086edd16d58fa48490483ce7a31baaffeea5a2388501ed54659927db37be1da5",
+  "lufs": -29.1,
+  "truePeakDbfs": -14.4,
+  "octaveBandsDbRel": {
+   "63": -11.4,
+   "125": -7.1,
+   "250": -5.4,
+   "500": -6.4,
+   "1000": -7.5,
+   "2000": -15.1,
+   "4000": -24.6,
+   "8000": -27.2,
+   "16000": -30.2
+  },
+  "counters": {
+   "eventCalls": 17,
+   "stateCalls": 0,
+   "movement": 493,
+   "thunder": 0,
+   "rejected": 12,
+   "frames": 900,
+   "planMs": 180.70000000012806
+  },
+  "poolPeak": 15,
+  "renderSpeed": 9.9,
+  "conditions": {
+   "tick": 1386,
+   "timeH": 846.099999999979,
+   "hour": 6.099999999978991,
+   "weather": "clear",
+   "season": 2,
+   "temperatureC": 20.8
+  },
+  "note": "listener ~12 m from the river channel, river to the right (azimuth +90)"
+ },
+ "dawn-riverbank.lab-state-calls": {
+  "wavSha256": "7c3641452601b4fb90317e277ab46c357c0d2c90302dd4bad1674b06ef30b144",
   "lufs": -29.1,
   "truePeakDbfs": -12.4,
   "octaveBandsDbRel": {
@@ -21,10 +57,10 @@
    "thunder": 0,
    "rejected": 13,
    "frames": 900,
-   "planMs": 201.39999999897555
+   "planMs": 176.59999999939464
   },
   "poolPeak": 17,
-  "renderSpeed": 10.5,
+  "renderSpeed": 10.1,
   "conditions": {
    "tick": 1386,
    "timeH": 846.099999999979,
@@ -36,7 +72,7 @@
   "note": "listener ~12 m from the river channel, river to the right (azimuth +90)"
  },
  "day-meadow-herd": {
-  "wavSha256": "94a7929ab4cf4c4275c1f7a8c131295ee1d9f174076ea0947d3a0d97b1ad08ee",
+  "wavSha256": "051450f8bb3c155f061366903f97d522858dde99c73be049c73498b58b055196",
   "lufs": -42.7,
   "truePeakDbfs": -32.3,
   "octaveBandsDbRel": {
@@ -57,10 +93,10 @@
    "thunder": 0,
    "rejected": 0,
    "frames": 900,
-   "planMs": 186.50000000093132
+   "planMs": 175.40000000054715
   },
   "poolPeak": 4,
-  "renderSpeed": 12.6,
+  "renderSpeed": 11,
   "conditions": {
    "tick": 360,
    "timeH": 828.9999999999945,
@@ -72,7 +108,43 @@
   "note": "listener 18 m from the densest chital cluster (13 deer within 120 m), facing it"
  },
  "dusk-roost": {
-  "wavSha256": "6ff74789c9419511c90b773ab21795f4d6fab546b140410e7a3f1cb2c8f765b1",
+  "wavSha256": "483e0b149cf40fcc52892f82f0d30d4d9efbbf299d76b3ea58d1e2e076992866",
+  "lufs": -41.1,
+  "truePeakDbfs": -28.6,
+  "octaveBandsDbRel": {
+   "63": -12.6,
+   "125": -9.2,
+   "250": -8.6,
+   "500": -9.6,
+   "1000": -9.0,
+   "2000": -8.4,
+   "4000": -5.5,
+   "8000": -17.2,
+   "16000": -24.0
+  },
+  "counters": {
+   "eventCalls": 0,
+   "stateCalls": 0,
+   "movement": 0,
+   "thunder": 0,
+   "rejected": 0,
+   "frames": 900,
+   "planMs": 37.7000000004773
+  },
+  "poolPeak": 0,
+  "renderSpeed": 18.5,
+  "conditions": {
+   "tick": 678,
+   "timeH": 834.2999999999897,
+   "hour": 18.299999999989723,
+   "weather": "clear",
+   "season": 2,
+   "temperatureC": 27.8
+  },
+  "note": "listener 25 m from the densest crow/myna cluster (10 birds within 120 m), facing it"
+ },
+ "dusk-roost.lab-state-calls": {
+  "wavSha256": "f82e147f52be0a65a0953596838a028152f5d4a1c5dd1a279895e7bdbec4e1b7",
   "lufs": -41.0,
   "truePeakDbfs": -26.4,
   "octaveBandsDbRel": {
@@ -93,10 +165,10 @@
    "thunder": 0,
    "rejected": 0,
    "frames": 900,
-   "planMs": 94.00000000186265
+   "planMs": 86.40000000176951
   },
   "poolPeak": 5,
-  "renderSpeed": 14.8,
+  "renderSpeed": 13.6,
   "conditions": {
    "tick": 678,
    "timeH": 834.2999999999897,
@@ -108,18 +180,18 @@
   "note": "listener 25 m from the densest crow/myna cluster (10 birds within 120 m), facing it"
  },
  "night-wetland": {
-  "wavSha256": "83b4674c9a9f9533546f5a1eccc493036ab8d4d1c4bbe4a5ecb849da33ff8ede",
+  "wavSha256": "04efe4cfc05f648fac55ca565f93651f3c2874974218ce4c73a803929d5cae70",
   "lufs": -39.9,
   "truePeakDbfs": -27.1,
   "octaveBandsDbRel": {
-   "63": -12.4,
-   "125": -10.4,
-   "250": -9.3,
+   "63": -12.5,
+   "125": -10.5,
+   "250": -9.4,
    "500": -9.1,
-   "1000": -11.0,
-   "2000": -18.8,
-   "4000": -2.9,
-   "8000": -46.7,
+   "1000": -10.9,
+   "2000": -18.7,
+   "4000": -2.8,
+   "8000": -46.6,
    "16000": -58.3
   },
   "counters": {
@@ -129,10 +201,10 @@
    "thunder": 0,
    "rejected": 0,
    "frames": 900,
-   "planMs": 56.90000000083819
+   "planMs": 30.700000000186265
   },
   "poolPeak": 0,
-  "renderSpeed": 20.6,
+  "renderSpeed": 19.7,
   "conditions": {
    "tick": 900,
    "timeH": 837.9999999999864,
@@ -144,31 +216,31 @@
   "note": "listener at the wetland edge, facing its centre"
  },
  "predator-alarm": {
-  "wavSha256": "a502f783368a4f44d7341b24b1dec0add3d23550b7f97e2b685f72162207ba15",
-  "lufs": -40.1,
-  "truePeakDbfs": -22.0,
+  "wavSha256": "ebc3fae509225507b2837c751f92fbdb9b6d38a0aabe8993607bb10904510786",
+  "lufs": -40.0,
+  "truePeakDbfs": -21.9,
   "octaveBandsDbRel": {
-   "63": -13.3,
-   "125": -11.5,
-   "250": -10.8,
-   "500": -9.5,
-   "1000": -10.6,
-   "2000": -16.9,
+   "63": -13.1,
+   "125": -11.4,
+   "250": -10.6,
+   "500": -9.6,
+   "1000": -10.7,
+   "2000": -17.0,
    "4000": -2.4,
-   "8000": -43.5,
+   "8000": -43.6,
    "16000": -53.0
   },
   "counters": {
    "eventCalls": 9,
    "stateCalls": 0,
-   "movement": 173,
+   "movement": 174,
    "thunder": 0,
    "rejected": 0,
    "frames": 1200,
-   "planMs": 124.50000000419095
+   "planMs": 87.59999999869615
   },
   "poolPeak": 9,
-  "renderSpeed": 18.6,
+  "renderSpeed": 16.1,
   "conditions": {
    "tick": 820,
    "timeH": 836.6666666666542,
@@ -180,31 +252,31 @@
   "note": "look-ahead (23 window(s)) found 15 alarm/kill events; listener 45 m from the alarm by chital at t=41.5 s, which should be ~45 degrees to the right"
  },
  "rain-forest-edge": {
-  "wavSha256": "bda3bbfd1d5e8d544790f447e0812536df9d0efcc87b17480c54cfbaa97c2480",
-  "lufs": -31.1,
-  "truePeakDbfs": -22.3,
+  "wavSha256": "f243dedb2df26d4c0fb2185d77baa3e9d6d733172f5d8f92634e543cdbc72bc5",
+  "lufs": -30.8,
+  "truePeakDbfs": -21.3,
   "octaveBandsDbRel": {
-   "63": -17.9,
-   "125": -15.0,
-   "250": -14.4,
+   "63": -17.6,
+   "125": -14.8,
+   "250": -14.2,
    "500": -14.2,
    "1000": -10.8,
-   "2000": -6.4,
+   "2000": -6.3,
    "4000": -4.8,
-   "8000": -7.1,
-   "16000": -14.2
+   "8000": -7.2,
+   "16000": -14.3
   },
   "counters": {
    "eventCalls": 6,
-   "stateCalls": 4,
+   "stateCalls": 0,
    "movement": 0,
    "thunder": 0,
    "rejected": 0,
    "frames": 900,
-   "planMs": 75.90000000130385
+   "planMs": 42.500000000349246
   },
   "poolPeak": 2,
-  "renderSpeed": 20.9,
+  "renderSpeed": 18.8,
   "conditions": {
    "tick": 1827,
    "timeH": 853.4499999999723,

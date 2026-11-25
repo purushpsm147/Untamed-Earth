@@ -180,7 +180,9 @@ test.describe('ecological soundscape lab', () => {
 
   test('cost: live frame cost with every layer on stays inside the 2 ms budget (software container)', async ({ page }) => {
     await open(page);
-    await page.selectOption('#alScenario', 'dusk-roost');
+    // worst case: the busiest scene (fleeing herd + alarms) with every layer on, including lab-only state calls
+    await page.evaluate(() => window.__audioLab.setToggles({ stateCalls: true }));
+    await page.selectOption('#alScenario', 'dawn-riverbank');
     await page.click('#alStart');
     await page.waitForFunction(() => window.__audioLab.state()?.running === true, null, { timeout: 60_000 });
     await page.waitForTimeout(8000);
