@@ -24,6 +24,8 @@ export interface Recording {
   buffer: AudioBuffer;
   cues: Cue[];
   meta: {
+    seed: number;
+    title: string;
     note: string;
     conditions: ReturnType<typeof prepareScenario>['conditions'];
     listener: { x: number; y: number; z: number; yaw: number };
@@ -112,7 +114,7 @@ export async function renderScenario(sc: AudioScenario, o: RenderOptions = {}): 
   return {
     scenario: sc.id, seconds, sampleRate: SAMPLE_RATE, buffer, cues,
     meta: {
-      note: prep.note, conditions: prep.conditions, listener: prep.listener, expected: prep.expected,
+      seed: sc.seed, title: sc.title, note: prep.note, conditions: prep.conditions, listener: prep.listener, expected: prep.expected,
       simTickStart: startTick, simTickEnd: sim.tick, simHashEnd: sim.stateHash(),
       counters: tel.counters, route: tel.route, poolPeak: tel.poolPeak, releasedDuringRender: released,
       prepareMs: Math.round(t1 - t0), scheduleMs: Math.round(t2 - t1), renderMs: Math.round(t3 - t2), // renderMs includes the windowed scheduling
