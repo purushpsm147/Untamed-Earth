@@ -79,3 +79,9 @@ Director desk: #36. **Read this file, #36 and #37 first after any restart.**
   - watch the CI result for `39305a3`;
   - wait for director decisions on the re-run and on M′;
   - no new work started without a DIRECTOR TASK.
+- **2026-11-25 ECO-07** (#37, comments 7162849241 and the proposal after it):
+  - Neighbour pruning measured and rejected: at most about 2% of runtime, and 8,842 drifted neighbours would be missed without a drift bound.
+  - Proposed a flat bucket-sorted spatial hash on branch `perf/csr-spatial-hash` @ `6ad43e6`.
+    - Hash-identical, with a call-by-call equivalence test.
+    - −14.5% on open-boundary code and −7.7% on #35 code.
+  - **Not merged into #34 or #35;** awaiting the director. Stopped per ECO-07.
