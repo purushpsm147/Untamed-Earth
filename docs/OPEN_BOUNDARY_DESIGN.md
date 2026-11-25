@@ -494,3 +494,27 @@ Read-only probe `benchmarks/ecology/transit-bounds-probe.ts`: configuration D, 1
 - `benchmarks/ecology/stall-trace.ts` prints the behaviour history of any animal still in transit after 2 game hours.
   With the fix it finds none on seed 1 over 160 days.
 - **These are mechanism checks, not ecological results.** Population outcomes come only from an approved re-run.
+
+### Gate evidence for DIRECTOR TASK ECO-05 (`fdf0857` simulation code)
+Read-only probe `benchmarks/ecology/transit-gates-probe.ts` on configuration D. Raw output is in
+`docs/evidence/boundary-transit-gates/`.
+
+| Run | Ticks with an animal in transit | `Idle` ticks in transit (longest run) | Longest transit | Deaths in transit or edge strip | Ledger |
+|---|---|---|---|---|---|
+| seed 1, 160 d, dt 2 | 33,797 | 20 (1 tick = 2 s) | 78 s | 3 predation | 339 = 339 |
+| seed 4, 160 d, dt 2 | 57,994 | 20 (1 tick = 2 s) | 58 s | 4 predation, 1 age | 515 = 515 |
+| seed 1, 30 d, dt 1 | 22,600 | 35 (1 tick = 1 s) | 65 s | 1 background | 374 = 374 |
+| seed 1, 10 d, dt 0.25 | 37,605 | 0 | 52 s | 1 predation | 361 = 361 |
+| seed 1, 5 d, dt 0.1 | 37,404 | 0 | 48 s | 0 | 316 = 316 |
+
+(1 s of simulation = 1 game minute.)
+
+- **Residual `Idle`.** Every occurrence is a single tick, and 74 of the 75 are outbound with `want` = 0. The next transit decision
+  (timer 0) re-aims the animal at the outer line. They never accumulate, and none occur at 0.1 or 0.25 s.
+  `ce83f68` had 33,728 `Idle` jackal samples out of 35,167 in transit (RhnJ's count).
+- **Deaths in transit.** Predation (jackals catching hares in the corridor), plus the background and age hazards, which do not
+  depend on location. There are no starvation or dehydration deaths at any tick.
+- **Conservation.** The ledger balances at all four ticks:
+  > on-map + off-map = founders + initial regional + births − deaths − departures
+- **Scenario tests.** The amendment 3b scenario tests now run at all four ticks (0.1, 0.25, 1 and 2 s). The boundary test
+  file passes 44/44.
