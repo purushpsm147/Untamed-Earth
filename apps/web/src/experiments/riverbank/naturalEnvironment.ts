@@ -59,8 +59,9 @@ function patchTerrain(mat: THREE.MeshStandardMaterial, uStage: { value: number }
         float mott = nn(vWp.xz * 2.3) * 0.55 + nn(vWp.xz * 5.9) * 0.3 + nn(vWp.xz * 13.0) * 0.15;
         float near = 1.0 - smoothstep(25.0, 90.0, camD);
         vec3 soil = vec3(0.16, 0.13, 0.085);
-        diffuseColor.rgb = mix(diffuseColor.rgb, soil, grassy * smoothstep(0.52, 0.8, mott) * 0.55 * near);
-        diffuseColor.rgb *= mix(1.0, 0.82 + 0.3 * mott, near * grassy);
+        float cover = max(grassy, 0.6);
+        diffuseColor.rgb = mix(diffuseColor.rgb, soil, cover * smoothstep(0.52, 0.8, mott) * 0.55 * near);
+        diffuseColor.rgb *= mix(1.0, 0.82 + 0.3 * mott, near * cover);
         // riverbank: wet silt above the waterline, darker damp band, then the riverbed below it
         bankH = vWp.y - (waterLevel(vWp.z) + uStage);
         float pebble = nn(vWp.xz * 7.0) * 0.5 + nn(vWp.xz * 19.0) * 0.5;
@@ -281,9 +282,11 @@ void main() {
   // aerial perspective: exponential haze thinning with height (valley air is densest near the river)
   float hMid = max(0.5 * (uCam.y + (sky ? uCam.y + 200.0 : wp.y)) - 3.0, 0.0);
   float dens = uDensity * exp(-hMid * 0.025);
-  float fogAmt = sky ? 0.0 : 1.0 - exp(-dist * dens);
+  // capped: production's material fog already carries the far field; a strong post haze on distant ridges would
+  // lift them above the sky beside them and draw a halo along the skyline
+  float fogAmt = sky ? 0.0 : min(1.0 - exp(-dist * dens), 0.45) * (1.0 - smoothstep(350.0, 900.0, dist) * 0.6);
   float sunAmt = pow(max(dot(dir, uSunDir), 0.0), 6.0);
-  vec3 inscatter = mix(uFogCol, uFogCol * 0.6 + uSunCol * 0.55, sunAmt * uDay);
+  vec3 inscatter = mix(uFogCol, uFogCol * 0.85 + uSunCol * 0.25, sunAmt * uDay);
   col = mix(col, inscatter, fogAmt);
   vec3 rawSky = col;
   gl_FragColor = vec4(col, 1.0);
