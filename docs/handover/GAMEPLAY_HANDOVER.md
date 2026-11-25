@@ -157,6 +157,15 @@ CI on PR #45 (`40f8371`, run 45399663928): 24/25 browser tests; the failure is t
 Shared-file coordination (DIRECTOR TASK OPS-02: QA owns shared e2e helpers): UX-01 made two additive edits to
 `tests/e2e/helpers.ts` (field-guide flag in `enter()`, `debugCuriosity` type); recorded with QA-01 and on PR #45.
 
+### Context loss (DIRECTOR TASK UX-02)
+On `webglcontextlost` the game sets `contextLost`: from that frame nothing is simulated or rendered; automatic saves
+(120 s autosave, `pagehide`, hidden tab) are refused; the chosen speed is left unchanged and nothing resumes on its own
+(including on `webglcontextrestored`). The error card offers an explicit **Save world** (the frozen moment of loss)
+and Reload. Regression: `experience.spec.ts` "WebGL context loss stops the world": on the previous code the tick ran
+on after the loss (344 -> 647 in 3 s at 100x); now it holds, no autosave is written, the explicit save holds the tick
+of the loss and Continue restores it. Limitation: SwiftShader's `WEBGL_lose_context` stands in for a real driver
+reset; no physical GPU reset tested.
+
 ## 4. Outstanding / next
 - Director review of PR #45 and the decisions listed there (cut thresholds, "why this shot" captions default on).
 - Human review on real hardware: motion comfort of glides/cuts, readability of HUD at 1080p and on a phone, screen

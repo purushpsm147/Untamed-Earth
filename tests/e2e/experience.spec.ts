@@ -239,4 +239,51 @@ test.describe('Living Valley V1 experience', () => {
     await expect(page.locator('#coach')).toBeVisible();
     expect(p.errors).toEqual([]);
   });
+
+  test('WebGL context loss stops the world: no ticks at 100x, no autosave, explicit save keeps the moment of loss (UX-02)', async ({ page, context }) => {
+    const p = watch(page);
+    await enter(page, { seed: 4 });
+    const slot = (pg: typeof page): Promise<{ tick: number } | null> => pg.evaluate(() => new Promise((res) => {
+      const req = indexedDB.open('untamed-earth', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('saves');
+      req.onsuccess = () => {
+        const tx = req.result.transaction('saves', 'readonly');
+        const get = tx.objectStore('saves').get('slot1');
+        get.onsuccess = () => { const v = get.result as { data?: { sim?: { tick: number } } } | undefined; req.result.close(); res(v?.data?.sim ? { tick: v.data.sim.tick } : null); };
+        get.onerror = () => res(null);
+      };
+      req.onerror = () => res(null);
+    }));
+    expect(await slot(page)).toBeNull(); // fresh profile: nothing saved yet
+    await g(page, (G) => G.setSpeed(100));
+    await expect.poll(() => g(page, (G) => G.sim.tick as number), { timeout: 30_000 }).toBeGreaterThan(200);
+    // the browser loses the GPU context (same event a driver reset produces)
+    await page.evaluate(() => (window as any).__untamed.engine.renderer.getContext().getExtension('WEBGL_lose_context').loseContext()); // eslint-disable-line @typescript-eslint/no-explicit-any
+    await expect(page.locator('#fatal')).toBeVisible({ timeout: 10_000 });
+    const t0 = await g(page, (G) => G.sim.tick as number);
+    await page.waitForTimeout(3000);
+    const after = await g(page, (G) => ({ tick: G.sim.tick as number, speed: G.speed, lost: (G as any).contextLost as boolean })); // eslint-disable-line @typescript-eslint/no-explicit-any
+    expect(after.tick).toBe(t0); // the world stopped at the loss, even at 100x
+    expect(after.speed).toBe(100); // the player's chosen speed is preserved, not rewritten
+    expect(after.lost).toBe(true);
+    await expect(page.locator('#btnSaveLost')).toBeVisible();
+    // automatic saves are blocked: leaving the page or hiding the tab must not write the post-loss world
+    await page.evaluate(() => { window.dispatchEvent(new Event('pagehide')); document.dispatchEvent(new Event('visibilitychange')); });
+    await page.waitForTimeout(1000);
+    expect(await slot(page)).toBeNull();
+    // an explicit save stores exactly the moment of loss
+    await page.click('#btnSaveLost');
+    await expect(page.locator('#btnSaveLost')).toHaveText('Saved', { timeout: 15_000 });
+    expect((await slot(page))!.tick).toBe(t0);
+    // and Continue restores it, paused at the same tick, with a working context
+    await page.close();
+    const page2 = await context.newPage();
+    const p2 = watch(page2);
+    await page2.goto('/?qa=1');
+    await page2.click('#btnContinue');
+    await expect(page2.locator('#hud')).toBeVisible({ timeout: 120_000 });
+    expect(await g(page2, (G) => G.sim.tick as number)).toBe(t0);
+    expect(await g(page2, (G) => (G as any).contextLost as boolean)).toBe(false); // eslint-disable-line @typescript-eslint/no-explicit-any
+    expect([...p.errors, ...p2.errors]).toEqual([]);
+  });
 });

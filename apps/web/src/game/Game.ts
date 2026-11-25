@@ -162,6 +162,8 @@ export class Game {
   private readonly abort = new AbortController();
   readonly pacer = new FramePacer();
   private lastRaf = 0;
+  /** Set when the WebGL context is lost: simulation, rendering and automatic saves stop for good (reload to resume). */
+  contextLost = false;
 
   constructor(canvas: HTMLCanvasElement, readonly sim: Simulation, readonly worldId: string, private readonly gfx: GraphicsChoice, private readonly input: Input, private readonly audio: AudioEngine,
     private readonly hooks: { fatal: (msg: string) => void; restart: (seed: number, save?: SaveData) => void }, save?: SaveData) {
@@ -203,7 +205,15 @@ export class Game {
     }));
     canvas.addEventListener('webglcontextlost', (ev) => {
       ev.preventDefault();
-      this.hooks.fatal('The graphics context was lost (the GPU driver reset or ran out of memory). Reload to continue; your last autosave is intact.');
+      // DIRECTOR TASK UX-02: the world stops where it was. No further simulation, rendering or automatic saves (an
+      // autosave of a world that kept running unseen would overwrite the last good save). The player's chosen speed
+      // is left as it was; nothing resumes on its own, even if the browser restores the context.
+      this.contextLost = true;
+      this.simAcc = 0;
+      this.hooks.fatal('The graphics context was lost (the GPU driver reset or ran out of memory). The world has been stopped where it was. Your last autosave is intact; you can also save the world as it was at this moment, then reload.');
+      const b = $('btnSaveLost');
+      b.classList.remove('hidden');
+      b.onclick = () => void this.save(false).then((ok) => { b.textContent = ok ? 'Saved' : 'Save failed — try again'; });
     }, { signal: this.abort.signal });
     window.addEventListener('resize', () => this.engine.resize(), { signal: this.abort.signal });
     window.addEventListener('pagehide', () => void this.save(true), { signal: this.abort.signal });
@@ -648,16 +658,20 @@ export class Game {
   }
 
   // ---------------------------------------------------------------- persistence
-  async save(silent: boolean): Promise<void> {
+  async save(silent: boolean): Promise<boolean> {
+    // automatic (silent) saves never run after a context loss; an explicit save by the player still does
+    if (silent && this.contextLost) return false;
     try {
       const data: SaveData = { worldId: this.worldId, sim: this.sim.snapshot(), cam: { x: this.cam.x, y: this.cam.y, z: this.cam.z, yaw: this.cam.yaw, pitch: this.cam.pitch, roll: this.cam.roll, fov: this.engine.camera.fov }, chronicle: this.chronicle.snapshot() };
       await this.store.put(SAVE_SLOT, sealEnvelope(data, SAVE_FORMAT, SAVE_VERSION, Date.now()));
       $('mSaveInfo').textContent = `Saved ${new Date().toLocaleTimeString()} (day ${this.sim.env.day})`;
       if (!silent) toast('World saved to this browser.');
+      return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       $('mSaveInfo').textContent = `Not saved: ${msg}`;
       if (!silent) toast(`Could not save: ${msg}`, true);
+      return false;
     }
   }
 
@@ -853,6 +867,7 @@ export class Game {
   private frame = (now: number): void => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.frame);
+    if (this.contextLost) return;
     // frame pacing: on displays faster than the chosen target, only every n-th callback renders
     const rafDelta = now - this.lastRaf;
     this.lastRaf = now;
