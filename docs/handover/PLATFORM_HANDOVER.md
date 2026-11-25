@@ -197,7 +197,7 @@ Green CI is a precondition only. **It does not complete M5.**
 | B2 | Hardware re-run after `c86a691`, on the Victus with both GPUs | owner (device) | `?profile=1` JSON with `build.sha`, `auto.keptQualityUnderLoad` |
 | B3 | Midrange Android and iOS phones: touch, 30 fps, thermal | owner (devices) | `HARDWARE_VALIDATION.md` §C reports |
 | B4 | Firefox and Safari/WebKit runs; real gamepad | owner + QA-01 (adding WebKit/Firefox projects to CI needs a director decision) | Reports or CI projects |
-| B5 | ≥ 30 min live soak; > 20 restarts; context-loss handling; memory slope | QA-01 (software), owner (hardware) | Soak report |
+| B5 | ≥ 30 min live soak; > 20 restarts; context-loss handling; memory slope | QA-01 (software: **done**, `docs/evidence/soak/`, `ee9545d`), owner (hardware: open) | Hardware soak report |
 | B6 | Offline launch / storage-failure behaviour: **not implemented** (no service worker) | director decision | Decide whether it is in beta scope |
 | B7 | Ecological audio listened to by a human | AUD-01 + owner | Recordings + listening notes |
 | B8 | Presentation human-accepted for a public beta | VIS-01/UX-01 + owner | Screenshots/video + acceptance |
@@ -210,6 +210,15 @@ Green CI is a precondition only. **It does not complete M5.**
   to be coordinated per OPS-02), `package.json` scripts and `playwright.config.ts` projects (#44, #45). Merge order per §6 rule 4: #43 first.
 - **Product finding from AUD-01:** production `AudioEngine.update()` plays count-driven random calls. That is an invented-call violation,
   tracked by AUD-01 for integration.
+
+## 8b. DIRECTOR TASK QA-02 results (2026-11-25)
+- **#34 browser failure (job 138904227386):** the same mechanism as run 322 (`mismatched` 94 vs 97, same assertion). #34 head `fdf0857`
+  contains neither #43 fix and does not touch the terrain path. Remedy: merge #43, then merge the integration branch into #34. ECO-01 withdrew its flake label (#37).
+- **#35 100-day ecology timeout (job 138905305806):** runner speed variance (the same SHA `70f7903` passed in run 383 at 69.6 s and timed out in run 382)
+  plus a larger, intended population (end population 292 vs 257; same cost per animal). Local: base isolated 66.7 s, #35 isolated 75.8 s,
+  #35 full suite 81.5 s. Scheduling trial (ecology file alone in vitest group 0): 78.1 s (−4%) for +28% suite wall time, **not adopted**.
+  ECO-01 is taking a semantics-preserving `decide`/`steer` speed-up (≥ 20%, identical hashes). Timeout unchanged.
+- **Soak:** 30 min live, 25 restarts and context loss all pass on `ee9545d` (`docs/QA.md` soak section). P3 finding: the simulation keeps running after context loss.
 
 ## 9. Next QA-01 steps
 1. ~~Get PR #43 green on CI~~ (done: `07dd3aa`, runs 384/385). Director review and merge restores B1. Then confirm two green integration runs on the merge SHA.

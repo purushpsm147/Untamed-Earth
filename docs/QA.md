@@ -20,6 +20,21 @@ Victus 16: Radeon Vega 8 iGPU and RTX 3060 Laptop, Edge 157, 2026-11-15), archiv
 56 s in CI vs 2.9–4.4 min here; seeded random interaction 54 s vs > 240 s, about 3.7 s per action, steady progress to action ~64 of 80, no hang).
 Timeouts that only trip here are recorded as environment, not product, and no test timeout was changed.
 
+## Soak evidence (QA-02, 2026-11-25, `ee9545d`, software-rendered: object counts and trends only)
+Opt-in project `npx playwright test --project=soak` (`tests/soak/soak.spec.ts`; `SOAK_MINUTES`, `SOAK_RESTARTS`). Not part of `test:e2e` or CI.
+Raw samples: `docs/evidence/soak/*-2026-11-25.json`. Result: **3/3 passed in 40.1 min.**
+
+| Test | Result |
+|---|---|
+| 30 min live run (seed 1, Curiosity Mode, 10x), 57 samples every 30 s | 58,099 ticks; no page errors, no fatal; JS heap after GC 23–29 MB, second-half slope **−0.15 MB/min**; live WebGL buffers vary 411–693 with streaming, second-half slope −0.31/min; textures ≤ 5, programs ≤ 13; **0 frames > 2 s** (SwiftShader frame p50/p95 300/367 ms: not a performance claim) |
+| 25 world restarts (seed 11, same pose) | live WebGL objects **identical on all 26 loads** (305 buffers, 5 textures, 11 programs, 65 VAOs, 3 framebuffers); renderer geometries identical; heap after GC 20.2–21.6 MB, slope +0.03 MB/restart (noise) |
+| WebGL context loss (`WEBGL_lose_context`) | recoverable message shown, no page error while the loop keeps running against the lost context; Reload → Continue restores a readable world from the **manual save** (tick 266), not the post-loss state |
+
+**Finding (P3, for UX-01 / director):** after a context loss the simulation keeps running behind the error message
+(tick 457 → 985 in 5 s at 100x) although nothing is shown. That unseen progress was not persisted in this run (the
+manual save was restored), but whether it is persisted depends on whether an autosave or the `pagehide` save completes
+first. Suggest pausing the simulation when the context is lost. Not changed by QA-01 (product behaviour, `Game.ts` is UX-01's).
+
 ## Gate status on 2026-11-16 (history)
 | Check | Where | Result |
 |---|---|---|

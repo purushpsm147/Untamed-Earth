@@ -96,7 +96,8 @@ npm run bench                                     # G8: simulation cost per tick
 ## Status at `3a0e7f9` + PR #43 (2026-11-24, QA-01)
 - §1: 1.1–1.4 pass locally. Integration CI on `3a0e7f9` is red ([run 322](https://github.com/purushpsm147/Untamed-Earth/actions/runs/44116004501)). PR #43 head `07dd3aa` is green twice (runs 384, 385: 135 unit, 21/21 browser). 1.6/1.7 stay open for the integration branch until #43 is merged and the merge SHA is green twice.
 - §2: SW evidence exists in the unit suites.
-- §3: HW evidence exists for one laptop (Vega 8, RTX 3060 Laptop) on a build before `c86a691`. 3.3 (CPU-only load), 3.4, 3.6 and 3.7 are open.
+- §3: HW evidence exists for one laptop (Vega 8, RTX 3060 Laptop) on a build before `c86a691`. 3.6 has SW evidence (30 min live soak, 25 restarts, `docs/evidence/soak/`, `ee9545d`); its HW part, 3.3 (CPU-only load), 3.4 and 3.7 are open.
+- §4: 4.7 has SW evidence (context loss: recoverable message, no page errors, last save restores).
 - §4: only Chromium on Windows (the owner's laptop) and SwiftShader Chromium on Linux. Everything else is open.
 - §5: nothing human-accepted.
 - §6: no P0/P1 known to QA-01. Formal triage is not done.

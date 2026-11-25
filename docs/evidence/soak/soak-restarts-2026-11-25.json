@@ -1,0 +1,418 @@
+{
+ "meta": {
+  "sha": "ee9545df507359be068c1e2e6f755b4665ae6d35",
+  "date": "2026-11-25",
+  "environment": "Linux container, 4 cores, Node 22, headless Chromium 153, SwiftShader (software rasteriser, no GPU); NOT hardware evidence",
+  "command": "npx playwright test --project=soak --trace off",
+  "result": "3/3 passed in 40.1 min"
+ },
+ "summary": {
+  "restarts": 25,
+  "glFirst": {
+   "buffer": 305,
+   "texture": 5,
+   "program": 11,
+   "shader": 0,
+   "vao": 65,
+   "framebuffer": 3,
+   "renderbuffer": 0
+  },
+  "glDistinct": 1,
+  "geometriesDistinct": 1,
+  "heapSlopeMBperRestart_from2": 0.026954326214997666,
+  "heapMin": 20.210826873779297,
+  "heapMax": 21.63196086883545
+ },
+ "runs": [
+  {
+   "run": 0,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 20.11436653137207,
+   "geometries": 64,
+   "ms": 0
+  },
+  {
+   "run": 1,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 20.042037963867188,
+   "geometries": 64,
+   "ms": 19678
+  },
+  {
+   "run": 2,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 20.210826873779297,
+   "geometries": 64,
+   "ms": 20666
+  },
+  {
+   "run": 3,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 20.996219635009766,
+   "geometries": 64,
+   "ms": 20742
+  },
+  {
+   "run": 4,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 20.576068878173828,
+   "geometries": 64,
+   "ms": 20611
+  },
+  {
+   "run": 5,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.13457489013672,
+   "geometries": 64,
+   "ms": 21096
+  },
+  {
+   "run": 6,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.236812591552734,
+   "geometries": 64,
+   "ms": 22172
+  },
+  {
+   "run": 7,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 20.66073989868164,
+   "geometries": 64,
+   "ms": 21323
+  },
+  {
+   "run": 8,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.386363983154297,
+   "geometries": 64,
+   "ms": 20272
+  },
+  {
+   "run": 9,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.426170349121094,
+   "geometries": 64,
+   "ms": 18502
+  },
+  {
+   "run": 10,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 20.9227294921875,
+   "geometries": 64,
+   "ms": 19177
+  },
+  {
+   "run": 11,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.54363250732422,
+   "geometries": 64,
+   "ms": 19934
+  },
+  {
+   "run": 12,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.504417419433594,
+   "geometries": 64,
+   "ms": 21800
+  },
+  {
+   "run": 13,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.567615509033203,
+   "geometries": 64,
+   "ms": 20066
+  },
+  {
+   "run": 14,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.539451599121094,
+   "geometries": 64,
+   "ms": 21701
+  },
+  {
+   "run": 15,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.0740966796875,
+   "geometries": 64,
+   "ms": 20762
+  },
+  {
+   "run": 16,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.615272521972656,
+   "geometries": 64,
+   "ms": 19476
+  },
+  {
+   "run": 17,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.014792442321777,
+   "geometries": 64,
+   "ms": 20674
+  },
+  {
+   "run": 18,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 20.962817192077637,
+   "geometries": 64,
+   "ms": 22238
+  },
+  {
+   "run": 19,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.144701957702637,
+   "geometries": 64,
+   "ms": 21290
+  },
+  {
+   "run": 20,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.020922660827637,
+   "geometries": 64,
+   "ms": 21348
+  },
+  {
+   "run": 21,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.63196086883545,
+   "geometries": 64,
+   "ms": 23296
+  },
+  {
+   "run": 22,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.569640159606934,
+   "geometries": 64,
+   "ms": 23646
+  },
+  {
+   "run": 23,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.584609031677246,
+   "geometries": 64,
+   "ms": 21668
+  },
+  {
+   "run": 24,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.62338924407959,
+   "geometries": 64,
+   "ms": 21550
+  },
+  {
+   "run": 25,
+   "gl": {
+    "buffer": 305,
+    "texture": 5,
+    "program": 11,
+    "shader": 0,
+    "vao": 65,
+    "framebuffer": 3,
+    "renderbuffer": 0
+   },
+   "heapMB": 21.02827739715576,
+   "geometries": 64,
+   "ms": 21565
+  }
+ ]
+}
