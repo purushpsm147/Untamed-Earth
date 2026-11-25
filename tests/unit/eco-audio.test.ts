@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SPECIES, Simulation, onAudioEvents, type EcoAudioEvent } from '@untamed/ecology';
 import { airAbsorptionCutoff, azimuth, inverseGain, occlusion, type WorldSampler } from '../../apps/web/src/audio/eco/acoustics';
 import { CallRouter } from '../../apps/web/src/audio/eco/callRouter';
+import { PLANNER_DEFAULTS } from '../../apps/web/src/audio/eco/planner';
 import { FrameBuilder, worldSampler } from '../../apps/web/src/audio/eco/observation';
 import { SoundscapePlanner, chirpRate, dayPart, type AnimalObs, type SoundscapeFrame, type VoiceRequest } from '../../apps/web/src/audio/eco/planner';
 import { CALL_PROFILES, SILENT, profileFor } from '../../apps/web/src/audio/eco/repertoire';
@@ -177,17 +178,18 @@ describe('SoundscapePlanner: environment-driven beds and day-part variation', ()
   });
   it('state-derived calls come only from real nearby animals in a matching state, and stop above 10x', () => {
     const crows = Array.from({ length: 6 }, (_, i) => obs({ id: i + 1, x: 20 + i, behavior: 'graze' }));
-    const day = run(new SoundscapePlanner(4), frame({ animals: crows }), 120).filter((r) => r.type === 'call');
+    const lab = { stateCalls: true };
+    const day = run(new SoundscapePlanner(4, lab), frame({ animals: crows }), 120).filter((r) => r.type === 'call');
     expect(day.length).toBeGreaterThan(2);
     for (const r of day) expect(crows.some((c) => c.id === r.animalId)).toBe(true);
     const resting = crows.map((c) => ({ ...c, behavior: 'rest' as const }));
-    expect(run(new SoundscapePlanner(4), frame({ animals: resting }), 120).filter((r) => r.type === 'call')).toHaveLength(0);
-    expect(run(new SoundscapePlanner(4), frame({ animals: crows, simRate: 100 }), 120).filter((r) => r.type === 'call')).toHaveLength(0);
+    expect(run(new SoundscapePlanner(4, lab), frame({ animals: resting }), 120).filter((r) => r.type === 'call')).toHaveLength(0);
+    expect(run(new SoundscapePlanner(4, lab), frame({ animals: crows, simRate: 100 }), 120).filter((r) => r.type === 'call')).toHaveLength(0);
   });
   it('a jackal chorus is joined only by awake members of the same group', () => {
     const night = { hour: 21, sunEl: -0.4, daylight: 0 };
     const jackals = [obs({ id: 1, species: 'jackal', group: 7, behavior: 'wander', x: 200 }), obs({ id: 2, species: 'jackal', group: 7, behavior: 'wander', x: 210 }), obs({ id: 3, species: 'jackal', group: 8, behavior: 'rest', x: 205 })];
-    const reqs = run(new SoundscapePlanner(5), frame({ ...night, animals: jackals }), 1800).filter((r) => r.call === 'jackal-chorus-howl');
+    const reqs = run(new SoundscapePlanner(5, { stateCalls: true }), frame({ ...night, animals: jackals }), 1800).filter((r) => r.call === 'jackal-chorus-howl');
     expect(reqs.length).toBeGreaterThan(0);
     expect(reqs.some((r) => r.animalId === 3)).toBe(false);
   });
@@ -210,8 +212,8 @@ describe('SoundscapePlanner: environment-driven beds and day-part variation', ()
   });
   it('is reproducible for a seed (recordings depend on this)', () => {
     const f = frame({ animals: Array.from({ length: 6 }, (_, i) => obs({ id: i + 1, behavior: 'graze', x: 15 + i })) });
-    const a = run(new SoundscapePlanner(11), f, 90).map((r) => `${r.animalId}:${r.call}`);
-    const b = run(new SoundscapePlanner(11), f, 90).map((r) => `${r.animalId}:${r.call}`);
+    const a = run(new SoundscapePlanner(11, { stateCalls: true }), f, 90).map((r) => `${r.animalId}:${r.call}`);
+    const b = run(new SoundscapePlanner(11, { stateCalls: true }), f, 90).map((r) => `${r.animalId}:${r.call}`);
     expect(a).toEqual(b);
     expect(new PresentationRng(1).next()).not.toBe(new PresentationRng(2).next());
   });
@@ -243,5 +245,74 @@ describe('audio observes, never influences: simulation hash unchanged with the s
     expect(b.stateHash()).toBe(a.stateHash());
     expect(b.focus).toBeNull();
     expect(plays).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('AUD-02: state-derived calls are lab-only and off by default; every sound carries provenance', () => {
+  it('production default: no state-derived calls even with many active birds and a jackal group at night', () => {
+    expect(PLANNER_DEFAULTS.stateCalls).toBe(false);
+    const birds = Array.from({ length: 8 }, (_, i) => obs({ id: i + 1, x: 15 + i, behavior: 'graze' }));
+    expect(run(new SoundscapePlanner(21), frame({ animals: birds }), 300).filter((r) => r.type === 'call')).toHaveLength(0);
+    const jackals = [obs({ id: 50, species: 'jackal', group: 3, behavior: 'wander', x: 100 }), obs({ id: 51, species: 'jackal', group: 3, behavior: 'wander', x: 110 })];
+    expect(run(new SoundscapePlanner(21), frame({ hour: 21, sunEl: -0.4, daylight: 0, animals: jackals }), 1800).filter((r) => r.type === 'call')).toHaveLength(0);
+  });
+  it('state-derived calls (lab) and movement carry animal-state provenance that says no vocal event was simulated', () => {
+    const birds = Array.from({ length: 8 }, (_, i) => obs({ id: i + 1, x: 15 + i, behavior: 'graze' }));
+    const calls = run(new SoundscapePlanner(22, { stateCalls: true }), frame({ animals: birds }), 300).filter((r) => r.type === 'call');
+    expect(calls.length).toBeGreaterThan(0);
+    for (const c of calls) {
+      expect(c.provenance).toMatchObject({ source: 'animal-state', animalId: c.animalId, vocalEventSimulated: false });
+      expect(c.why).toContain('not a simulated vocal event');
+    }
+    const steps = run(new SoundscapePlanner(23), frame({ animals: [obs({ id: 9, species: 'chital', speciesLength: 1.5, gait: 'run', speed: 10, behavior: 'flee' })] }), 3).filter((r) => r.type === 'movement');
+    expect(steps.length).toBeGreaterThan(0);
+    for (const m of steps) expect(m.provenance).toMatchObject({ source: 'animal-state', animalId: 9, gait: 'run' });
+  });
+});
+
+/** Headless audio decision log for a world: every routed event decision and every planner request, in order. */
+function decisionLog(sim: Simulation, ticks: number, planner: SoundscapePlanner, router: CallRouter, frame0 = 0): string[] {
+  const fb = new FrameBuilder(sim);
+  const sampler = worldSampler(sim);
+  const listener = { x: 640, y: 0, z: 640, yaw: 1 };
+  listener.y = sampler.height(listener.x, listener.z) + 1.7;
+  const queue: EcoAudioEvent[] = [];
+  const off = onAudioEvents(sim, (e) => queue.push(e));
+  const log: string[] = [];
+  for (let i = 0; i < ticks; i++) {
+    sim.step(0.1);
+    const t = (frame0 + i) / 10; // integer frame index: identical floats however the run is split
+    for (const e of queue) for (const d of router.route(e, { listener, realTime: t, simRate: 1, sourceY: sampler.height(e.x, e.z) + 1 })) log.push(`${sim.tick} ${e.kind}:${e.species}#${e.animalId} -> ${d.action === 'play' ? d.profile.id : d.reason}`);
+    queue.length = 0;
+    for (const r of planner.plan(fb.build(listener, 0.1, t, 1)).requests) log.push(`${sim.tick} ${r.type}:${r.call ?? r.movement}#${r.animalId} ${r.provenance.source}`);
+  }
+  off();
+  return log;
+}
+
+describe('AUD-02: deterministic replay of audio decisions', () => {
+  it('two runs from the same snapshot produce the identical decision log (events, calls, movement, provenance)', () => {
+    const base = new Simulation(5);
+    for (let i = 0; i < 600; i++) base.step(1); // advance to a busier hour
+    const snap = base.snapshot();
+    const a = decisionLog(new Simulation(5, snap), 3000, new SoundscapePlanner(9, { stateCalls: true }), new CallRouter());
+    const b = decisionLog(new Simulation(5, structuredClone(snap)), 3000, new SoundscapePlanner(9, { stateCalls: true }), new CallRouter());
+    expect(a.length).toBeGreaterThan(20);
+    expect(b).toEqual(a);
+  });
+  it('a save/restore in the middle of a run does not change what the soundscape decides', () => {
+    const snap = (() => {
+      const s = new Simulation(6);
+      for (let i = 0; i < 600; i++) s.step(1);
+      return s.snapshot();
+    })();
+    const whole = decisionLog(new Simulation(6, snap), 2000, new SoundscapePlanner(4, { stateCalls: true }), new CallRouter());
+    const planner = new SoundscapePlanner(4, { stateCalls: true });
+    const router = new CallRouter();
+    const first = new Simulation(6, structuredClone(snap));
+    const part1 = decisionLog(first, 1000, planner, router);
+    const restored = new Simulation(6, first.snapshot()); // save + load mid-run; presentation state continues
+    const part2 = decisionLog(restored, 1000, planner, router, 1000);
+    expect([...part1, ...part2]).toEqual(whole);
   });
 });

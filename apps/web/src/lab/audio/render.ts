@@ -69,7 +69,7 @@ export async function renderScenario(sc: AudioScenario, o: RenderOptions = {}): 
   const sampler = worldSampler(sim);
   const scape = new EcoSoundscape(
     { ctx, destination: master },
-    { seed: o.presentationSeed ?? sc.seed * 101 + 7, sampler, panningModel: o.panningModel ?? 'HRTF', eventCalls: o.eventCalls ?? true, planner: { stateCalls: o.stateCalls ?? true, movement: o.movement ?? true, beds: o.beds ?? true } },
+    { seed: o.presentationSeed ?? sc.seed * 101 + 7, sampler, panningModel: o.panningModel ?? 'HRTF', eventCalls: o.eventCalls ?? true, planner: { stateCalls: o.stateCalls ?? false, movement: o.movement ?? true, beds: o.beds ?? true } },
   );
   const cues: Cue[] = [];
   scape.onCue = (c) => cues.push(c);

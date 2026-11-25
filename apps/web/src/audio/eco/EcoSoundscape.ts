@@ -14,7 +14,7 @@
 import type { EcoAudioEvent, SpeciesId } from '@untamed/ecology';
 import { azimuth, clamp, distance, listenerForward, occlusion, type ListenerPose, type Vec3, type WorldSampler } from './acoustics';
 import { CallRouter, type DropReason } from './callRouter';
-import { SoundscapePlanner, type BedTargets, type PlannerOptions, type SoundscapeFrame, type VoiceRequest } from './planner';
+import { SoundscapePlanner, type BedTargets, type PlannerOptions, type Provenance, type SoundscapeFrame, type VoiceRequest } from './planner';
 import { profileById, type CallId, type CallProfile } from './repertoire';
 import { PresentationRng } from './rng';
 import { VoiceGraph, makeChorus, makeNoise, planCall, planMovement, planThunder, type ChorusKind, type NoiseBank, type SynthPlan } from './synth';
@@ -52,6 +52,8 @@ export interface Cue {
   foliageM?: number;
   gainDb?: number;
   why: string;
+  /** Where the sound came from (AUD-02). Present on every cue. */
+  provenance: Provenance;
 }
 
 interface LiveVoice {
@@ -105,7 +107,7 @@ export class EcoSoundscape {
   private readonly bedNodes: AudioNode[] = [];
   private readonly bedSources: AudioScheduledSourceNode[] = [];
   private readonly voices = new Map<number, LiveVoice>();
-  private readonly queue: EcoAudioEvent[] = [];
+  private readonly queue: { e: EcoAudioEvent; harness: boolean }[] = [];
   private beds!: {
     wind: Bed; leaves: Bed; grass: Bed; rain: Bed; canopy: Bed; distant: Bed;
     river: Bed; riverLp: BiquadFilterNode; riverPanner: PannerNode;
@@ -185,9 +187,9 @@ export class EcoSoundscape {
   }
 
   /** Queue a real ecological event (from onAudioEvents). Routed on the next frame. */
-  ingest(e: EcoAudioEvent): void {
+  ingest(e: EcoAudioEvent, origin: 'sim-event' | 'test-harness' = 'sim-event'): void {
     if (this.disposed) return;
-    if (this.queue.length < 256) this.queue.push(e);
+    if (this.queue.length < 256) this.queue.push({ e, harness: origin === 'test-harness' });
   }
 
   /**
@@ -204,35 +206,41 @@ export class EcoSoundscape {
     this.lastBeds = beds;
     this.applyBeds(beds, f, when);
     // real events first: they have priority and define the scene
-    for (const e of this.queue) {
+    for (const { e, harness } of this.queue) {
+      const prov: Provenance = harness
+        ? { source: 'test-harness', note: 'synthetic gate input, not from the simulation' }
+        : { source: 'sim-event', event: e.kind as 'alarm' | 'kill', animalId: e.animalId, timeH: e.timeH };
       const sourceY = this.opts.sampler.height(e.x, e.z) + 1;
       for (const d of this.router.route(e, { listener: f.listener, realTime: f.realTime, simRate: f.simRate, sourceY })) {
         if (d.action === 'drop') {
-          if (d.reason !== 'silent-kind') this.cue({ t: when, kind: 'drop', label: `${e.kind}:${e.species}`, species: e.species, animalId: e.animalId, why: dropWhy(d.reason, d.trigger) });
+          if (d.reason !== 'silent-kind') this.cue({ t: when, kind: 'drop', label: `${e.kind}:${e.species}`, species: e.species, animalId: e.animalId, why: dropWhy(d.reason, d.trigger), provenance: prov });
           continue;
         }
         if (!this.opts.eventCalls) continue;
-        this.startCall(d.profile, d.voiceAnimalId, { x: e.x, y: sourceY, z: e.z }, when, 1, `${e.kind} event${e.kind === 'kill' ? ` (prey ${e.preySpecies} #${e.preyId})` : ''}`, 'event-call');
+        this.startCall(d.profile, d.voiceAnimalId, { x: e.x, y: sourceY, z: e.z }, when, 1, `${e.kind} event${e.kind === 'kill' ? ` (prey ${e.preySpecies} #${e.preyId})` : ''}`, 'event-call', prov);
       }
     }
     this.queue.length = 0;
     for (const r of requests) {
       const at = when + r.delayS;
-      if (r.type === 'call' && r.profile) this.startCall(r.profile, r.animalId, r.pos, at, r.intensity, r.why, 'state-call');
+      if (r.type === 'call' && r.profile) this.startCall(r.profile, r.animalId, r.pos, at, r.intensity, r.why, 'state-call', r.provenance);
       else if (r.type === 'movement' && r.movement) {
         const plan = planMovement(r.movement, this.rng, r.intensity, r.vegetation ?? 0, r.species ? HOOVED.has(r.species) : false, (r.species && WING_HZ[r.species]) || 8);
-        this.startVoice(plan, 'movement', r.pos, at, 0.12 * r.intensity, 4, 1.4, 80, { kind: 'movement', label: `${r.movement}:${r.species}`, species: r.species, animalId: r.animalId, why: r.why });
+        this.startVoice(plan, 'movement', r.pos, at, 0.12 * r.intensity, 4, 1.4, 80, { kind: 'movement', label: `${r.movement}:${r.species}`, species: r.species, animalId: r.animalId, why: r.why, provenance: r.provenance });
       } else if (r.type === 'thunder') {
         const plan = planThunder(this.rng, r.intensity, distance(r.pos, f.listener));
-        this.startVoice(plan, 'oneshot-env', r.pos, at, 0.6, 2000, 0.2, 8000, { kind: 'thunder', label: 'thunder', why: r.why }, false);
+        this.startVoice(plan, 'oneshot-env', r.pos, at, 0.6, 2000, 0.2, 8000, { kind: 'thunder', label: 'thunder', why: r.why, provenance: r.provenance }, false);
       }
     }
     if (typeof performance !== 'undefined') this.counters.planMs += performance.now() - t0;
   }
 
-  private startCall(p: CallProfile, animalId: number, pos: Vec3, at: number, intensity: number, why: string, kind: 'event-call' | 'state-call'): void {
+  private startCall(p: CallProfile, animalId: number, pos: Vec3, at: number, intensity: number, why: string, kind: 'event-call' | 'state-call', provenance: Provenance): void {
+    // invariant (AUD-02): an event call must come from a simulation event (or a labelled gate input), a state call never does
+    if (kind === 'event-call' && provenance.source !== 'sim-event' && provenance.source !== 'test-harness') throw new Error('event call without event provenance');
+    if (kind === 'state-call' && provenance.source !== 'animal-state') throw new Error('state call without animal-state provenance');
     const plan = planCall(p.id, this.rng, intensity);
-    this.startVoice(plan, kind === 'event-call' ? 'call' : 'ambient-call', pos, at, p.level, p.refM, 1.15, p.rangeM, { kind, label: p.id, species: p.species, animalId, why }, true, p.priority);
+    this.startVoice(plan, kind === 'event-call' ? 'call' : 'ambient-call', pos, at, p.level, p.refM, 1.15, p.rangeM, { kind, label: p.id, species: p.species, animalId, why, provenance }, true, p.priority);
   }
 
   private startVoice(plan: SynthPlan, category: VoiceCategory, pos: Vec3, at: number, level: number, ref: number, rolloff: number, maxD: number, cue: Omit<Cue, 't'>, occlude = true, priority = 0.5): void {

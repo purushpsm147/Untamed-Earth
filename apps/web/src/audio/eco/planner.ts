@@ -91,7 +91,22 @@ export interface VoiceRequest {
   /** Surface hint for footfalls: 0 open ground .. 1 dense vegetation. */
   readonly vegetation?: number;
   readonly why: string;
+  readonly provenance: Provenance;
 }
+
+/**
+ * Where a sound came from (AUD-02). Exactly one source per sound:
+ *  - 'sim-event'    a real Simulation event (alarm/kill) delivered through onAudioEvents
+ *  - 'animal-state' a real animal's current state (behaviour, gait, altitude). For calls this is NOT a simulated
+ *                   vocal event: the simulation does not model vocalisation (tier 'state-derived', lab only)
+ *  - 'environment'  weather / time of day / habitat driving an ambient sound
+ *  - 'test-harness' synthetic input used only by automated gates; never produced by the lab or game
+ */
+export type Provenance =
+  | { readonly source: 'sim-event'; readonly event: 'alarm' | 'kill'; readonly animalId: number; readonly timeH: number }
+  | { readonly source: 'animal-state'; readonly animalId: number; readonly behavior: string; readonly gait: string; readonly vocalEventSimulated: false }
+  | { readonly source: 'environment'; readonly driver: string }
+  | { readonly source: 'test-harness'; readonly note: string };
 
 export interface PlannerOptions {
   stateCalls: boolean;
@@ -105,7 +120,11 @@ export interface PlannerOptions {
   maxMovementRate: number;
 }
 
-export const PLANNER_DEFAULTS: PlannerOptions = { stateCalls: true, movement: true, beds: true, movementRadius: 30, maxCallRate: 10, maxMovementRate: 2 };
+/**
+ * Defaults are the PRODUCTION defaults. State-derived calls are off (DIRECTOR TASK AUD-02): lab-only, separately
+ * switchable, pending biological evidence and human listening.
+ */
+export const PLANNER_DEFAULTS: PlannerOptions = { stateCalls: false, movement: true, beds: true, movementRadius: 30, maxCallRate: 10, maxMovementRate: 2 };
 
 /** Twilight factor 0..1, peaking with the sun just around the horizon (sun elevation in radians). */
 export function twilight(sunElevation: number): number {
@@ -164,7 +183,7 @@ export class SoundscapePlanner {
       const dist = this.rng.range(800, 5000);
       out.push({
         type: 'thunder', animalId: 0, pos: { x: f.listener.x + Math.sin(ang) * dist, y: f.listener.y + 300, z: f.listener.z + Math.cos(ang) * dist },
-        delayS: 0, intensity: clamp(1.4 - dist / 5000, 0.3, 1), why: 'weather=storm',
+        delayS: 0, intensity: clamp(1.4 - dist / 5000, 0.3, 1), why: 'weather=storm', provenance: { source: 'environment', driver: 'weather=storm' },
       });
     }
     if (this.frames % 600 === 0) this.prune(f);
@@ -286,7 +305,7 @@ export class SoundscapePlanner {
       if (!p || rate <= 0 || d > p.rangeM || !this.ready(an.id, p, now)) continue;
       if (!this.rng.poisson(rate, dt)) continue;
       this.mark(an.id, p, now);
-      out.push({ type: 'call', call: p.id, profile: p, animalId: an.id, species: an.species, pos: { x: an.x, y: an.y, z: an.z }, delayS: 0, intensity: 1, why });
+      out.push({ type: 'call', call: p.id, profile: p, animalId: an.id, species: an.species, pos: { x: an.x, y: an.y, z: an.z }, delayS: 0, intensity: 1, why: `${why} (state-derived; not a simulated vocal event)`, provenance: { source: 'animal-state', animalId: an.id, behavior: an.behavior, gait: an.gait, vocalEventSimulated: false } });
       if (an.species === 'jackal') this.chorusJoiners(f, an, p, out);
     }
   }
@@ -300,7 +319,7 @@ export class SoundscapePlanner {
       if (distance(m, f.listener) > p.rangeM) continue;
       delay += this.rng.range(0.5, 2.5);
       this.mark(m.id, p, f.realTime);
-      out.push({ type: 'call', call: p.id, profile: p, animalId: m.id, species: 'jackal', pos: { x: m.x, y: m.y, z: m.z }, delayS: delay, intensity: 0.85, why: `joins chorus of ${leader.id}` });
+      out.push({ type: 'call', call: p.id, profile: p, animalId: m.id, species: 'jackal', pos: { x: m.x, y: m.y, z: m.z }, delayS: delay, intensity: 0.85, why: `joins chorus of ${leader.id} (state-derived; not a simulated vocal event)`, provenance: { source: 'animal-state', animalId: m.id, behavior: m.behavior, gait: m.gait, vocalEventSimulated: false } });
     }
   }
 
@@ -317,9 +336,9 @@ export class SoundscapePlanner {
       }
       if (an.gait === 'fly' || airborne) {
         if (was === false && d <= 40) {
-          out.push({ type: 'movement', movement: 'takeoff', animalId: an.id, species: an.species, pos: { x: an.x, y: an.y, z: an.z }, delayS: 0, intensity: clamp(an.speciesLength / 0.42, 0.4, 1), why: 'alt rose above 0.25 m' });
+          out.push({ type: 'movement', movement: 'takeoff', animalId: an.id, species: an.species, pos: { x: an.x, y: an.y, z: an.z }, delayS: 0, intensity: clamp(an.speciesLength / 0.42, 0.4, 1), why: 'alt rose above 0.25 m', provenance: { source: 'animal-state', animalId: an.id, behavior: an.behavior, gait: an.gait, vocalEventSimulated: false } });
         } else if (d <= 15 && an.speed > 2 && this.rng.poisson(0.8, dt)) {
-          out.push({ type: 'movement', movement: 'wingbeat', animalId: an.id, species: an.species, pos: { x: an.x, y: an.y, z: an.z }, delayS: 0, intensity: 0.5, why: `flying ${an.speed.toFixed(1)} m/s` });
+          out.push({ type: 'movement', movement: 'wingbeat', animalId: an.id, species: an.species, pos: { x: an.x, y: an.y, z: an.z }, delayS: 0, intensity: 0.5, why: `flying ${an.speed.toFixed(1)} m/s`, provenance: { source: 'animal-state', animalId: an.id, behavior: an.behavior, gait: an.gait, vocalEventSimulated: false } });
         }
         continue;
       }
@@ -335,7 +354,7 @@ export class SoundscapePlanner {
         const strength = clamp((an.speciesLength * an.size) / 1.5, 0.15, 1) * (an.gait === 'run' ? 1 : an.gait === 'trot' ? 0.75 : 0.5);
         out.push({
           type: 'movement', movement: wet ? 'splash' : 'footfall', animalId: an.id, species: an.species, pos: { x: an.x, y: an.y - 0.8 * an.size, z: an.z },
-          delayS: k * 0.03 + this.rng.range(0, 0.02), intensity: strength, vegetation: an.forest, why: `${an.gait} ${an.speed.toFixed(1)} m/s${wet ? ' in water' : ''}`,
+          delayS: k * 0.03 + this.rng.range(0, 0.02), intensity: strength, vegetation: an.forest, why: `${an.gait} ${an.speed.toFixed(1)} m/s${wet ? ' in water' : ''}`, provenance: { source: 'animal-state', animalId: an.id, behavior: an.behavior, gait: an.gait, vocalEventSimulated: false },
         });
         k++;
       }

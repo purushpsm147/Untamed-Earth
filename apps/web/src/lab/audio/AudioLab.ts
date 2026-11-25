@@ -50,7 +50,9 @@ export interface AudioLabApi {
   calibrationWav(): Promise<{ wavBase64: string; burstsAt: { t: number; azimuthDeg: number }[]; channelRms: { azimuthDeg: number; left: number; right: number }[] }>;
   frameCostMs(): number;
   /** Render a scenario twice and compare sample by sample: max |a-b| and its level in dBFS. */
-  diffRenders(id: string, seconds: number): Promise<{ hashA: string; hashB: string; maxAbsDiff: number; maxDiffDbfs: number; differingSamples: number; total: number }>;
+  diffRenders(id: string, seconds: number): Promise<{ hashA: string; hashB: string; maxAbsDiff: number; maxDiffDbfs: number; differingSamples: number; total: number; cuesEqual: boolean; cues: number }>;
+  /** Recent cues of the live session (test harness). */
+  recentCues(): Cue[];
   engine: AudioEngine;
 }
 
@@ -72,7 +74,7 @@ export function mountAudioLab(audio: AudioEngine): AudioLabApi {
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px">
       <label><input type="checkbox" id="alEvent" checked> Event calls</label>
-      <label><input type="checkbox" id="alState" checked> State-derived calls (needs director approval)</label>
+      <label><input type="checkbox" id="alState"> State-derived calls (lab only, off by default: the simulation does not model vocalisation, so these are NOT simulated vocal events)</label>
       <label><input type="checkbox" id="alMove" checked> Movement</label>
       <label><input type="checkbox" id="alBeds" checked> Ambient beds</label>
       <label>Facing <input type="range" id="alYaw" min="-180" max="180" value="0" style="width:180px"> <span id="alYawV">0°</span></label>
@@ -91,7 +93,7 @@ export function mountAudioLab(audio: AudioEngine): AudioLabApi {
   let raf = 0;
   let last = performance.now();
   let frameMs = 0;
-  const toggles = { eventCalls: true, stateCalls: true, movement: true, beds: true };
+  const toggles = { eventCalls: true, stateCalls: false, movement: true, beds: true };
 
   const showListen = () => {
     const sc = AUDIO_SCENARIOS.find((s) => s.id === $<HTMLSelectElement>('alScenario').value)!;
@@ -322,7 +324,7 @@ export function mountAudioLab(audio: AudioEngine): AudioLabApi {
     testEvent: (kind, species, dx, dz, animalId) => {
       if (!live) return;
       const L = live.listener;
-      live.scape.ingest({ kind, species: species as never, animalId, x: L.x + dx, z: L.z + dz, timeH: live.sim.env.timeH, intensity: 0.8, ...(kind === 'kill' ? { preyId: animalId + 1, preySpecies: 'hare' as const } : {}) });
+      live.scape.ingest({ kind, species: species as never, animalId, x: L.x + dx, z: L.z + dz, timeH: live.sim.env.timeH, intensity: 0.8, ...(kind === 'kill' ? { preyId: animalId + 1, preySpecies: 'hare' as const } : {}) }, 'test-harness');
     },
     setRate: (r) => (rate = r),
     setToggles: (t) => Object.assign(toggles, t),
@@ -351,6 +353,7 @@ export function mountAudioLab(audio: AudioEngine): AudioLabApi {
       return { wavBase64: toBase64(encodeWav(c.buffer)), burstsAt: c.burstsAt, channelRms: c.channelRms };
     },
     frameCostMs: () => frameMs,
+    recentCues: () => (live ? [...live.scape.cues] : []),
     diffRenders: async (id, seconds) => {
       const sc = AUDIO_SCENARIOS.find((s) => s.id === id)!;
       const a = await renderScenario(sc, { seconds });
@@ -366,7 +369,7 @@ export function mountAudioLab(audio: AudioEngine): AudioLabApi {
           if (d > max) max = d;
         }
       }
-      return { hashA: a.meta.sampleHash, hashB: b.meta.sampleHash, maxAbsDiff: max, maxDiffDbfs: max > 0 ? Math.round(20 * Math.log10(max) * 10) / 10 : -Infinity, differingSamples: n, total: a.buffer.length * 2 };
+      return { hashA: a.meta.sampleHash, hashB: b.meta.sampleHash, maxAbsDiff: max, maxDiffDbfs: max > 0 ? Math.round(20 * Math.log10(max) * 10) / 10 : -Infinity, differingSamples: n, total: a.buffer.length * 2, cuesEqual: JSON.stringify(a.cues) === JSON.stringify(b.cues), cues: a.cues.length };
     },
     engine: audio,
   };

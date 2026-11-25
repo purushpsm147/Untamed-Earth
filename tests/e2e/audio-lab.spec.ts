@@ -17,10 +17,11 @@ type Lab = {
   simProgress(): { hash: number; ticks: number } | null;
   referenceHash(id: string, ticks: number): number;
   stepFrames(n: number): void;
-  record(id: string, seconds?: number): Promise<{ meta: { sampleHash: string; renderSpeed: number; counters: Record<string, number>; expected: unknown[] }; cues: { t: number; kind: string; label: string; azimuthDeg?: number; distanceM?: number; why: string }[] }>;
+  record(id: string, seconds?: number): Promise<{ meta: { sampleHash: string; renderSpeed: number; counters: Record<string, number>; expected: unknown[] }; cues: { t: number; kind: string; label: string; azimuthDeg?: number; distanceM?: number; why: string; provenance: { source: string; event?: string } }[] }>;
   calibration(model?: string): Promise<{ azimuthDeg: number; left: number; right: number }[]>;
   frameCostMs(): number;
-  diffRenders(id: string, seconds: number): Promise<{ hashA: string; hashB: string; maxAbsDiff: number; maxDiffDbfs: number; differingSamples: number; total: number }>;
+  diffRenders(id: string, seconds: number): Promise<{ hashA: string; hashB: string; maxAbsDiff: number; maxDiffDbfs: number; differingSamples: number; total: number; cuesEqual: boolean; cues: number }>;
+  recentCues(): { kind: string; label: string; provenance: { source: string } }[];
 };
 declare global {
   interface Window {
@@ -93,6 +94,11 @@ test.describe('ecological soundscape lab', () => {
     await page.waitForFunction(() => window.__audioLab.state()!.allocatedVoices === 0, null, { timeout: 10_000 });
     const after = await page.evaluate(() => window.__audioLab.state()!);
     expect(after.liveNodes).toBe(after.bedNodes);
+    // provenance (AUD-02): gate inputs are labelled as such, never as simulation events
+    const cues = await page.evaluate(() => window.__audioLab.recentCues());
+    const harness = cues.filter((c) => c.kind === 'event-call' || c.kind === 'drop');
+    expect(harness.length).toBeGreaterThan(0);
+    for (const c of harness) expect(c.provenance.source).toBe('test-harness');
     expect(after.counters.eventCalls).toBe(1);
     results.routing = { bedNodes: base.bedNodes, nodesDuringOneCall: during.liveNodes, nodesAfter: after.liveNodes, route: after.route };
   });
@@ -148,6 +154,9 @@ test.describe('ecological soundscape lab', () => {
     // (measured ~1e-7, about -123 dBFS). Gate: every sample within 1e-5 (-100 dBFS, below 16-bit resolution).
     const diff = await page.evaluate(() => window.__audioLab.diffRenders('predator-alarm', 60));
     expect(diff.maxAbsDiff).toBeLessThan(1e-5);
+    // deterministic replay (AUD-02): the same sounds, causes and provenance, in the same order
+    expect(diff.cuesEqual).toBe(true);
+    expect(diff.cues).toBeGreaterThan(5);
     const a = await page.evaluate(() => window.__audioLab.record('predator-alarm'));
     // The look-ahead (same engine) chose the event the listener was placed for: 45 m away, 45 degrees right.
     // Determinism is per JS engine, so which event that is differs between Node and Chromium; check against it.
@@ -159,7 +168,12 @@ test.describe('ecological soundscape lab', () => {
     expect(hit, JSON.stringify({ expected, calls })).toBeTruthy();
     expect(Math.abs(hit!.azimuthDeg! - 45)).toBeLessThan(10);
     // no invented calls: every event call is at the time of a real simulation event (alarm or kill)
-    for (const c of calls) expect(expected.some((e) => Math.abs(e.t - c.t) < 0.25), JSON.stringify(c)).toBe(true);
+    for (const c of calls) {
+      expect(expected.some((e) => Math.abs(e.t - c.t) < 0.25), JSON.stringify(c)).toBe(true);
+      expect(c.provenance.source).toBe('sim-event');
+    }
+    // production default: no state-derived calls in the review recording
+    expect(a.cues.filter((c) => c.kind === 'state-call')).toHaveLength(0);
     expect(a.meta.renderSpeed).toBeGreaterThan(1);
     results.recording = { reproducibility: diff, renderSpeedX: a.meta.renderSpeed, target, hit, eventCalls: calls.length, expected };
   });
