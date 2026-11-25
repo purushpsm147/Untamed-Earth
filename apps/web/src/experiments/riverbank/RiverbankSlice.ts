@@ -34,10 +34,22 @@ export interface SliceApi {
   frame(dt: number, stepSim: boolean, follow?: boolean): void;
   info(): Record<string, unknown>;
   settle(maxFrames?: number): Promise<number>;
+  /**
+   * Frame timing over n frames (simulation frozen): `submit` = CPU time of the frame call (scene + post submission);
+   * `complete` = the same plus a 1-pixel readPixels fence, which waits for the GPU (or software rasteriser) to finish.
+   */
+  perf(n: number): { submit: Stats; complete: Stats };
   dispose(): void;
 }
 
 const TICK = 0.1;
+
+export interface Stats { n: number; p50: number; p95: number; max: number; mean: number }
+function stats(v: number[]): Stats {
+  const s = [...v].sort((a, b) => a - b);
+  const q = (f: number): number => s[Math.min(s.length - 1, Math.floor(f * s.length))]!;
+  return { n: s.length, p50: q(0.5), p95: q(0.95), max: s[s.length - 1]!, mean: s.reduce((a, b) => a + b, 0) / s.length };
+}
 
 /** Advance a fresh world to the scene hour with the same fixed 1 s step the documentary scenario uses. */
 export function advanceTo(sim: Simulation, hour: number): void {
@@ -145,6 +157,7 @@ export async function startRiverbankSlice(canvas: HTMLCanvasElement, params: URL
   let alpha = 1;
   let frames = 0;
   let disposed = false;
+  let sceneInfo = engine.info();
   const api: SliceApi = {
     ready: Promise.resolve(),
     frame(dt: number, stepSim: boolean, follow = false): void {
@@ -171,6 +184,7 @@ export async function startRiverbankSlice(canvas: HTMLCanvasElement, params: URL
       chital?.update(cam.position, alpha, dt, time, Math.min(engine.quality.viewDist, 600));
       env?.beforeFrame(dt, time);
       engine.frame(dt, alpha, time, 0, stepSim ? 1 : 0);
+      sceneInfo = engine.info();
       env?.afterFrame();
       frames++;
     },
@@ -192,7 +206,7 @@ export async function startRiverbankSlice(canvas: HTMLCanvasElement, params: URL
       return {
         mode, scene: sceneId, seed: scene.seed, hour: scene.hour, shot, quality, tick: sim.tick, timeH: sim.env.timeH,
         weather: sim.env.weather, cloud: sim.env.cloud, hero: { id: heroId, x: a.x, z: a.z, behaviour: behaviorFamily(a), sex: a.sex, age: a.age },
-        pose, frames, render: engine.info(), chital: chital?.stats ?? null, env: env?.stats() ?? null,
+        pose, frames, render: sceneInfo, postPass: env?.stats().post ?? false, grassInstances: engine.grass.mesh.count, chital: chital?.stats ?? null, env: env?.stats() ?? null,
         viewport: { w: canvas.clientWidth, h: canvas.clientHeight, pixelRatio: engine.renderer.getPixelRatio() },
         gpu: (() => {
           const gl = engine.renderer.getContext();
@@ -201,6 +215,22 @@ export async function startRiverbankSlice(canvas: HTMLCanvasElement, params: URL
         })(),
         gl: { ...engine.renderer.info.memory, programs: engine.renderer.info.programs?.length ?? 0 },
       };
+    },
+    perf(n: number): { submit: Stats; complete: Stats } {
+      const gl = engine.renderer.getContext();
+      const px = new Uint8Array(4);
+      const sub: number[] = [];
+      const done: number[] = [];
+      for (let i = 0; i < n; i++) {
+        const t0 = performance.now();
+        api.frame(1 / 30, false);
+        const t1 = performance.now();
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        const t2 = performance.now();
+        sub.push(t1 - t0);
+        done.push(t2 - t0);
+      }
+      return { submit: stats(sub), complete: stats(done) };
     },
     dispose(): void {
       if (disposed) return;
@@ -211,6 +241,12 @@ export async function startRiverbankSlice(canvas: HTMLCanvasElement, params: URL
       engine.dispose();
     },
   };
-  (window as unknown as { __slice: SliceApi }).__slice = api;
+  const w = window as unknown as { __slice: SliceApi; __sliceRestart: () => Promise<SliceApi> };
+  w.__slice = api;
+  // QA: dispose this slice and start a fresh one on the same canvas (GPU lifecycle check)
+  w.__sliceRestart = async () => {
+    api.dispose();
+    return startRiverbankSlice(canvas, params);
+  };
   return api;
 }

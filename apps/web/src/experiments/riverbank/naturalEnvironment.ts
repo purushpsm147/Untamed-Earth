@@ -49,11 +49,18 @@ function patchTerrain(mat: THREE.MeshStandardMaterial, uStage: { value: number }
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.62, 0.53, 0.3) * (lum * 2.2 + 0.15), grassy * uDry * 0.85);
         // muted palette: partial desaturation and a warm shift keep biome hues readable without tech-demo greens
         float l2 = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-        diffuseColor.rgb = mix(vec3(l2), diffuseColor.rgb, 0.7) * vec3(1.05, 1.0, 0.86);
+        diffuseColor.rgb = mix(vec3(l2), diffuseColor.rgb, 0.84) * vec3(1.02, 1.0, 0.92);
         // patchy grassland: drier straw patches and darker lush patches at 20-80 m scale
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.18, 1.08, 0.82), grassy * smoothstep(0.55, 0.8, macro) * 0.7);
-        diffuseColor.rgb *= 0.78 + dn * 0.32 + (macro - 0.5) * 0.18;
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.14, 1.06, 0.84), grassy * smoothstep(0.6, 0.85, macro) * 0.5);
+        diffuseColor.rgb *= 0.74 + dn * 0.32 + (macro - 0.5) * 0.22;
         diffuseColor.rgb *= 1.0 - uWet * 0.22;
+        // ground cover: soil and litter showing between grass at 0.2-1 m, fading with distance (no shimmer far away)
+        float camD = length(vWp - cameraPosition);
+        float mott = nn(vWp.xz * 2.3) * 0.55 + nn(vWp.xz * 5.9) * 0.3 + nn(vWp.xz * 13.0) * 0.15;
+        float near = 1.0 - smoothstep(25.0, 90.0, camD);
+        vec3 soil = vec3(0.16, 0.13, 0.085);
+        diffuseColor.rgb = mix(diffuseColor.rgb, soil, grassy * smoothstep(0.52, 0.8, mott) * 0.55 * near);
+        diffuseColor.rgb *= mix(1.0, 0.82 + 0.3 * mott, near * grassy);
         // riverbank: wet silt above the waterline, darker damp band, then the riverbed below it
         bankH = vWp.y - (waterLevel(vWp.z) + uStage);
         float pebble = nn(vWp.xz * 7.0) * 0.5 + nn(vWp.xz * 19.0) * 0.5;
@@ -105,7 +112,10 @@ void main() {
   vec3 v = normalize(cameraPosition - vWp);
   float fres = 0.02 + 0.98 * pow(1.0 - max(dot(n, v), 0.0), 5.0);
   vec3 refl = reflect(-v, n);
-  vec3 sky = mix(uHorizon, uSky, pow(max(refl.y, 0.0), 0.5));
+  vec3 sky = mix(uHorizon, uSky, pow(max(refl.y, 0.0), 0.5)) * 0.72;
+  // low reflection angles mirror the far bank (trees, earth), not open sky
+  vec3 bank = mix(vec3(0.035, 0.045, 0.025), uHorizon * 0.35, 0.3) * (0.4 + 0.6 * uTint.g / 0.11);
+  sky = mix(bank, sky, smoothstep(0.02, 0.16, refl.y + (nn(p * 0.35) - 0.5) * 0.04));
   float sd = max(dot(refl, uSun), 0.0);
   // tight glint plus a soft sheen; capped so the sun path does not blow out
   float spec = min(pow(sd, 420.0) * 1.4 + pow(sd, 48.0) * 0.05, 1.6);
@@ -123,7 +133,8 @@ void main() {
   float shore = 1.0 - smoothstep(0.0, 0.08, depth);
   alpha *= 1.0 - shore * 0.9;
   col += vec3(0.04, 0.04, 0.035) * shore * smoothstep(0.4, 0.8, nn(p * 3.0 + vec2(uTime * 0.3, 0.0)));
-  gl_FragColor = vec4(col, alpha);
+  // authored in display-referred terms like production's water; convert to linear HDR for the shared tone mapping
+  gl_FragColor = vec4(pow(max(col, vec3(0.0)), vec3(2.2)) * 1.35, alpha);
   #include <fog_fragment>
 }`;
 
@@ -274,19 +285,26 @@ void main() {
   float sunAmt = pow(max(dot(dir, uSunDir), 0.0), 6.0);
   vec3 inscatter = mix(uFogCol, uFogCol * 0.6 + uSunCol * 0.55, sunAmt * uDay);
   col = mix(col, inscatter, fogAmt);
-  if (sky) col = mix(col, inscatter, 0.08 * smoothstep(0.25, 0.0, dir.y));
+  vec3 rawSky = col;
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
   // restrained documentary grade (display-referred, after production tone mapping)
   vec3 c = gl_FragColor.rgb;
   float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));
-  c = mix(vec3(luma), c, 0.9);
+  c = mix(vec3(luma), c, 0.95);
   c += vec3(0.018, 0.008, -0.012) * smoothstep(0.35, 0.9, luma) * uDay;
   c = mix(c, c * vec3(0.97, 1.0, 1.02), smoothstep(0.3, 0.0, luma));
   vec2 q = vUv - 0.5;
   c *= 1.0 - 0.22 * pow(clamp(length(q) * 1.35, 0.0, 1.0), 2.4);
   gl_FragColor = vec4(c, 1.0);
   #include <colorspace_fragment>
+  if (sky) {
+    // production draws the sky dome without tone mapping or colour-space conversion: keep that, apply only the grade
+    vec3 sc = rawSky;
+    float sl = dot(sc, vec3(0.2126, 0.7152, 0.0722));
+    sc = mix(vec3(sl), sc, 0.95) * (1.0 - 0.22 * pow(clamp(length(q) * 1.35, 0.0, 1.0), 2.4));
+    gl_FragColor = vec4(sc, 1.0);
+  }
 }`;
 
 class PostPass {
@@ -330,6 +348,8 @@ class PostPass {
 
 // ------------------------------------------------------------------------------------------------ environment
 
+/** Natural mode draws more (richer) tufts than the preset; recorded in stats for the performance comparison. */
+export const GRASS_FACTOR = 1.5;
 const HSIZE = 160;
 const HRES = 192;
 
@@ -348,6 +368,7 @@ export class NaturalEnvironment {
   private readonly grassMat: THREE.MeshStandardMaterial;
   private readonly prevShadowRadius: number;
   private postMs = 0;
+  private grassCount = 0;
 
   constructor(private readonly engine: Engine, private readonly sim: Simulation) {
     patchTerrain(engine.terrain.material, this.uStage);
@@ -376,6 +397,8 @@ export class NaturalEnvironment {
     gm.material = this.grassMat;
     oldGeo.dispose();
     oldMat.dispose();
+    this.grassCount = Math.round(engine.quality.grassCount * GRASS_FACTOR);
+    engine.grass.setMax(this.grassCount);
     // scatter: harmonise palette (materials are owned and disposed by ScatterView)
     engine.scatter.group.traverse((o) => {
       const m = (o as THREE.Mesh).material;
@@ -459,14 +482,14 @@ export class NaturalEnvironment {
     (u.uSunCol!.value as THREE.Color).copy(e.sky.sun.color).multiplyScalar(Math.min(1.2, e.sky.sun.intensity / 3));
     (u.uFogCol!.value as THREE.Color).copy(e.sky.fogColor);
     // haze: production's fog density scaled for the share moved into the post pass, a little extra in the valley air
-    u.uDensity!.value = e.sky.fogDensity(this.sim.env, e.quality.viewDist) * 0.75;
+    u.uDensity!.value = e.sky.fogDensity(this.sim.env, e.quality.viewDist) * 0.5;
     u.uDay!.value = this.sim.env.daylight();
     this.post.render(e.renderer);
     this.postMs = performance.now() - t0;
   }
 
   stats(): Record<string, unknown> {
-    return { depthBakeReady: this.hReady, post: !!this.post, postSubmitMs: this.postMs, grassTris: (this.grassGeo.index?.count ?? 0) / 3 };
+    return { depthBakeReady: this.hReady, post: !!this.post, postSubmitMs: this.postMs, grassTris: (this.grassGeo.index?.count ?? 0) / 3, grassInstancesMax: this.grassCount, grassFactor: GRASS_FACTOR };
   }
 
   dispose(): void {
