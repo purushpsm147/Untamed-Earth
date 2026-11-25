@@ -142,12 +142,18 @@ evidence in `docs/evidence/boundary-transit-stall/`.
 
 - **Where jackals die.** Seed 1: 15 of 26 jackal deaths happen outside the valley, in the corridor, while in transit.
   Seed 4: 14 of 15. None are off-map (regional) animals.
-- **How long transit lasts** (seeds 1 and 4, 160 days; 1 s = 1 game minute):
-  - median 5–16 game hours;
-  - p99 12–16 game days;
-  - longest 24–66 game days.
-  - 130–166 animals are still in transit at day 160, some for the entire run.
-  - While in transit, jackals are `Idle` 96% of the time, with thirst at the maximum (median 1.0).
+- **How long transit lasts** (corrected 2026-11-25; seeds 1 and 4, 160 days; 1 s = 1 game minute):
+  - a normal transit takes 22–24 s at the median;
+  - stalled tails: jackal p99 3,422–4,976 s (57–83 game hours); hare p99 6,008–6,194 s (100–103 h), longest
+    8,170 s (136 h);
+  - 0–7 animals are still in transit at day 160;
+  - while in transit, jackals are `Idle` 96% of the time, with thirst at the maximum (median 1.0).
+  - **Correction:** the first version of this report gave p99 12–16 game days, longest 24–66 days, and 130–166
+    animals still in transit. Those figures came from a bug in my probe: a transit start time was not cleared when an
+    animal left the map, so time spent off-map was counted as transit. The fixed probe is
+    `benchmarks/ecology/boundary-transit-durations-probe.ts`. The corrected values agree with the PR #34 owner's
+    independent measurement (p99 85–103 h, longest 127–136 h). The behaviour, thirst, death-location and in-transit
+    share measurements did not use that timer and are unchanged.
 - **Two stall modes:**
   1. **Outbound** (`transit = −1`, dominant). The animal is `Idle`, has `want = 0` and is stationary, 0–10 m beyond
      the wall. Its target remains the outer line, which it never reaches.
@@ -158,8 +164,8 @@ evidence in `docs/evidence/boundary-transit-stall/`.
   2. **Inbound** (`transit = +1`). The animal is in `Wander` with `want > 0` but not moving, 20 m or more out near the
      outer line, with its target inside the valley. Movement is blocked at the corridor's outer edge.
 - **Impact on the evaluation** (seeds 1, 4 and 7, 365 days):
-  - 7.7–10.2% of D's on-map jackal-days are animals stalled more than 10 game hours in the corridor; for hares,
-    0.3–0.8%.
+  - 9.5–12.5% of D's on-map jackal-days are animals in transit (seeds 1, 4 and 7). Since a normal transit lasts about
+    25 s, nearly all of these are stalled. For hares, 0.3–1.0%.
   - The **jackal collapse, the dehydration deaths, and the jackal-mediated effects in D/E/F/sensitivity are therefore
     contaminated**: hare release and chital overshoot.
   - The hare *counts* are not inflated by stalled hares.
@@ -172,6 +178,21 @@ evidence in `docs/evidence/boundary-transit-stall/`.
 - an exit interrupted by the end of a flight either resumes or aborts and returns inside the wall;
 - the inbound outer-edge block is reproduced and fixed;
 - a 60-day smoke run has zero corridor deaths from dehydration or starvation.
+
+### 4a. Fix proposed at `fdf0857` (by the PR #34 owner, amendment 3b, awaiting director approval): verified here
+The owner reports five root causes, each with a test that fails on `ce83f68` and passes on `fdf0857`. Closed-boundary
+hashes are unchanged. My independent probes on `fdf0857`, D, 160 days:
+
+| Measure | `ce83f68` | `fdf0857` |
+|---|---|---|
+| Transit p99 / longest (seeds 1, 4) | jackal 57–83 h; hare 100–103 h / up to 136 h | jackal 38 s / 54 s; hare 32 s / 58 s |
+| Jackal `Idle` samples while in transit (seed 1) | 33,728 of 35,167 | 15 of 5,914 |
+| Jackal thirst in transit, median | 1.0 | 0.28–0.33 |
+| Deaths in transit (seeds 1, 4) | 118/729; 93/1,118 | 3/254; 5/748 |
+| Jackal-days in transit (seed 7) | 9.5% | 0.2% |
+
+The D′/E′/F′/G′ re-run pinned to `fdf0857` waits for a `DIRECTOR TASK`. This session executes it under the agreed
+split.
 
 ## 5. Issue #31: jackal encounter awareness and fawn rest synchrony (investigation, not in the evaluation)
 Read-only probes; evidence in `docs/evidence/issue31/`.
@@ -208,7 +229,7 @@ Read-only probes; evidence in `docs/evidence/issue31/`.
 | No count leak across region transfer | **Met** for bookkeeping | Ledger 690/690. The corridor stall is not a leak |
 | Population bookkeeping | **Not met** | Stalled corridor animals count as on-map for days (§4) |
 | No edge teleporting or visible spawn pop-in | **Not met** | Animals stand stalled in the visible corridor for days. The entry-frame occlusion on PR #34 is still unverified |
-| Bounded near-camera / transit actors | **Not met** | Animals in transit accumulate (130–166 at day 160). Not bounded |
+| Bounded near-camera / transit actors | **Not met** | Individual animals stall in the visible corridor for up to about 136 game hours. They do not accumulate (0–7 at day 160, corrected) |
 | Tests at 1/10/100/1000× | **Partial** | Corridor tests exist, but they do not cover interrupted exits or transit duration |
 | Flux parameters field-supported or labelled assumed | **Met** | Design §8 |
 | Existing quality gates | Not re-verified on `ce83f68` by this session | This branch: typecheck OK, unit tests 132/132 |

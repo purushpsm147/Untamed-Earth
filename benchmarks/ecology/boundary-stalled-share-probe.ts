@@ -9,6 +9,7 @@ const acc = { jDays: 0, jTransit: 0, hDays: 0, hTransit: 0, hStall: 0, jStall: 0
 for (let d = 0; d < days; d++) {
   for (let t = 0; t < 720; t++) {
     sim.step(2);
+    for (const id of [...since.keys()]) if (!sim.animals.some((a) => a.id === id)) since.delete(id); // probe fix 2026-11-25
     for (const a of sim.animals as (typeof sim.animals[0] & { transit?: number })[]) { if (a.alive && a.transit) { if (!since.has(a.id)) since.set(a.id, sim.tick); } else since.delete(a.id); }
   }
   for (const a of sim.animals as (typeof sim.animals[0] & { transit?: number })[]) {

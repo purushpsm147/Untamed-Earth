@@ -1,0 +1,1 @@
+# NOTE: transit-durations.jsonl (stall.jsonl) and stalled-state (stall2.json) were produced by the first probe version, whose transit timer was not cleared when an animal left the map. Durations and 'stillInTransitAtEnd' in those files are INFLATED; use transit-durations-corrected.txt. Behaviour, thirst and deaths-in-transit fields are unaffected.

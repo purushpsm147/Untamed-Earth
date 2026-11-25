@@ -11,7 +11,10 @@
   - Open boundary at `ce83f68`: hare extinction 28 → 3, chital extinction 1 → 20 (predator-release starvation
     crash). Jackal results depend on the off-map assumptions (G 28/30).
 - **Defect in PR #34 (`ce83f68`).** Animals stall in the transit corridor: `Idle`, at maximum thirst, for days.
-  - 7.7–10.2% of on-map jackal-days; 48% of on-map jackal deaths are dehydration.
+  - 9.5–12.5% of on-map jackal-days; 48% of on-map jackal deaths are dehydration. Stall tails p99 57–103 game hours
+    (corrected for a probe bug).
+  - Fix proposed at `fdf0857`, verified here: p99 32–38 s, deaths in transit about 0. Re-run D′/E′/F′/G′ awaits a
+    `DIRECTOR TASK`.
   - Evidence: `docs/evidence/boundary-transit-stall/`.
   - Verdict: the open boundary does **not** meet acceptance. Fix under amendment 3b, then re-run D/E/F/G.
 - **#31.**
