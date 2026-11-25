@@ -1,0 +1,1565 @@
+{
+  "renderer": "SwiftShader (CPU). Timings are NOT GPU performance.",
+  "metrics": {
+    "evening-hero-baseline-720p": {
+      "info": {
+        "mode": "baseline",
+        "scene": "evening",
+        "seed": 2,
+        "hour": 17.5,
+        "shot": "hero",
+        "quality": "high",
+        "tick": 630,
+        "timeH": 833.4999999999905,
+        "weather": "clear",
+        "cloud": 0.12021554981218874,
+        "hero": {
+          "id": 15,
+          "x": 676.4136780538803,
+          "z": 522.397734247531,
+          "behaviour": "drink",
+          "sex": 0,
+          "age": 244.12236258982975
+        },
+        "pose": {
+          "x": 684.1918526469323,
+          "y": 5.752711076690746,
+          "z": 530.175908840583,
+          "tx": 676.4136780538803,
+          "ty": 4.585229364977935,
+          "tz": 522.397734247531,
+          "fov": 26,
+          "hero": 15
+        },
+        "frames": 96,
+        "render": {
+          "calls": 89,
+          "triangles": 964234,
+          "geometries": 80,
+          "textures": 3
+        },
+        "postPass": false,
+        "grassInstances": 7763,
+        "chital": null,
+        "env": null,
+        "viewport": {
+          "w": 1280,
+          "h": 720,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 80,
+          "textures": 3,
+          "programs": 17
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 2.3999999999941792,
+          "p95": 4.5,
+          "max": 4.5,
+          "mean": 2.6749999999980596
+        },
+        "complete": {
+          "n": 12,
+          "p50": 751,
+          "p95": 811.0999999999767,
+          "max": 811.0999999999767,
+          "mean": 743.4333333333307
+        }
+      },
+      "errors": []
+    },
+    "evening-hero-natural-720p": {
+      "info": {
+        "mode": "natural",
+        "scene": "evening",
+        "seed": 2,
+        "hour": 17.5,
+        "shot": "hero",
+        "quality": "high",
+        "tick": 630,
+        "timeH": 833.4999999999905,
+        "weather": "clear",
+        "cloud": 0.12021554981218874,
+        "hero": {
+          "id": 15,
+          "x": 676.4136780538803,
+          "z": 522.397734247531,
+          "behaviour": "drink",
+          "sex": 0,
+          "age": 244.12236258982975
+        },
+        "pose": {
+          "x": 684.1918526469323,
+          "y": 5.752711076690746,
+          "z": 530.175908840583,
+          "tx": 676.4136780538803,
+          "ty": 4.585229364977935,
+          "tz": 522.397734247531,
+          "fov": 26,
+          "hero": 15
+        },
+        "frames": 98,
+        "render": {
+          "calls": 93,
+          "triangles": 2506316,
+          "geometries": 83,
+          "textures": 7
+        },
+        "postPass": true,
+        "grassInstances": 11641,
+        "chital": {
+          "drawn": 43,
+          "near": 8,
+          "far": 35,
+          "solveMs": 1.2999999999883585,
+          "maxStanceToeErr": 0.012719999999999843,
+          "stanceSamples": 32
+        },
+        "env": {
+          "depthBakeReady": true,
+          "post": true,
+          "postSubmitMs": 0,
+          "grassTris": 120,
+          "grassInstancesMax": 16500,
+          "grassFactor": 1.5
+        },
+        "viewport": {
+          "w": 1280,
+          "h": 720,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 83,
+          "textures": 7,
+          "programs": 20
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 5.2000000000116415,
+          "p95": 7,
+          "max": 7,
+          "mean": 5.058333333344005
+        },
+        "complete": {
+          "n": 12,
+          "p50": 1500.5999999999767,
+          "p95": 1670.7000000000116,
+          "max": 1670.7000000000116,
+          "mean": 1516.774999999999
+        }
+      },
+      "errors": []
+    },
+    "evening-vista-baseline-720p": {
+      "info": {
+        "mode": "baseline",
+        "scene": "evening",
+        "seed": 2,
+        "hour": 17.5,
+        "shot": "vista",
+        "quality": "high",
+        "tick": 630,
+        "timeH": 833.4999999999905,
+        "weather": "clear",
+        "cloud": 0.12021554981218874,
+        "hero": {
+          "id": 15,
+          "x": 676.4136780538803,
+          "z": 522.397734247531,
+          "behaviour": "drink",
+          "sex": 0,
+          "age": 244.12236258982975
+        },
+        "pose": {
+          "x": 694.6765209241419,
+          "y": 6.380773874265113,
+          "z": 546.1983344562681,
+          "tx": 676.4136780538803,
+          "ty": 4.585229364977935,
+          "tz": 522.397734247531,
+          "fov": 48,
+          "hero": 15
+        },
+        "frames": 101,
+        "render": {
+          "calls": 110,
+          "triangles": 1038516,
+          "geometries": 100,
+          "textures": 3
+        },
+        "postPass": false,
+        "grassInstances": 7698,
+        "chital": null,
+        "env": null,
+        "viewport": {
+          "w": 1280,
+          "h": 720,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 100,
+          "textures": 3,
+          "programs": 17
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 2.400000000023283,
+          "p95": 3.2999999999883585,
+          "max": 3.2999999999883585,
+          "mean": 2.3416666666744277
+        },
+        "complete": {
+          "n": 12,
+          "p50": 727.2999999999884,
+          "p95": 768,
+          "max": 768,
+          "mean": 723.9833333333372
+        }
+      },
+      "errors": []
+    },
+    "evening-vista-natural-720p": {
+      "info": {
+        "mode": "natural",
+        "scene": "evening",
+        "seed": 2,
+        "hour": 17.5,
+        "shot": "vista",
+        "quality": "high",
+        "tick": 630,
+        "timeH": 833.4999999999905,
+        "weather": "clear",
+        "cloud": 0.12021554981218874,
+        "hero": {
+          "id": 15,
+          "x": 676.4136780538803,
+          "z": 522.397734247531,
+          "behaviour": "drink",
+          "sex": 0,
+          "age": 244.12236258982975
+        },
+        "pose": {
+          "x": 694.6765209241419,
+          "y": 6.380773874265113,
+          "z": 546.1983344562681,
+          "tx": 676.4136780538803,
+          "ty": 4.585229364977935,
+          "tz": 522.397734247531,
+          "fov": 48,
+          "hero": 15
+        },
+        "frames": 99,
+        "render": {
+          "calls": 114,
+          "triangles": 2575048,
+          "geometries": 103,
+          "textures": 7
+        },
+        "postPass": true,
+        "grassInstances": 11585,
+        "chital": {
+          "drawn": 43,
+          "near": 8,
+          "far": 35,
+          "solveMs": 1.7999999999883585,
+          "maxStanceToeErr": 0.012719999999999843,
+          "stanceSamples": 32
+        },
+        "env": {
+          "depthBakeReady": true,
+          "post": true,
+          "postSubmitMs": 0,
+          "grassTris": 120,
+          "grassInstancesMax": 16500,
+          "grassFactor": 1.5
+        },
+        "viewport": {
+          "w": 1280,
+          "h": 720,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 103,
+          "textures": 7,
+          "programs": 20
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 3.799999999930151,
+          "p95": 7.100000000093132,
+          "max": 7.100000000093132,
+          "mean": 4.300000000007761
+        },
+        "complete": {
+          "n": 12,
+          "p50": 1547,
+          "p95": 1629.8999999999069,
+          "max": 1629.8999999999069,
+          "mean": 1537.5000000000098
+        }
+      },
+      "errors": []
+    },
+    "evening-side-baseline-720p": {
+      "info": {
+        "mode": "baseline",
+        "scene": "evening",
+        "seed": 2,
+        "hour": 17.5,
+        "shot": "side",
+        "quality": "high",
+        "tick": 630,
+        "timeH": 833.4999999999905,
+        "weather": "clear",
+        "cloud": 0.12021554981218874,
+        "hero": {
+          "id": 15,
+          "x": 676.4136780538803,
+          "z": 522.397734247531,
+          "behaviour": "drink",
+          "sex": 0,
+          "age": 244.12236258982975
+        },
+        "pose": {
+          "x": 682.0428431784792,
+          "y": 6.360136476117593,
+          "z": 525.647734247531,
+          "tx": 676.4136780538803,
+          "ty": 4.585229364977935,
+          "tz": 522.397734247531,
+          "fov": 30,
+          "hero": 15
+        },
+        "frames": 99,
+        "render": {
+          "calls": 83,
+          "triangles": 1021580,
+          "geometries": 74,
+          "textures": 3
+        },
+        "postPass": false,
+        "grassInstances": 7798,
+        "chital": null,
+        "env": null,
+        "viewport": {
+          "w": 1280,
+          "h": 720,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 74,
+          "textures": 3,
+          "programs": 17
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 2.099999999976717,
+          "p95": 4,
+          "max": 4,
+          "mean": 2.324999999992239
+        },
+        "complete": {
+          "n": 12,
+          "p50": 537.5,
+          "p95": 593.0999999999767,
+          "max": 593.0999999999767,
+          "mean": 534.7083333333334
+        }
+      },
+      "errors": []
+    },
+    "evening-side-natural-720p": {
+      "info": {
+        "mode": "natural",
+        "scene": "evening",
+        "seed": 2,
+        "hour": 17.5,
+        "shot": "side",
+        "quality": "high",
+        "tick": 630,
+        "timeH": 833.4999999999905,
+        "weather": "clear",
+        "cloud": 0.12021554981218874,
+        "hero": {
+          "id": 15,
+          "x": 676.4136780538803,
+          "z": 522.397734247531,
+          "behaviour": "drink",
+          "sex": 0,
+          "age": 244.12236258982975
+        },
+        "pose": {
+          "x": 682.0428431784792,
+          "y": 6.360136476117593,
+          "z": 525.647734247531,
+          "tx": 676.4136780538803,
+          "ty": 4.585229364977935,
+          "tz": 522.397734247531,
+          "fov": 30,
+          "hero": 15
+        },
+        "frames": 97,
+        "render": {
+          "calls": 87,
+          "triangles": 2567952,
+          "geometries": 77,
+          "textures": 7
+        },
+        "postPass": true,
+        "grassInstances": 11682,
+        "chital": {
+          "drawn": 43,
+          "near": 8,
+          "far": 35,
+          "solveMs": 1,
+          "maxStanceToeErr": 0.012719999999999843,
+          "stanceSamples": 32
+        },
+        "env": {
+          "depthBakeReady": true,
+          "post": true,
+          "postSubmitMs": 0.09999999997671694,
+          "grassTris": 120,
+          "grassInstancesMax": 16500,
+          "grassFactor": 1.5
+        },
+        "viewport": {
+          "w": 1280,
+          "h": 720,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 77,
+          "textures": 7,
+          "programs": 20
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 3.900000000023283,
+          "p95": 8.199999999953434,
+          "max": 8.199999999953434,
+          "mean": 4.266666666662786
+        },
+        "complete": {
+          "n": 12,
+          "p50": 1247.2999999999302,
+          "p95": 1315.1999999999534,
+          "max": 1315.1999999999534,
+          "mean": 1244.2749999999844
+        }
+      },
+      "errors": []
+    },
+    "morning-hero-baseline-720p": {
+      "info": {
+        "mode": "baseline",
+        "scene": "morning",
+        "seed": 6,
+        "hour": 8,
+        "shot": "hero",
+        "quality": "high",
+        "tick": 60,
+        "timeH": 823.9999999999991,
+        "weather": "clear",
+        "cloud": 0.12246254995871696,
+        "hero": {
+          "id": 52,
+          "x": 620.3143162820488,
+          "z": 279.8342978088185,
+          "behaviour": "graze",
+          "sex": 0,
+          "age": 289.55117749373056
+        },
+        "pose": {
+          "x": 609.3143162820488,
+          "y": 11.269834425857987,
+          "z": 279.8342978088185,
+          "tx": 620.3143162820488,
+          "ty": 10.615653545252627,
+          "tz": 279.8342978088185,
+          "fov": 26,
+          "hero": 52
+        },
+        "frames": 99,
+        "render": {
+          "calls": 99,
+          "triangles": 856912,
+          "geometries": 92,
+          "textures": 3
+        },
+        "postPass": false,
+        "grassInstances": 7458,
+        "chital": null,
+        "env": null,
+        "viewport": {
+          "w": 1280,
+          "h": 720,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 92,
+          "textures": 3,
+          "programs": 17
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 1.900000000023283,
+          "p95": 7.199999999953434,
+          "max": 7.199999999953434,
+          "mean": 2.3999999999941792
+        },
+        "complete": {
+          "n": 12,
+          "p50": 608.2000000000698,
+          "p95": 662.6999999999534,
+          "max": 662.6999999999534,
+          "mean": 610.0583333333392
+        }
+      },
+      "errors": []
+    },
+    "morning-hero-natural-720p": {
+      "info": {
+        "mode": "natural",
+        "scene": "morning",
+        "seed": 6,
+        "hour": 8,
+        "shot": "hero",
+        "quality": "high",
+        "tick": 60,
+        "timeH": 823.9999999999991,
+        "weather": "clear",
+        "cloud": 0.12246254995871696,
+        "hero": {
+          "id": 52,
+          "x": 620.3143162820488,
+          "z": 279.8342978088185,
+          "behaviour": "graze",
+          "sex": 0,
+          "age": 289.55117749373056
+        },
+        "pose": {
+          "x": 609.3143162820488,
+          "y": 11.269834425857987,
+          "z": 279.8342978088185,
+          "tx": 620.3143162820488,
+          "ty": 10.615653545252627,
+          "tz": 279.8342978088185,
+          "fov": 26,
+          "hero": 52
+        },
+        "frames": 91,
+        "render": {
+          "calls": 103,
+          "triangles": 2191964,
+          "geometries": 95,
+          "textures": 7
+        },
+        "postPass": true,
+        "grassInstances": 11172,
+        "chital": {
+          "drawn": 17,
+          "near": 6,
+          "far": 11,
+          "solveMs": 0.40000000002328306,
+          "maxStanceToeErr": 0,
+          "stanceSamples": 24
+        },
+        "env": {
+          "depthBakeReady": true,
+          "post": true,
+          "postSubmitMs": 0.10000000009313226,
+          "grassTris": 120,
+          "grassInstancesMax": 16500,
+          "grassFactor": 1.5
+        },
+        "viewport": {
+          "w": 1280,
+          "h": 720,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 95,
+          "textures": 7,
+          "programs": 20
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 3.300000000046566,
+          "p95": 5.800000000046566,
+          "max": 5.800000000046566,
+          "mean": 3.5750000000019404
+        },
+        "complete": {
+          "n": 12,
+          "p50": 1295.2999999999302,
+          "p95": 1432.1999999999534,
+          "max": 1432.1999999999534,
+          "mean": 1288.7916666666667
+        }
+      },
+      "errors": []
+    },
+    "morning-vista-baseline-720p": {
+      "info": {
+        "mode": "baseline",
+        "scene": "morning",
+        "seed": 6,
+        "hour": 8,
+        "shot": "vista",
+        "quality": "high",
+        "tick": 60,
+        "timeH": 823.9999999999991,
+        "weather": "clear",
+        "cloud": 0.12246254995871696,
+        "hero": {
+          "id": 52,
+          "x": 620.3143162820488,
+          "z": 279.8342978088185,
+          "behaviour": "graze",
+          "sex": 0,
+          "age": 289.55117749373056
+        },
+        "pose": {
+          "x": 599.1011128464523,
+          "y": 12.76104564075992,
+          "z": 301.04750124441495,
+          "tx": 620.3143162820488,
+          "ty": 10.615653545252627,
+          "tz": 279.8342978088185,
+          "fov": 48,
+          "hero": 52
+        },
+        "frames": 97,
+        "render": {
+          "calls": 92,
+          "triangles": 984172,
+          "geometries": 85,
+          "textures": 3
+        },
+        "postPass": false,
+        "grassInstances": 7690,
+        "chital": null,
+        "env": null,
+        "viewport": {
+          "w": 1280,
+          "h": 720,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 85,
+          "textures": 3,
+          "programs": 17
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 2.099999999976717,
+          "p95": 3.6000000000931323,
+          "max": 3.6000000000931323,
+          "mean": 2.1666666666569654
+        },
+        "complete": {
+          "n": 12,
+          "p50": 720.4000000000233,
+          "p95": 772.2999999999302,
+          "max": 772.2999999999302,
+          "mean": 707.8999999999942
+        }
+      },
+      "errors": []
+    },
+    "morning-vista-natural-720p": {
+      "info": {
+        "mode": "natural",
+        "scene": "morning",
+        "seed": 6,
+        "hour": 8,
+        "shot": "vista",
+        "quality": "high",
+        "tick": 60,
+        "timeH": 823.9999999999991,
+        "weather": "clear",
+        "cloud": 0.12246254995871696,
+        "hero": {
+          "id": 52,
+          "x": 620.3143162820488,
+          "z": 279.8342978088185,
+          "behaviour": "graze",
+          "sex": 0,
+          "age": 289.55117749373056
+        },
+        "pose": {
+          "x": 599.1011128464523,
+          "y": 12.76104564075992,
+          "z": 301.04750124441495,
+          "tx": 620.3143162820488,
+          "ty": 10.615653545252627,
+          "tz": 279.8342978088185,
+          "fov": 48,
+          "hero": 52
+        },
+        "frames": 94,
+        "render": {
+          "calls": 96,
+          "triangles": 2358968,
+          "geometries": 88,
+          "textures": 7
+        },
+        "postPass": true,
+        "grassInstances": 11538,
+        "chital": {
+          "drawn": 17,
+          "near": 6,
+          "far": 11,
+          "solveMs": 0.8000000000465661,
+          "maxStanceToeErr": 0,
+          "stanceSamples": 24
+        },
+        "env": {
+          "depthBakeReady": true,
+          "post": true,
+          "postSubmitMs": 0.10000000009313226,
+          "grassTris": 120,
+          "grassInstancesMax": 16500,
+          "grassFactor": 1.5
+        },
+        "viewport": {
+          "w": 1280,
+          "h": 720,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 88,
+          "textures": 7,
+          "programs": 20
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 3.3999999999068677,
+          "p95": 5.100000000093132,
+          "max": 5.100000000093132,
+          "mean": 3.5249999999456727
+        },
+        "complete": {
+          "n": 12,
+          "p50": 1608.8000000000466,
+          "p95": 1715.5,
+          "max": 1715.5,
+          "mean": 1584.3666666666977
+        }
+      },
+      "errors": []
+    },
+    "evening-hero-baseline-1080p": {
+      "info": {
+        "mode": "baseline",
+        "scene": "evening",
+        "seed": 2,
+        "hour": 17.5,
+        "shot": "hero",
+        "quality": "high",
+        "tick": 630,
+        "timeH": 833.4999999999905,
+        "weather": "clear",
+        "cloud": 0.12021554981218874,
+        "hero": {
+          "id": 15,
+          "x": 676.4136780538803,
+          "z": 522.397734247531,
+          "behaviour": "drink",
+          "sex": 0,
+          "age": 244.12236258982975
+        },
+        "pose": {
+          "x": 684.1918526469323,
+          "y": 5.752711076690746,
+          "z": 530.175908840583,
+          "tx": 676.4136780538803,
+          "ty": 4.585229364977935,
+          "tz": 522.397734247531,
+          "fov": 26,
+          "hero": 15
+        },
+        "frames": 100,
+        "render": {
+          "calls": 89,
+          "triangles": 964234,
+          "geometries": 80,
+          "textures": 3
+        },
+        "postPass": false,
+        "grassInstances": 7763,
+        "chital": null,
+        "env": null,
+        "viewport": {
+          "w": 1920,
+          "h": 1080,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 80,
+          "textures": 3,
+          "programs": 17
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 2.5,
+          "p95": 2.9000000001396984,
+          "max": 2.9000000001396984,
+          "mean": 2.291666666705472
+        },
+        "complete": {
+          "n": 12,
+          "p50": 1013.6000000000931,
+          "p95": 1089.7000000001863,
+          "max": 1089.7000000001863,
+          "mean": 1014.3333333333527
+        }
+      },
+      "errors": []
+    },
+    "evening-hero-natural-1080p": {
+      "info": {
+        "mode": "natural",
+        "scene": "evening",
+        "seed": 2,
+        "hour": 17.5,
+        "shot": "hero",
+        "quality": "high",
+        "tick": 630,
+        "timeH": 833.4999999999905,
+        "weather": "clear",
+        "cloud": 0.12021554981218874,
+        "hero": {
+          "id": 15,
+          "x": 676.4136780538803,
+          "z": 522.397734247531,
+          "behaviour": "drink",
+          "sex": 0,
+          "age": 244.12236258982975
+        },
+        "pose": {
+          "x": 684.1918526469323,
+          "y": 5.752711076690746,
+          "z": 530.175908840583,
+          "tx": 676.4136780538803,
+          "ty": 4.585229364977935,
+          "tz": 522.397734247531,
+          "fov": 26,
+          "hero": 15
+        },
+        "frames": 97,
+        "render": {
+          "calls": 93,
+          "triangles": 2506316,
+          "geometries": 83,
+          "textures": 7
+        },
+        "postPass": true,
+        "grassInstances": 11641,
+        "chital": {
+          "drawn": 43,
+          "near": 8,
+          "far": 35,
+          "solveMs": 1.7999999998137355,
+          "maxStanceToeErr": 0.012719999999999843,
+          "stanceSamples": 32
+        },
+        "env": {
+          "depthBakeReady": true,
+          "post": true,
+          "postSubmitMs": 0,
+          "grassTris": 120,
+          "grassInstancesMax": 16500,
+          "grassFactor": 1.5
+        },
+        "viewport": {
+          "w": 1920,
+          "h": 1080,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 83,
+          "textures": 7,
+          "programs": 20
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 4.400000000139698,
+          "p95": 7.100000000093132,
+          "max": 7.100000000093132,
+          "mean": 4.866666666639503
+        },
+        "complete": {
+          "n": 12,
+          "p50": 2140.5,
+          "p95": 2367.6999999999534,
+          "max": 2367.6999999999534,
+          "mean": 2150.233333333337
+        }
+      },
+      "errors": []
+    },
+    "evening-vista-baseline-1080p": {
+      "info": {
+        "mode": "baseline",
+        "scene": "evening",
+        "seed": 2,
+        "hour": 17.5,
+        "shot": "vista",
+        "quality": "high",
+        "tick": 630,
+        "timeH": 833.4999999999905,
+        "weather": "clear",
+        "cloud": 0.12021554981218874,
+        "hero": {
+          "id": 15,
+          "x": 676.4136780538803,
+          "z": 522.397734247531,
+          "behaviour": "drink",
+          "sex": 0,
+          "age": 244.12236258982975
+        },
+        "pose": {
+          "x": 694.6765209241419,
+          "y": 6.380773874265113,
+          "z": 546.1983344562681,
+          "tx": 676.4136780538803,
+          "ty": 4.585229364977935,
+          "tz": 522.397734247531,
+          "fov": 48,
+          "hero": 15
+        },
+        "frames": 98,
+        "render": {
+          "calls": 110,
+          "triangles": 1038516,
+          "geometries": 100,
+          "textures": 3
+        },
+        "postPass": false,
+        "grassInstances": 7698,
+        "chital": null,
+        "env": null,
+        "viewport": {
+          "w": 1920,
+          "h": 1080,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 100,
+          "textures": 3,
+          "programs": 17
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 2.1000000000931323,
+          "p95": 6.100000000093132,
+          "max": 6.100000000093132,
+          "mean": 2.7083333333333335
+        },
+        "complete": {
+          "n": 12,
+          "p50": 942.1000000000931,
+          "p95": 990.8000000000466,
+          "max": 990.8000000000466,
+          "mean": 939.0666666666511
+        }
+      },
+      "errors": []
+    },
+    "evening-vista-natural-1080p": {
+      "info": {
+        "mode": "natural",
+        "scene": "evening",
+        "seed": 2,
+        "hour": 17.5,
+        "shot": "vista",
+        "quality": "high",
+        "tick": 630,
+        "timeH": 833.4999999999905,
+        "weather": "clear",
+        "cloud": 0.12021554981218874,
+        "hero": {
+          "id": 15,
+          "x": 676.4136780538803,
+          "z": 522.397734247531,
+          "behaviour": "drink",
+          "sex": 0,
+          "age": 244.12236258982975
+        },
+        "pose": {
+          "x": 694.6765209241419,
+          "y": 6.380773874265113,
+          "z": 546.1983344562681,
+          "tx": 676.4136780538803,
+          "ty": 4.585229364977935,
+          "tz": 522.397734247531,
+          "fov": 48,
+          "hero": 15
+        },
+        "frames": 94,
+        "render": {
+          "calls": 114,
+          "triangles": 2575048,
+          "geometries": 103,
+          "textures": 7
+        },
+        "postPass": true,
+        "grassInstances": 11585,
+        "chital": {
+          "drawn": 43,
+          "near": 8,
+          "far": 35,
+          "solveMs": 1.7999999998137355,
+          "maxStanceToeErr": 0.012719999999999843,
+          "stanceSamples": 32
+        },
+        "env": {
+          "depthBakeReady": true,
+          "post": true,
+          "postSubmitMs": 0.10000000009313226,
+          "grassTris": 120,
+          "grassInstancesMax": 16500,
+          "grassFactor": 1.5
+        },
+        "viewport": {
+          "w": 1920,
+          "h": 1080,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 103,
+          "textures": 7,
+          "programs": 20
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 5.5,
+          "p95": 10.800000000046566,
+          "max": 10.800000000046566,
+          "mean": 5.708333333313931
+        },
+        "complete": {
+          "n": 12,
+          "p50": 2032.3000000000466,
+          "p95": 2220.4000000001397,
+          "max": 2220.4000000001397,
+          "mean": 2041.791666666686
+        }
+      },
+      "errors": []
+    },
+    "evening-side-baseline-1080p": {
+      "info": {
+        "mode": "baseline",
+        "scene": "evening",
+        "seed": 2,
+        "hour": 17.5,
+        "shot": "side",
+        "quality": "high",
+        "tick": 630,
+        "timeH": 833.4999999999905,
+        "weather": "clear",
+        "cloud": 0.12021554981218874,
+        "hero": {
+          "id": 15,
+          "x": 676.4136780538803,
+          "z": 522.397734247531,
+          "behaviour": "drink",
+          "sex": 0,
+          "age": 244.12236258982975
+        },
+        "pose": {
+          "x": 682.0428431784792,
+          "y": 6.360136476117593,
+          "z": 525.647734247531,
+          "tx": 676.4136780538803,
+          "ty": 4.585229364977935,
+          "tz": 522.397734247531,
+          "fov": 30,
+          "hero": 15
+        },
+        "frames": 101,
+        "render": {
+          "calls": 83,
+          "triangles": 1021580,
+          "geometries": 74,
+          "textures": 3
+        },
+        "postPass": false,
+        "grassInstances": 7798,
+        "chital": null,
+        "env": null,
+        "viewport": {
+          "w": 1920,
+          "h": 1080,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 74,
+          "textures": 3,
+          "programs": 17
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 1.9000000001396984,
+          "p95": 3.4000000001396984,
+          "max": 3.4000000001396984,
+          "mean": 2.1416666666433835
+        },
+        "complete": {
+          "n": 12,
+          "p50": 670.3000000000466,
+          "p95": 716.5,
+          "max": 716.5,
+          "mean": 668.4499999999922
+        }
+      },
+      "errors": []
+    },
+    "evening-side-natural-1080p": {
+      "info": {
+        "mode": "natural",
+        "scene": "evening",
+        "seed": 2,
+        "hour": 17.5,
+        "shot": "side",
+        "quality": "high",
+        "tick": 630,
+        "timeH": 833.4999999999905,
+        "weather": "clear",
+        "cloud": 0.12021554981218874,
+        "hero": {
+          "id": 15,
+          "x": 676.4136780538803,
+          "z": 522.397734247531,
+          "behaviour": "drink",
+          "sex": 0,
+          "age": 244.12236258982975
+        },
+        "pose": {
+          "x": 682.0428431784792,
+          "y": 6.360136476117593,
+          "z": 525.647734247531,
+          "tx": 676.4136780538803,
+          "ty": 4.585229364977935,
+          "tz": 522.397734247531,
+          "fov": 30,
+          "hero": 15
+        },
+        "frames": 94,
+        "render": {
+          "calls": 87,
+          "triangles": 2567952,
+          "geometries": 77,
+          "textures": 7
+        },
+        "postPass": true,
+        "grassInstances": 11682,
+        "chital": {
+          "drawn": 43,
+          "near": 8,
+          "far": 35,
+          "solveMs": 1.1999999999534339,
+          "maxStanceToeErr": 0.012719999999999843,
+          "stanceSamples": 32
+        },
+        "env": {
+          "depthBakeReady": true,
+          "post": true,
+          "postSubmitMs": 0,
+          "grassTris": 120,
+          "grassInstancesMax": 16500,
+          "grassFactor": 1.5
+        },
+        "viewport": {
+          "w": 1920,
+          "h": 1080,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 77,
+          "textures": 7,
+          "programs": 20
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 4.099999999627471,
+          "p95": 6.100000000093132,
+          "max": 6.100000000093132,
+          "mean": 4.358333333317812
+        },
+        "complete": {
+          "n": 12,
+          "p50": 1670,
+          "p95": 1977.8999999999069,
+          "max": 1977.8999999999069,
+          "mean": 1692.8499999999767
+        }
+      },
+      "errors": []
+    },
+    "morning-hero-baseline-1080p": {
+      "info": {
+        "mode": "baseline",
+        "scene": "morning",
+        "seed": 6,
+        "hour": 8,
+        "shot": "hero",
+        "quality": "high",
+        "tick": 60,
+        "timeH": 823.9999999999991,
+        "weather": "clear",
+        "cloud": 0.12246254995871696,
+        "hero": {
+          "id": 52,
+          "x": 620.3143162820488,
+          "z": 279.8342978088185,
+          "behaviour": "graze",
+          "sex": 0,
+          "age": 289.55117749373056
+        },
+        "pose": {
+          "x": 609.3143162820488,
+          "y": 11.269834425857987,
+          "z": 279.8342978088185,
+          "tx": 620.3143162820488,
+          "ty": 10.615653545252627,
+          "tz": 279.8342978088185,
+          "fov": 26,
+          "hero": 52
+        },
+        "frames": 98,
+        "render": {
+          "calls": 99,
+          "triangles": 856912,
+          "geometries": 92,
+          "textures": 3
+        },
+        "postPass": false,
+        "grassInstances": 7458,
+        "chital": null,
+        "env": null,
+        "viewport": {
+          "w": 1920,
+          "h": 1080,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 92,
+          "textures": 3,
+          "programs": 17
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 2.1000000000931323,
+          "p95": 4.5,
+          "max": 4.5,
+          "mean": 2.274999999984478
+        },
+        "complete": {
+          "n": 12,
+          "p50": 819.6000000000931,
+          "p95": 919.7000000001863,
+          "max": 919.7000000001863,
+          "mean": 828.8666666667365
+        }
+      },
+      "errors": []
+    },
+    "morning-hero-natural-1080p": {
+      "info": {
+        "mode": "natural",
+        "scene": "morning",
+        "seed": 6,
+        "hour": 8,
+        "shot": "hero",
+        "quality": "high",
+        "tick": 60,
+        "timeH": 823.9999999999991,
+        "weather": "clear",
+        "cloud": 0.12246254995871696,
+        "hero": {
+          "id": 52,
+          "x": 620.3143162820488,
+          "z": 279.8342978088185,
+          "behaviour": "graze",
+          "sex": 0,
+          "age": 289.55117749373056
+        },
+        "pose": {
+          "x": 609.3143162820488,
+          "y": 11.269834425857987,
+          "z": 279.8342978088185,
+          "tx": 620.3143162820488,
+          "ty": 10.615653545252627,
+          "tz": 279.8342978088185,
+          "fov": 26,
+          "hero": 52
+        },
+        "frames": 95,
+        "render": {
+          "calls": 103,
+          "triangles": 2191964,
+          "geometries": 95,
+          "textures": 7
+        },
+        "postPass": true,
+        "grassInstances": 11172,
+        "chital": {
+          "drawn": 17,
+          "near": 6,
+          "far": 11,
+          "solveMs": 0.7999999998137355,
+          "maxStanceToeErr": 0,
+          "stanceSamples": 24
+        },
+        "env": {
+          "depthBakeReady": true,
+          "post": true,
+          "postSubmitMs": 0,
+          "grassTris": 120,
+          "grassInstancesMax": 16500,
+          "grassFactor": 1.5
+        },
+        "viewport": {
+          "w": 1920,
+          "h": 1080,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 95,
+          "textures": 7,
+          "programs": 20
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 3.6000000000931323,
+          "p95": 4.600000000093132,
+          "max": 4.600000000093132,
+          "mean": 3.5916666666744277
+        },
+        "complete": {
+          "n": 12,
+          "p50": 1801.7999999998137,
+          "p95": 1922.2000000001863,
+          "max": 1922.2000000001863,
+          "mean": 1806.3833333333412
+        }
+      },
+      "errors": []
+    },
+    "morning-vista-baseline-1080p": {
+      "info": {
+        "mode": "baseline",
+        "scene": "morning",
+        "seed": 6,
+        "hour": 8,
+        "shot": "vista",
+        "quality": "high",
+        "tick": 60,
+        "timeH": 823.9999999999991,
+        "weather": "clear",
+        "cloud": 0.12246254995871696,
+        "hero": {
+          "id": 52,
+          "x": 620.3143162820488,
+          "z": 279.8342978088185,
+          "behaviour": "graze",
+          "sex": 0,
+          "age": 289.55117749373056
+        },
+        "pose": {
+          "x": 599.1011128464523,
+          "y": 12.76104564075992,
+          "z": 301.04750124441495,
+          "tx": 620.3143162820488,
+          "ty": 10.615653545252627,
+          "tz": 279.8342978088185,
+          "fov": 48,
+          "hero": 52
+        },
+        "frames": 101,
+        "render": {
+          "calls": 92,
+          "triangles": 984172,
+          "geometries": 85,
+          "textures": 3
+        },
+        "postPass": false,
+        "grassInstances": 7690,
+        "chital": null,
+        "env": null,
+        "viewport": {
+          "w": 1920,
+          "h": 1080,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 85,
+          "textures": 3,
+          "programs": 17
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 2,
+          "p95": 2.8000000002793968,
+          "max": 2.8000000002793968,
+          "mean": 2.166666666705472
+        },
+        "complete": {
+          "n": 12,
+          "p50": 912.8999999999069,
+          "p95": 974,
+          "max": 974,
+          "mean": 904.1583333333256
+        }
+      },
+      "errors": []
+    },
+    "morning-vista-natural-1080p": {
+      "info": {
+        "mode": "natural",
+        "scene": "morning",
+        "seed": 6,
+        "hour": 8,
+        "shot": "vista",
+        "quality": "high",
+        "tick": 60,
+        "timeH": 823.9999999999991,
+        "weather": "clear",
+        "cloud": 0.12246254995871696,
+        "hero": {
+          "id": 52,
+          "x": 620.3143162820488,
+          "z": 279.8342978088185,
+          "behaviour": "graze",
+          "sex": 0,
+          "age": 289.55117749373056
+        },
+        "pose": {
+          "x": 599.1011128464523,
+          "y": 12.76104564075992,
+          "z": 301.04750124441495,
+          "tx": 620.3143162820488,
+          "ty": 10.615653545252627,
+          "tz": 279.8342978088185,
+          "fov": 48,
+          "hero": 52
+        },
+        "frames": 95,
+        "render": {
+          "calls": 96,
+          "triangles": 2358968,
+          "geometries": 88,
+          "textures": 7
+        },
+        "postPass": true,
+        "grassInstances": 11538,
+        "chital": {
+          "drawn": 17,
+          "near": 6,
+          "far": 11,
+          "solveMs": 1.1000000000931323,
+          "maxStanceToeErr": 0,
+          "stanceSamples": 24
+        },
+        "env": {
+          "depthBakeReady": true,
+          "post": true,
+          "postSubmitMs": 0,
+          "grassTris": 120,
+          "grassInstancesMax": 16500,
+          "grassFactor": 1.5
+        },
+        "viewport": {
+          "w": 1920,
+          "h": 1080,
+          "pixelRatio": 1
+        },
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gl": {
+          "geometries": 88,
+          "textures": 7,
+          "programs": 20
+        }
+      },
+      "perfSoftwareRasteriserMs": {
+        "submit": {
+          "n": 12,
+          "p50": 3.5,
+          "p95": 7.2999999998137355,
+          "max": 7.2999999998137355,
+          "mean": 4.066666666612339
+        },
+        "complete": {
+          "n": 12,
+          "p50": 2091.6999999997206,
+          "p95": 2263.8000000002794,
+          "max": 2263.8000000002794,
+          "mean": 2113.7416666666977
+        }
+      },
+      "errors": []
+    }
+  }
+}

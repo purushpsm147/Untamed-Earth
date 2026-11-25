@@ -23,5 +23,7 @@ export default defineConfig({
     { name: 'documentary', testMatch: 'tests/e2e/documentary.spec.ts', use: { video: 'on' } },
     // opt-in visual evidence for movement modes (not in npm run test:e2e)
     { name: 'locomotion-capture', testMatch: 'tests/e2e/locomotion-capture.spec.ts', use: { video: 'on' } },
+    // VIS-01 riverbank slice evidence: lifecycle, A/B capture matrix, opt-in videos (not in npm run test:e2e)
+    { name: 'riverbank-slice', testMatch: 'tests/e2e/riverbank-slice.spec.ts' },
   ],
 });

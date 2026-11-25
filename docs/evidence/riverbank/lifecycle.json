@@ -1,0 +1,25 @@
+{
+  "cycles": [
+    {
+      "geometries": 83,
+      "textures": 7,
+      "programs": 20
+    },
+    {
+      "geometries": 83,
+      "textures": 7,
+      "programs": 20
+    },
+    {
+      "geometries": 83,
+      "textures": 7,
+      "programs": 20
+    },
+    {
+      "geometries": 83,
+      "textures": 7,
+      "programs": 20
+    }
+  ],
+  "errors": []
+}
