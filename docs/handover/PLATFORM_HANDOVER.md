@@ -220,6 +220,17 @@ Green CI is a precondition only. **It does not complete M5.**
   ECO-01 is taking a semantics-preserving `decide`/`steer` speed-up (≥ 20%, identical hashes). Timeout unchanged.
 - **Soak:** 30 min live, 25 restarts and context loss all pass on `ee9545d` (`docs/QA.md` soak section). P3 finding: the simulation keeps running after context loss.
 
+## 8c. DIRECTOR TASK QA-03 results (2026-11-25)
+- **Graphics-quality failure, job 139015282427** (`medium: 106,106,90`, spread 16 > 6): ran on #34 head `23ae221` (`feat/open-boundary`),
+  which contains none of #43's fixes and still uses the fixed 3.5 s sleep. **Not a `gfxSettled` regression**: it is the pre-fix failure
+  (here the low reading came in round 3, not round 1, which matches "read before the preset change landed" in any round). It clears when #34 merges
+  the integration branch after #43.
+- **#43 current head `68900bd`:** CI green (run 45562738822). Vitest scheduling unchanged, no timeout change (director decision).
+- **UX-02 context-loss fix (`5b4370e`, PR #45), checked from the QA side:** QA's opt-in soak context-loss test passes against it. Ticks after
+  the loss went from 528 in 5 s (457 → 985) on the old code to 25 (359 → 384, about one 100x frame before the asynchronous `webglcontextlost`
+  event); Reload → Continue restores the manual save; no page errors. UX-01's own regression test (in `experience.spec.ts`, no shared-helper
+  edits) checks that the tick stays stable for 3 s and that no autosave is written.
+
 ## 9. Next QA-01 steps
 1. ~~Get PR #43 green on CI~~ (done: `07dd3aa`, runs 384/385). Director review and merge restores B1. Then confirm two green integration runs on the merge SHA.
 2. Owner runs the hardware validation package (B2/B3).

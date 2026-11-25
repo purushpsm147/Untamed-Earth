@@ -34,6 +34,7 @@ Raw samples: `docs/evidence/soak/*-2026-11-25.json`. Result: **3/3 passed in 40.
 (tick 457 → 985 in 5 s at 100x) although nothing is shown. That unseen progress was not persisted in this run (the
 manual save was restored), but whether it is persisted depends on whether an autosave or the `pagehide` save completes
 first. Suggest pausing the simulation when the context is lost. Not changed by QA-01 (product behaviour, `Game.ts` is UX-01's).
+**Update:** fixed by UX-01 in `5b4370e` (PR #45, unmerged). QA's soak context-loss test passes against it: 25 ticks after the loss (one frame before the event) instead of 528.
 
 ## Gate status on 2026-11-16 (history)
 | Check | Where | Result |
