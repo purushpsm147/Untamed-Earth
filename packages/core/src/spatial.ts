@@ -6,15 +6,21 @@ export class SpatialHash<T extends { x: number; z: number }> {
     this.n = Math.ceil(size / cell);
     this.buckets = Array.from({ length: this.n * this.n }, () => []);
   }
+  /** Buckets that received an item since the last clear (clearing only these keeps insertion order and results). */
+  private readonly used: number[] = [];
   clear(): void {
-    for (const b of this.buckets) b.length = 0;
+    for (let i = 0; i < this.used.length; i++) this.buckets[this.used[i]!]!.length = 0;
+    this.used.length = 0;
   }
   private idx(v: number): number {
     const i = Math.floor(v / this.cell);
     return i < 0 ? 0 : i >= this.n ? this.n - 1 : i;
   }
   insert(item: T): void {
-    this.buckets[this.idx(item.z) * this.n + this.idx(item.x)]!.push(item);
+    const k = this.idx(item.z) * this.n + this.idx(item.x);
+    const b = this.buckets[k]!;
+    if (b.length === 0) this.used.push(k);
+    b.push(item);
   }
   /** Calls fn for every item within radius r of (x,z). */
   query(x: number, z: number, r: number, fn: (item: T, d2: number) => void): void {

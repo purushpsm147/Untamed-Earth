@@ -158,6 +158,15 @@ export class Environment {
   }
   /** Sun elevation in radians at latitude 22N with seasonal declination. */
   sunElevation(): number {
+    // a pure function of timeH, read for every animal every tick: computed once per distinct time (identical value)
+    if (this.timeH === this.sunT) return this.sunEl;
+    this.sunT = this.timeH;
+    this.sunEl = this.computeSunElevation();
+    return this.sunEl;
+  }
+  private sunT = NaN;
+  private sunEl = 0;
+  private computeSunElevation(): number {
     const decl = -0.408 * Math.cos(2 * Math.PI * (this.yearFrac - 0.125));
     const lat = 0.384;
     const ha = ((this.hour - 12) / 12) * Math.PI;

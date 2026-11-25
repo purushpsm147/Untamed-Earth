@@ -148,7 +148,7 @@ export class BoundaryAudit {
     this.hours += h;
     for (const a of this.sim.animals) {
       if (!a.alive) continue;
-      if (a.x < 0 || a.z < 0 || a.x > R || a.z > R) this.out++;
+      if (!(a as { transit?: number }).transit && (a.x < 0 || a.z < 0 || a.x > R || a.z > R)) this.out++; // animals in boundary transit are allowed in the corridor
       const d = edgeDist(a.x, a.z);
       this.occ[a.sp]![bandOf(d)]! += h;
       if (d < 8) {
@@ -170,8 +170,8 @@ export class BoundaryAudit {
   }
 
   private sampleTerritories(): void {
-    for (const t of this.sim.territories.values()) {
-      const r = (SPECIES[t.sp]!.territory?.spacing ?? 0) / 2;
+    for (const t of ((this.sim as unknown as { territories?: Map<number, { sp: number; x: number; z: number }> }).territories?.values() ?? [])) {
+      const r = ((SPECIES[t.sp] as { territory?: { spacing: number } }).territory?.spacing ?? 0) / 2;
       if (r <= 0) continue;
       const d = edgeDist(t.x, t.z);
       this.tSamples++;

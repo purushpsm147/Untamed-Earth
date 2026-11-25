@@ -1,0 +1,26 @@
+{
+  "pursuit": {
+    "staged": {
+      "prey": 80,
+      "pred": 73,
+      "z": 100
+    },
+    "inCorridor": {
+      "preyX": -3.4863553842501216,
+      "preyTransit": -1,
+      "preyOff": false,
+      "preyAlive": true,
+      "predX": 4.165308568137912,
+      "predTransit": -1,
+      "predBeh": 9,
+      "captured": 0,
+      "escaped": 0
+    },
+    "after": {
+      "captured": 1,
+      "escaped": 0,
+      "preyOff": false,
+      "preyKnown": false
+    }
+  }
+}

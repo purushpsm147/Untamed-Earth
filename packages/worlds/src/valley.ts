@@ -6,6 +6,8 @@ export const CHUNK_SIZE = 96;
 export const CHUNKS = REGION_SIZE / CHUNK_SIZE; // 15
 /** Non-playable chunks rendered beyond the region so the horizon is never a cliff edge. */
 export const APRON = 2;
+/** Width (m) of the simulation-authoritative transit corridor outside each edge (issue #29; multiple of 4). */
+export const CORRIDOR = 24;
 
 export interface TerrainSample {
   h: number;
@@ -268,16 +270,20 @@ export class Valley {
     return this.sample(x, z).h;
   }
 
-  /** Bilinear lookup in a cached 4 m heightfield of the playable region: the simulation's fast path. */
+  /**
+   * Bilinear lookup in a cached 4 m heightfield: the simulation's fast path. It covers the region plus the transit
+   * corridor (CORRIDOR m outside every edge, issue #29), on the same lattice, so values inside the region are unchanged;
+   * outside the corridor it clamps.
+   */
   heightFast(x: number, z: number): number {
-    const N = REGION_SIZE / 4 + 1;
+    const N = (REGION_SIZE + 2 * CORRIDOR) / 4 + 1;
     if (!this.hGrid) {
       const g = new Float32Array(N * N);
-      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) g[j * N + i] = this.sample(i * 4, j * 4).h;
+      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) g[j * N + i] = this.sample(i * 4 - CORRIDOR, j * 4 - CORRIDOR).h;
       this.hGrid = g;
     }
-    const fx = Math.min(Math.max(x / 4, 0), N - 1.001);
-    const fz = Math.min(Math.max(z / 4, 0), N - 1.001);
+    const fx = Math.min(Math.max((x + CORRIDOR) / 4, 0), N - 1.001);
+    const fz = Math.min(Math.max((z + CORRIDOR) / 4, 0), N - 1.001);
     const i = Math.floor(fx);
     const j = Math.floor(fz);
     const u = fx - i;
