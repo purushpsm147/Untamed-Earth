@@ -7,14 +7,18 @@ same software renderer). Software frame times support no performance claims. **P
 Victus 16: Radeon Vega 8 iGPU and RTX 3060 Laptop, Edge 157, 2026-11-15), archived in `docs/evidence/profile-hp-victus16-*.json`
 (see PERFORMANCE.md). **No phone, Firefox or Safari has been tested.**
 
-## Gate status at integration `3a0e7f9` + PR #43 (2026-11-24)
+## Gate status at integration `3a0e7f9` + PR #43 head `07dd3aa` (2026-11-25)
 | Check | Where | Result |
 |---|---|---|
 | `npm ci`, typecheck, build | local | Pass. Main JS 676 kB (181 kB gzip) + worker + lazy chunks |
-| Unit + headless (22 files) | local | **132/132** |
-| Browser suites (smoke, reliability, gameplay, documentary) | local | 21 tests with the new regression test. Reliability 6/6 on `daf0ffa`; full-run result in the CI record below |
-| GitHub Actions on integration HEAD `3a0e7f9` | CI | **Run 322: failure** (19/20). Cause: `terrainSettled()` read pre-teleport counters. Test-synchronisation defect, fixed in `daf0ffa` (PR #43) |
-| GitHub Actions on PR #43 | CI | runs 353 (push) and 355 (PR) on `daf0ffa`; results recorded below once finished |
+| Unit + headless (23 files) | local | **135/135** (132 on `3a0e7f9` + build provenance ×2 + coarse-LOD readiness regression) |
+| Browser suites (smoke, reliability, gameplay, documentary): 21 tests | CI | **21/21**: [run 384](https://github.com/purushpsm147/Untamed-Earth/actions/runs/45467323137) (push) and [run 385](https://github.com/purushpsm147/Untamed-Earth/actions/runs/45467341467) (PR), both green on `07dd3aa` |
+| Browser, local (this container) | local | Reliability 6/6 on `07dd3aa`; graphics-quality test pass (needed a 12 min CLI timeout here, see below). Full local run on `d484a37`: 19/21, both failures diagnosed below |
+| GitHub Actions on integration HEAD `3a0e7f9` | CI | **Run 322: failure** (19/20). Fixed by PR #43 (not yet merged) |
+
+**This container is not a timing reference.** Measured against CI on the same tests, it is about 2–4× slower (graphics-quality test
+56 s in CI vs 2.9–4.4 min here; seeded random interaction 54 s vs > 240 s, about 3.7 s per action, steady progress to action ~64 of 80, no hang).
+Timeouts that only trip here are recorded as environment, not product, and no test timeout was changed.
 
 ## Gate status on 2026-11-16 (history)
 | Check | Where | Result |
@@ -49,6 +53,11 @@ Victus 16: Radeon Vega 8 iGPU and RTX 3060 Laptop, Edge 157, 2026-11-15), archiv
 | 275 | `0acc437` | Success | PR #24 behaviour audit | [run](https://github.com/purushpsm147/Untamed-Earth/actions/runs/44032676828) |
 | **282** | **`78bb515`** | **Success** | PR #25: 120 unit, 20 browser | [run](https://github.com/purushpsm147/Untamed-Earth/actions/runs/44050126945) |
 | 322 | `3a0e7f9` | Fail (1) | Reliability "terrain converges after violent camera travel": `terrainSettled()` passed, then `mismatched` = 97. Streaming state is recomputed only in the next frame's `TerrainView.update()`; after `debugCam()` an already-settled old position read all zeros. Deterministic reproduction: teleport + read in one task → 0. Not a product defect | `terrainSettled()` waits for an `update()` pass that started after the call (`debugState().updates`), assertions unchanged; regression test added (`daf0ffa`, PR #43) · [run](https://github.com/purushpsm147/Untamed-Earth/actions/runs/44116004501) |
+| 353/355 | `daf0ffa` (PR #43) | Cancelled | Superseded by the next push | — |
+| **363/364** | **`d484a37`** (PR #43) | **Success** | First fix + docs | [363](https://github.com/purushpsm147/Untamed-Earth/actions/runs/45397584349), [364](https://github.com/purushpsm147/Untamed-Earth/actions/runs/45397593497) |
+| local | `d484a37` | 2 fails | (a) Graphics-quality test: fixed 3.5 s sleep, Medium read 80/88/89 geometries in round 1 vs 102–105 later (reproduced 2/2 in isolation; UX-01 reproduced it on `3a0e7f9` and on PR #45 CI run 45399663928). (b) Seeded random interaction: 240 s timeout from container slowness (see above) | (a) `gfxSettled()` helper: terrain settled + geometry/chunk counts stable over 1 s (`f0afb90`); threshold ≤ 6 unchanged. (b) none needed |
+| 378 | `f0afb90` (PR #43) | Fail (1) | The new readiness regression test itself: helper passed, next read `mismatched` = 18. Deeper cause: a missing chunk is first filled at LOD 6 and its full-detail target is set only on the next `update()`; in between, `mismatched` (vs `want`) and every other counter read 0 | `debugState().mismatched` compares with the chunk's final LOD `lodFor(dist)` (diagnostics only); deterministic unit regression, verified failing before the fix (`07dd3aa`) |
+| **384/385** | **`07dd3aa`** (PR #43) | **Success** | 21/21 browser, 135 unit | [384](https://github.com/purushpsm147/Untamed-Earth/actions/runs/45467323137), [385](https://github.com/purushpsm147/Untamed-Earth/actions/runs/45467341467) |
 
 ## What the tests cover
 

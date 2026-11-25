@@ -28,7 +28,7 @@ npm run bench                                     # G8: simulation cost per tick
 |---|---|---|---|
 | 1.1 | Clean tree, `npm ci` succeeds | yes | |
 | 1.2 | Typecheck | pass | |
-| 1.3 | Unit + headless | all pass; record the count (132 at `3a0e7f9`) | |
+| 1.3 | Unit + headless | all pass; record the count (132 at `3a0e7f9`, 135 at `07dd3aa`) | |
 | 1.4 | Build | pass; main bundle size recorded | |
 | 1.5 | Browser suites | all pass; record the count (21 from `daf0ffa`) | |
 | 1.6 | GitHub Actions `quality.yml` on **this exact SHA** | success, link | |
@@ -94,7 +94,7 @@ npm run bench                                     # G8: simulation cost per tick
 ---
 
 ## Status at `3a0e7f9` + PR #43 (2026-11-24, QA-01)
-- §1: 1.1–1.4 pass locally. Integration CI on `3a0e7f9` is red ([run 322](https://github.com/purushpsm147/Untamed-Earth/actions/runs/44116004501)), and the fix is in PR #43. 1.6/1.7 are open until #43 is merged and green twice.
+- §1: 1.1–1.4 pass locally. Integration CI on `3a0e7f9` is red ([run 322](https://github.com/purushpsm147/Untamed-Earth/actions/runs/44116004501)). PR #43 head `07dd3aa` is green twice (runs 384, 385: 135 unit, 21/21 browser). 1.6/1.7 stay open for the integration branch until #43 is merged and the merge SHA is green twice.
 - §2: SW evidence exists in the unit suites.
 - §3: HW evidence exists for one laptop (Vega 8, RTX 3060 Laptop) on a build before `c86a691`. 3.3 (CPU-only load), 3.4, 3.6 and 3.7 are open.
 - §4: only Chromium on Windows (the owner's laptop) and SwiftShader Chromium on Linux. Everything else is open.

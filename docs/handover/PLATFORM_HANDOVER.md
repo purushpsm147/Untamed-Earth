@@ -2,7 +2,7 @@
 
 **Owner of this file:** QA-01 (`session_01MD7GqPxyJBUB5qRk854hy3`). Director channel: [#36](https://github.com/purushpsm147/Untamed-Earth/issues/36).
 Milestone ledger: [#9](https://github.com/purushpsm147/Untamed-Earth/issues/9). Draft PR: [#43](https://github.com/purushpsm147/Untamed-Earth/pull/43).
-**Snapshot:** 2026-11-24. Base: integration `ccr-4783fee0-8wvc41` @ `3a0e7f9`. Working branch: `ccr-be746a20-5zbpsi`.
+**Snapshot:** 2026-11-25 (first written 2026-11-24). Base: integration `ccr-4783fee0-8wvc41` @ `3a0e7f9`. Working branch: `ccr-be746a20-5zbpsi`.
 
 This file is the restart point for QA-01. Read it with `docs/QA.md`, `docs/handover/RELEASE_READINESS.md` and
 `docs/handover/HARDWARE_VALIDATION.md`. Anything not stated here with a SHA, run link or file is not established.
@@ -19,7 +19,7 @@ Evidence levels used below: **implemented** (code exists), **software-verified**
 | Integration HEAD | `3a0e7f973b8935fa7a05b5406c5af9b970584c18` (Merge PR #33, 2026-11-17) |
 | Latest integration CI | [run 322 / 44116004501](https://github.com/purushpsm147/Untamed-Earth/actions/runs/44116004501): **failure**: 19/20 browser tests passed. Typecheck, unit and build passed. |
 | Last green integration CI | [run 282 / 44050126945](https://github.com/purushpsm147/Untamed-Earth/actions/runs/44050126945) on `78bb515` (Merge PR #25) |
-| Candidate fix | `daf0ffa` on `ccr-be746a20-5zbpsi` (PR #43). CI on the candidate is recorded in §3 once it finishes. |
+| Candidate fix | PR #43 head `07dd3aa` on `ccr-be746a20-5zbpsi`: **CI green twice on the same SHA**, [run 384](https://github.com/purushpsm147/Untamed-Earth/actions/runs/45467323137) (push) and [run 385](https://github.com/purushpsm147/Untamed-Earth/actions/runs/45467341467) (PR); 135 unit, 21/21 browser. Awaiting director review; not merged. |
 | Workflow | `.github/workflows/quality.yml`: `npm ci` → typecheck → `npm test` → build → `playwright install --with-deps chromium` → `npm run test:e2e` (smoke, reliability, gameplay, documentary) on ubuntu-latest, SwiftShader. Runs on every push and PR. Concurrency is per ref, cancel-in-progress. |
 
 ### Run 322 failure: diagnosis
@@ -45,6 +45,15 @@ Evidence levels used below: **implemented** (code exists), **software-verified**
   benefits, including the smoke, gameplay and reliability tests.
 - **Regression test:** "terrain readiness is judged for the current camera, not the position before a teleport"
   (`tests/e2e/reliability.spec.ts`).
+- **Second cause, found when that regression test failed in CI run 378 (`f0afb90`): `mismatched` 18 after the helper passed.** A chunk
+  with no mesh is first filled at LOD 6; its full-detail target (`want = lodFor(d)`) is set only on the *next* `update()`. Between the
+  coarse fill landing and that pass, `mismatched` (computed against `want`), `pending`, `inFlight` and `queued` were all 0 while nearby
+  chunks were still coarse. **Fix (`07dd3aa`):** `debugState().mismatched` compares `res` with the chunk's final LOD `lodFor(dist)`
+  (distance recorded per update). Diagnostics only. Deterministic unit regression on the main-thread path
+  (`tests/unit/terrain-streaming.test.ts`), verified to fail on the old diagnostic. Run 322's 97 is consistent with either cause; both are fixed.
+- **Same family, another test:** "graphics quality changes at runtime" read GPU geometry counts after a fixed 3.5 s sleep. Round 1
+  read low (80/88/89 vs 102–105) in 3 of 3 local runs, and UX-01 reproduced it on `3a0e7f9` and on PR #45 CI run 45399663928.
+  Fix (`f0afb90`): shared helper `gfxSettled()` (terrain settled, then geometry and chunk counts stable over 1 s). The ≤ 6 threshold is unchanged.
 
 ---
 
@@ -91,7 +100,10 @@ Runs listed by GitHub for `ccr-4783fee0-8wvc41` (30 total). Cancelled runs were 
 | 247 | `deb1de8` | success | | PR #19 test stabilisation (PR #23 included) |
 | 275 | `0acc437` | success | | PR #24 audit |
 | 282 | `78bb515` | success | 120 / 20 | PR #25 |
-| **322** | **`3a0e7f9`** | **fail** | 132 / 19 of 20 | **Terrain readiness race (§1) → `daf0ffa`** |
+| **322** | **`3a0e7f9`** | **fail** | 132 / 19 of 20 | **Terrain readiness race (§1) → `daf0ffa` + `07dd3aa`** |
+| PR #43: 363/364 | `d484a37` | success ×2 | 132 / 21 | first fix + docs |
+| PR #43: 378 | `f0afb90` | **fail** | / 20 of 21 | new regression test exposed the coarse-LOD false zero → `07dd3aa` |
+| PR #43: 384/385 | `07dd3aa` | **success ×2** | 135 / 21 | candidate |
 
 **Pattern:** every red integration run since run 44 has been a test that read state **before a slow software-rendered frame
 applied it** (input, camera, streaming), or a verdict computed from too few frames. None was a product regression that
@@ -181,7 +193,7 @@ Green CI is a precondition only. **It does not complete M5.**
 
 | # | Blocker | Owner | Evidence needed |
 |---|---|---|---|
-| B1 | Integration CI green on the latest integration SHA, repeatedly | QA-01 + director (merge #43) | Two consecutive green runs on the merge SHA |
+| B1 | Integration CI green on the latest integration SHA, repeatedly | QA-01 + director (merge #43) | Two consecutive green runs on the merge SHA (candidate `07dd3aa` already green twice on the PR) |
 | B2 | Hardware re-run after `c86a691`, on the Victus with both GPUs | owner (device) | `?profile=1` JSON with `build.sha`, `auto.keptQualityUnderLoad` |
 | B3 | Midrange Android and iOS phones: touch, 30 fps, thermal | owner (devices) | `HARDWARE_VALIDATION.md` §C reports |
 | B4 | Firefox and Safari/WebKit runs; real gamepad | owner + QA-01 (adding WebKit/Firefox projects to CI needs a director decision) | Reports or CI projects |
@@ -191,8 +203,16 @@ Green CI is a precondition only. **It does not complete M5.**
 | B8 | Presentation human-accepted for a public beta | VIS-01/UX-01 + owner | Screenshots/video + acceptance |
 | B9 | No open P0/P1 | all | Triage list |
 
+## 8a. Integration risks visible in the open draft PRs (2026-11-25)
+- **CI duration:** AUD-01 (#44) adds an `audio` Playwright project and UX-01 (#45) an `experience` project to `npm run test:e2e`.
+  The job is about 15 min now against a 45 min timeout. Re-measure after each merge.
+- **Shared files:** `tests/e2e/helpers.ts` (QA-owned; UX-01's two additive edits accepted), `apps/web/src/main.ts` (VIS-01/AUD-01 hooks,
+  to be coordinated per OPS-02), `package.json` scripts and `playwright.config.ts` projects (#44, #45). Merge order per §6 rule 4: #43 first.
+- **Product finding from AUD-01:** production `AudioEngine.update()` plays count-driven random calls. That is an invented-call violation,
+  tracked by AUD-01 for integration.
+
 ## 9. Next QA-01 steps
-1. Get PR #43 green on CI, then ask the director to review and merge it (restores B1).
+1. ~~Get PR #43 green on CI~~ (done: `07dd3aa`, runs 384/385). Director review and merge restores B1. Then confirm two green integration runs on the merge SHA.
 2. Owner runs the hardware validation package (B2/B3).
 3. Propose adding Firefox and WebKit Playwright projects as a non-blocking CI job (decision for the director, because CI time roughly doubles).
 4. Software soak: a 30 min live browser run with heap/GL sampling, 25 restarts and a forced `WEBGL_lose_context` test.
