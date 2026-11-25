@@ -33,20 +33,20 @@
   </div>
 
   <div id="loading" class="overlay hidden"><div class="card small"><p id="loadText">Growing the valley…</p><div class="bar"><div id="loadBar"></div></div></div></div>
-  <div id="fatal" class="overlay hidden"><div class="card small"><h3>Something went wrong</h3><p id="fatalText"></p><button id="btnReload">Reload</button></div></div>
+  <div id="fatal" class="overlay hidden"><div class="card small"><h3>Something went wrong</h3><p id="fatalText"></p><div class="row"><button id="btnSaveLost" class="hidden">Save world</button><button id="btnReload">Reload</button></div></div></div>
 
   <div id="hud" class="hidden">
     <div id="topbar">
       <div id="clock"><div id="clockMain"></div><div id="clockSub"></div></div>
       <div class="spacer"></div>
-      <div class="seg" id="modes">
+      <div class="seg" id="modes" role="group" aria-label="Mode">
         <button data-mode="observer" title="Free camera">Observer</button>
         <button data-mode="wildlife" title="Live as a spotted deer">Wildlife</button>
         <button data-mode="experiment" title="Change conditions and watch the consequences">Experiment</button>
         <button data-mode="curiosity" title="Let the camera find what is happening (V)">Curiosity</button>
       </div>
-      <div class="seg" id="speeds">
-        <button data-speed="0" title="Pause simulation">❚❚</button><button data-speed="1">1×</button><button data-speed="10">10×</button><button data-speed="100">100×</button><button data-speed="1000">1000×</button>
+      <div class="seg" id="speeds" role="group" aria-label="Simulation speed">
+        <button data-speed="0" title="Pause simulation" aria-label="Pause simulation">❚❚</button><button data-speed="1">1×</button><button data-speed="10">10×</button><button data-speed="100">100×</button><button data-speed="1000">1000×</button>
       </div>
       <button id="btnStats" title="Ecosystem statistics (T)">Ecosystem</button>
       <button id="btnMenu" title="Menu (Esc)" aria-label="Open menu">Menu</button>
@@ -65,6 +65,8 @@
     <div id="wild" class="panel hidden">
       <div class="phead"><span>You are a spotted deer</span><button id="wildRelease" title="Release (X)">Release</button></div>
       <div id="wildBars"></div>
+      <div id="wildStatus"></div>
+      <div id="wildSense" class="lens"></div>
       <div id="wildPrompt" class="fine"></div>
     </div>
 
@@ -94,13 +96,19 @@
     </div>
 
     <div id="curio" class="hidden">
-      <div id="cuCaption" class="panel"><div id="cuWhat"></div><div id="cuFact"></div><div id="cuNote" class="fine"></div></div>
+      <div id="cuCaption" class="panel" role="status" aria-live="polite"><div id="cuWhat"></div><div id="cuFact"></div><div id="cuNote" class="fine"></div></div>
       <div class="row tight" id="cuBar">
         <button id="cuPause">Pause</button><button id="cuSkip" title="Look for something else (N)">Skip</button><button id="cuFollow">Follow this animal</button>
         <button id="cuBecome">Become</button><button id="cuCaptions" title="Show or hide explanations">Captions</button><button id="cuExit">Free camera</button>
       </div>
     </div>
-    <div id="ticker"></div>
+    <div id="ticker" role="status" aria-live="polite"></div>
+    <div id="hints" class="fine" aria-hidden="true"></div>
+    <div id="coach" class="panel hidden" role="region" aria-label="Field guide" aria-live="polite">
+      <div class="phead"><span>Field guide <span id="coachStep" class="fine"></span></span></div>
+      <div id="coachText"></div>
+      <div class="row tight"><button id="coachNext">Next tip</button><button id="coachClose">Hide tips</button></div>
+    </div>
     <pre id="diag" class="hidden"></pre>
     <div id="touch" class="hidden">
       <button data-hold="up">▲</button><button data-hold="down">▼</button><button data-toggle="fast">Fast</button>
@@ -108,11 +116,12 @@
     </div>
     <div id="stick"><div></div></div>
     <div id="vignette"></div>
+    <div id="fade" aria-hidden="true"></div>
   </div>
 
-  <div id="menu" class="overlay hidden">
+  <div id="menu" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
     <div class="card">
-      <h3>Paused</h3>
+      <h3 id="menuTitle">Paused</h3>
       <div class="row"><button id="mResume" class="primary">Resume</button><button id="mSave">Save</button><button id="mLoad">Load</button><button id="mNew">New world…</button></div>
       <div class="cols">
         <div>
@@ -131,7 +140,12 @@
           <label class="check"><input id="mMute" type="checkbox" /> Mute (M)</label>
           <label>Ambient music (off by default) <input id="mMusic" type="range" min="0" max="1" step="0.05" value="0" /></label>
           <h4>Comfort</h4>
-          <label class="check"><input id="mMotion" type="checkbox" /> Reduce camera motion in Curiosity Mode</label>
+          <label class="check"><input id="mMotion" type="checkbox" /> Reduce camera motion (Curiosity cuts with gentle fades)</label>
+          <h4>Interface</h4>
+          <label class="check"><input id="mLarge" type="checkbox" /> Larger interface text</label>
+          <label class="check"><input id="mHints" type="checkbox" checked /> Show control hints</label>
+          <label class="check"><input id="mToggle" type="checkbox" /> As an animal, E / F toggle grazing and drinking instead of holding</label>
+          <button id="mTips">Show the field guide again</button>
           <div class="fine" id="mSaveInfo"></div>
         </div>
         <div>
@@ -144,7 +158,7 @@
             <tr><td>U / O · B</td><td>Bank/roll left/right · level camera and reset lens</td></tr>
             <tr><td>Shift · Wheel</td><td>Faster · adjust flight speed / follow distance</td></tr>
             <tr><td>Alt + Wheel</td><td>Optical camera zoom (field of view)</td></tr>
-            <tr><td>Click</td><td>Select an animal</td></tr>
+            <tr><td>Click · double-click</td><td>Select an animal · select and follow it</td></tr>
             <tr><td>G · P</td><td>Follow · take control (deer)</td></tr>
             <tr><td>E · F · R</td><td>As a deer: graze · drink · rest</td></tr>
             <tr><td>X</td><td>Release animal / stop following</td></tr>
@@ -157,7 +171,7 @@
       </div>
     </div>
   </div>
-  <div id="toasts"></div>
+  <div id="toasts" role="status" aria-live="polite"></div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

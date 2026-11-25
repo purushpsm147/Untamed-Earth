@@ -507,17 +507,21 @@ test.describe('gameplay scenarios', () => {
     await expect(page.locator('#cuCaption')).toBeVisible();
     await expect(page.locator('#cuFact')).toContainText('Simulated:');
     // comfort: sample the camera every 100 ms; no teleports, bounded speed, never underground
+    // A distant subject is reached by a documentary cut (fade to black, relocate, fade in): a jump is allowed only in a
+    // sample interval in which the director relocated on black; every other step obeys the comfort cap.
     let maxStep = 0;
     let prev = await g(page, (G) => G.debugCamera());
+    let prevCuts = (await g(page, (G) => G.debugCuriosity())).relocations;
     let total = 0;
     for (let i = 0; i < 60; i++) {
       await page.waitForTimeout(100);
-      const c = await g(page, (G) => G.debugCamera());
+      const [c, cu] = await g(page, (G) => [G.debugCamera(), G.debugCuriosity()] as const);
       const d = Math.hypot(c.x - prev.x, c.y - prev.y, c.z - prev.z);
-      maxStep = Math.max(maxStep, d);
+      if (cu.relocations === prevCuts || d < 25) maxStep = Math.max(maxStep, d);
       total += d;
       expect(c.y).toBeGreaterThanOrEqual(c.ground + 1.2);
       prev = c;
+      prevCuts = cu.relocations;
     }
     expect(total).toBeGreaterThan(1); // it does go somewhere
     expect(maxStep).toBeLessThan(25); // < 55 m/s cap with generous slack for slow frames

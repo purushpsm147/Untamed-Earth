@@ -28,6 +28,8 @@ export class Input {
   touchY = 0;
   /** Set when the user clicks/taps without dragging: normalised device coordinates. */
   click: { x: number; y: number } | null = null;
+  /** Set with `click` when the browser reports a double-click (native event, robust to slow frames). */
+  dbl = false;
   private readonly keys = new Set<string>();
   /** Keys pressed since the last poll: a tap that starts and ends between two frames still counts once. */
   private readonly tapped = new Set<string>();
@@ -124,6 +126,12 @@ export class Input {
       }
     };
     el.addEventListener('pointerup', up);
+    el.addEventListener('dblclick', (e) => {
+      if (!this.enabled) return;
+      const r = el.getBoundingClientRect();
+      this.click = { x: ((e.clientX - r.left) / r.width) * 2 - 1, y: -((e.clientY - r.top) / r.height) * 2 + 1 };
+      this.dbl = true;
+    });
     el.addEventListener('pointercancel', up);
     el.addEventListener('wheel', (e) => {
       if (this.enabled) {
@@ -228,5 +236,6 @@ export class Input {
     this.lensZoom = 0;
     this.zoom = 0;
     this.click = null;
+    this.dbl = false;
   }
 }
