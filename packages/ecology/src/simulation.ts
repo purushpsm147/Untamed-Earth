@@ -229,6 +229,11 @@ export class Simulation {
   carcasses: Carcass[] = [];
   readonly byId = new Map<number, Animal>();
   private readonly hash = new SpatialHash<Animal>(REGION_SIZE, 48);
+  // species relations and maturity read for every neighbour of every deciding animal: tabulated once per simulation
+  // (built when the simulation is constructed, so experiment variants applied to SPECIES beforehand are honoured)
+  private readonly predatorOf: boolean[][] = SPECIES.map((s) => SPECIES.map((o) => s.predators.includes(o.id)));
+  private readonly preyOf: boolean[][] = SPECIES.map((s) => SPECIES.map((o) => s.prey.includes(o.id)));
+  private readonly maturity: number[] = SPECIES.map((s) => maturityDays(s));
   private readonly groups = new Map<number, { x: number; z: number; n: number }>();
   tick = 0;
   nextId = 1;
@@ -818,6 +823,9 @@ export class Simulation {
     let preyD2 = vis * vis;
     let alarm: Animal | null = null;
     let crowd = 0;
+    const predatorOf = this.predatorOf[a.sp]!;
+    const preyOf = this.preyOf[a.sp]!;
+    const maturity = this.maturity;
     this.hash.query(a.x, a.z, R, (o, d2) => {
       if (o === a || !o.alive) return;
       const osp = SPECIES[o.sp]!;
@@ -830,7 +838,7 @@ export class Simulation {
         if (o.beh === B.Flee && o.fear > 0.75 && d2 < sp.hearing * sp.hearing) alarm = o;
         return;
       }
-      if (fearful && sp.predators.includes(osp.id) && o.alt < 2 && o.age > maturityDays(osp) * 0.5) {
+      if (fearful && predatorOf[o.sp] && o.alt < 2 && o.age > maturity[o.sp]! * 0.5) {
         const d = Math.sqrt(d2);
         let p = d < sp.hearing * 0.3 ? 1 : d < vis ? 1 - (d / vis) * (d / vis) : 0;
         if (o.beh === B.Stalk) p *= 0.4;
@@ -841,7 +849,7 @@ export class Simulation {
           threat = o;
           threatD2 = d2;
         }
-      } else if (hunter && d2 < preyD2 && o.alt < 1 && sp.prey.includes(osp.id) && this.suitablePrey(o, osp)) {
+      } else if (hunter && d2 < preyD2 && o.alt < 1 && preyOf[o.sp] && this.suitablePrey(o, osp)) {
         prey = o;
         preyD2 = d2;
       }
@@ -2392,7 +2400,8 @@ export class Simulation {
       // a near sample (just beyond this tick's step) stops far samples skipping over a building corner
       // never judge a heading by ground beyond the destination itself (a target at the water's edge must not look
       // blocked by the water behind it)
-      for (const d0 of [1.2, look * 0.5, look]) {
+      for (let k = 0; k < 3; k++) {
+        const d0 = k === 0 ? 1.2 : k === 1 ? look * 0.5 : look; // (no array allocated per heading)
         const d = Math.max(0.3, Math.min(d0, goalDist));
         const c = this.terrainCost(sp, a, a.x + sx * d, a.z + sz * d, h0, d);
         cost += c;
