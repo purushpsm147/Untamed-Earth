@@ -32,7 +32,65 @@ An **alternative presentation layer over the production `Engine`**, not a second
 
 See §6 for the commands. Images are SwiftShader renders: valid for composition, anatomy and colour; **not** for performance or final shading quality on a GPU.
 
-PLACEHOLDER_EVIDENCE
+All captures: build `27f6003`, headless Chromium 153, SwiftShader, quality preset **High** fixed (no adaptation), unpaused
+simulation frozen at the scene tick. Scenes: **evening** = seed 2 at 17:30, clear, golden hour, two chital drinking
+(the documentary seed); **morning** = seed 6 at 08:00, clear. Both reached by ordinary 1 s simulation steps from tick 0;
+the camera is derived from where the hero chital is (animals are never placed). Baseline and natural share seed, tick,
+weather, time of day and camera exactly.
+
+### 2.1 Side-by-side stills (`docs/evidence/riverbank/`)
+| Shot | 720p | 1080p (composite downscaled ×0.5; full PNGs in `test-artifacts/riverbank/`) |
+|---|---|---|
+| Evening hero (drinking chital, 26° lens) | `evening-hero-720p-ab.jpg` | `evening-hero-1080p-ab.jpg` |
+| Evening vista (river reach) | `evening-vista-720p-ab.jpg` | `evening-vista-1080p-ab.jpg` |
+| Evening side (anatomy, 6.5 m) | `evening-side-720p-ab.jpg` | `evening-side-1080p-ab.jpg` |
+| Morning hero (grazing doe) | `morning-hero-720p-ab.jpg` | `morning-hero-1080p-ab.jpg` |
+| Morning vista | `morning-vista-720p-ab.jpg` | `morning-vista-1080p-ab.jpg` |
+
+Anatomy studio stills: `studio-stand-three-00.jpg`, `studio-walk-side-10.jpg` (stag), `studio-graze-side-00.jpg`,
+`studio-lie-three-10.jpg` (stag), `studio-bind-three-01.jpg` (clay, bind pose).
+Superseded first pass (skyline halo, flat bank) archived in `pass1-3e5f5b3/`.
+
+### 2.2 Video
+- `gameplay-morning-hero-ab.mp4` — 8 s, baseline | natural side by side, **live simulation** at game speed 1 with the
+  camera following the hero; frame-stepped at 24 fps (offline capture, so smoothness says nothing about frame rate).
+  Honest limitation: the hero is grazing slowly, so this clip shows little locomotion.
+- `studio-gaits.mp4` — 13 s, rig only (no simulation): walk (stag), trot, gallop (stag), walk three-quarter, graze, lie.
+
+### 2.3 Measurements (SwiftShader — **not GPU performance**)
+| Capture | Draw calls (B → N) | Triangles (B → N) | Chital drawn (near/far) | Rig solve ms | Submit p50 ms (B → N) | Complete p50 / p95 ms (B → N) |
+|---|---|---|---|---|---|---|
+| evening-hero-720p | 89 → 93 | 0.96 M → 2.51 M | 43 (8/35) | 2.0 | 2.1 → 4.2 | 755 / 890 → 1526 / 1641 |
+| evening-vista-720p | 110 → 114 | 1.04 M → 2.58 M | 43 (8/35) | 1.8 | 2.1 → 4.9 | 734 / 820 → 1549 / 1665 |
+| evening-side-720p | 83 → 87 | 1.02 M → 2.57 M | 43 (8/35) | 1.3 | 2.3 → 4.9 | 521 / 583 → 1218 / 1266 |
+| morning-hero-720p | 99 → 103 | 0.86 M → 2.19 M | 17 (6/11) | 0.6 | 2.2 → 3.5 | 622 / 641 → 1292 / 1344 |
+| morning-vista-720p | 92 → 96 | 0.98 M → 2.36 M | 17 (6/11) | 0.7 | 2.1 → 3.0 | 662 / 720 → 1492 / 1570 |
+| evening-hero-1080p | 89 → 93 | 0.96 M → 2.51 M | 43 (8/35) | 1.2 | 1.9 → 4.4 | 974 / 1030 → 1997 / 2122 |
+| evening-vista-1080p | 110 → 114 | 1.04 M → 2.58 M | 43 (8/35) | 1.6 | 2.2 → 4.1 | 899 / 958 → 1988 / 2088 |
+| evening-side-1080p | 83 → 87 | 1.02 M → 2.57 M | 43 (8/35) | 1.3 | 1.9 → 4.2 | 666 / 692 → 1665 / 1716 |
+| morning-hero-1080p | 99 → 103 | 0.86 M → 2.19 M | 17 (6/11) | 0.6 | 2.3 → 3.3 | 818 / 865 → 1769 / 1866 |
+| morning-vista-1080p | 92 → 96 | 0.98 M → 2.36 M | 17 (6/11) | 0.5 | 2.2 → 3.5 | 909 / 951 → 1917 / 2061 |
+
+Console/shader errors in any capture: none. GPU string: `ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)`.
+
+Readings:
+- **Draw calls +4** (four instanced chital meshes; post pass adds one more not counted in scene stats).
+- **Triangles ×2.4–2.6, dominated by grass**: 120-triangle tufts × 1.5 count ≈ 1.4 M vs baseline 18 × 1 ≈ 0.14 M. All chital
+  together add ≈ 0.17 M (8 near × ~9.5 k + 35 far × ~2.6 k). Integration must use a lower-poly tuft at unchanged counts (I4).
+- **Rig CPU: 0.5–2.0 ms per frame for 17–43 chital** (≈ 0.035–0.05 ms per animal including terrain sampling) — CPU time, valid
+  as an order of magnitude; to be re-measured on real hardware.
+- **Software completion time ≈ 2× baseline** at both resolutions. On a CPU rasteriser this tracks triangles and fill; it does
+  not predict GPU cost. The real-GPU profile on the owner's Victus (Radeon Vega 8 and RTX 3060) is required before any
+  default-on decision.
+- **GPU lifecycle**: 3 restarts of the natural slice on the shared renderer → live geometries 83, textures 7, programs 20 on
+  every cycle; no console or shader errors (`lifecycle.json`).
+- **Unit gates** (`tests/unit/chital-rig.test.ts`, 11): stance toe ≤ 2 mm and heel ≤ 2 mm (before breakover), slip ≤ 5 mm on
+  flat ground at walk; trot/gallop toe ≤ 4 mm, slip ≤ 2 cm, IK never clamped; 15 % slope with cross-fall toe ≤ 5 mm; real
+  seed-2 riverbank toe ≤ 1 cm; juvenile scale; cadence in field ranges (walk 1.63 Hz, trot 2.52 Hz, gallop 3.22 Hz at 9 m/s);
+  lying, grazing reach, determinism.
+- **Live scene contact** (reported, not gated): max stance toe error among near chital 1.3 cm, for animals standing on the
+  steep evening bank beyond the rig's pitch limit.
+
 
 ## 3. Defects found and fixed while building (archived, including failed approaches)
 
@@ -51,7 +109,9 @@ Superellipse sections made boxy panels; limb tubes started at shoulder/hip and p
 First slice renders had a pale sky and milky water. Cause: production's sky and water shaders write display-referred colour without tone mapping; routing them through a post pass applied ACES + sRGB a second time. Fixed (sky bypass; slice water writes linear HDR). **Lesson for integration:** any production post pass must handle these two shaders explicitly.
 
 ## 4. Remaining limitations and risks
-- Trees, shrubs and ruins keep production geometry; distant canopies still read as lollipops.
+- Trees, shrubs and ruins keep production geometry; distant canopies still read as lollipops (most visible in the morning shots).
+- A 1-pixel bright edge remains along the skyline where MSAA blends the display-referred sky with linear terrain (fix: I1).
+- The bank ground still reads flatter than real grassland; grass tufts are sparse at mid distance.
 - Lying pose is acceptable at mid distance but not anatomically detailed (limb fold order, head resting not modelled); no get-up/lie-down transition animation beyond the blend.
 - Gallop cadence reaches ~4.4 Hz at the 12.5 m/s top sprint (field ~3 Hz); suspension phase is approximated.
 - Turning: feet can slip during sharp turns (gates cover straight paths and slopes only).
