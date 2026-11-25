@@ -136,4 +136,25 @@ describe('SocialChronicle (persistent Social Lens history)', () => {
     expect(kinds).toContain('released');
     expect(kinds.filter((k) => k === 'alarm').length).toBe(MAX_ALARMS);
   });
+
+  it('a save taken between observation scans is complete: loading the paused world adds nothing', () => {
+    const sim = new Simulation(3);
+    const chron = new SocialChronicle(sim);
+    chron.attach();
+    // run until some animal is about to cross a life-stage threshold that the low-rate scan has not seen yet
+    let found = false;
+    for (let i = 0; i < 40000 && !found; i++) {
+      sim.step(2);
+      if (i % 30 === 0) chron.tick(1);
+      else found = chron.stats().entries > 0 && sim.animals.some((a) => a.alive && a.mother && a.age > 0);
+    }
+    for (let i = 0; i < 200; i++) sim.step(2); // advance without scanning: transitions pending
+    const snap = chron.snapshot();
+    const sim2 = new Simulation(3, sim.snapshot());
+    const chron2 = new SocialChronicle(sim2);
+    chron2.restore(structuredClone(snap));
+    chron2.attach();
+    chron2.tick(5); // a scan on the restored, un-advanced world
+    expect(chron2.snapshot()).toEqual(snap);
+  });
 });

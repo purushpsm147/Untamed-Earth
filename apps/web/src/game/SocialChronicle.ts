@@ -251,6 +251,9 @@ export class SocialChronicle {
   }
 
   snapshot(): ChronicleSnapshot {
+    // bring observation up to date first: a save made between two scans must not leave a transition that is already
+    // true in the saved simulation state to be "noticed" only after loading (CI run 45463291778)
+    this.scan(false);
     const animals: ChronicleSnapshot['animals'] = [];
     // least recently touched first, so restoring in order preserves eviction order
     const order = [...this.records.entries()].sort((a, b) => a[1].touched - b[1].touched);
