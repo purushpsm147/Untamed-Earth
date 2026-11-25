@@ -261,7 +261,7 @@ describe('transit corridor routes always finish (amendment 3b)', () => {
     return t;
   };
 
-  for (const dt of [0.25, 2]) {
+  for (const dt of [0.1, 0.25, 1, 2]) {
     it(`an entrant near a corner walks all the way in (tick ${dt} s)`, () => {
       const sim = open(3);
       const h = sim.animals.find((a) => a.alive && a.sp === H && a.age > 20)!;

@@ -1,0 +1,1 @@
+{"seed":1,"days":160,"dt":2,"transitTicks":33797,"idleTicks":20,"idleRuns":20,"idleRunMaxS":2,"idleRunP99S":2,"idleContext":{"tr-1:out:want0":20},"longestTransitS":78,"deathsInTransitOrStrip":{"hare:predation:transit-1":3},"ledger":{"live":339,"expected":339,"ok":true},"hash":400275101}
