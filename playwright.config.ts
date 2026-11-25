@@ -21,6 +21,8 @@ export default defineConfig({
     { name: 'reliability', testMatch: 'tests/e2e/reliability.spec.ts' },
     // unedited capture of the documentary walk-through (test-artifacts/playwright/.../video.webm)
     { name: 'documentary', testMatch: 'tests/e2e/documentary.spec.ts', use: { video: 'on' } },
+    // opt-in long-run evidence: 30 min live soak, 25 restarts, context loss (not in npm run test:e2e; QA-02)
+    { name: 'soak', testMatch: 'tests/soak/soak.spec.ts' },
     // opt-in visual evidence for movement modes (not in npm run test:e2e)
     { name: 'locomotion-capture', testMatch: 'tests/e2e/locomotion-capture.spec.ts', use: { video: 'on' } },
   ],
