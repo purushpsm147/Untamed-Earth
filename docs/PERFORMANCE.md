@@ -39,6 +39,10 @@ Reading the numbers honestly:
   163–174 without trend). JS heap varied 44–108 MB with no monotonic growth; the browser did not expose forced GC, so
   the heap figures are noisy.
 - Not yet measured: Ultra, full-screen 1080p, true GPU time (needs timer queries), a phone.
+- **Provenance (QA-01, 2026-11-24):** the three reports do not record the commit they measured. By timing it was a build between
+  `6c1a3e4` (which added `?profile=1`) and `eb92959` (which archived the reports), i.e. **before** the governor trials in `c86a691`. The files were
+  privacy-reviewed: user agent, GPU model string, cores, memory class, viewport, DPR; no serials, hostnames or DxDiag. From PR #43
+  onward, reports carry `build: { sha, dirty, builtAt }`. Device procedure: `docs/handover/HARDWARE_VALIDATION.md`.
 
 ## How to profile a real device (about 5 minutes)
 1. `npm run build && npm run preview` (or deploy `apps/web/dist` to any static host), then open

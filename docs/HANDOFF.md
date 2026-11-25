@@ -1,5 +1,11 @@
 # Continuation handoff — 2026-11-15 (latest: Living Valley V1 session, Claude)
 
+> **2026-11-24: multi-workstream operation.** The director desk is issue #36. Each workstream keeps its own handover under
+> `docs/handover/`. Platform/QA/release state (integration CI, failure history, hardware evidence, branch ownership, merge
+> protocol, release blockers) lives in `docs/handover/PLATFORM_HANDOVER.md`. Integration HEAD `3a0e7f9` is red in CI (run 322,
+> a test-synchronisation defect); the fix is in PR #43. The physical-GPU profiles **are** archived (`eb92959`), contrary to the #9 ledger.
+> The sections below are history from earlier single-session work.
+
 ## Branch and state
 Integration branch `ccr-4783fee0-8wvc41`. Start of session: local HEAD `14e5732` plus uncommitted QA/Curiosity work;
 remote at `cdc5343` (docs + CI from PR #1). That local work was committed (`cf2b750`) and rebased onto `cdc5343`,

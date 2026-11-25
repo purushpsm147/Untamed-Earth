@@ -1,0 +1,24 @@
+{
+ "meta": {
+  "sha": "ee9545df507359be068c1e2e6f755b4665ae6d35",
+  "date": "2026-11-25",
+  "environment": "Linux container, 4 cores, Node 22, headless Chromium 153, SwiftShader (software rasteriser, no GPU); NOT hardware evidence",
+  "command": "npx playwright test --project=soak --trace off",
+  "result": "3/3 passed in 40.1 min"
+ },
+ "saved": {
+  "hash": 780655733,
+  "tick": 259,
+  "animals": 216
+ },
+ "lostAt": 457,
+ "tickBehindMessage": 985,
+ "restored": {
+  "hash": 2164461753,
+  "tick": 266,
+  "animals": 216
+ },
+ "simKeptRunningAfterLoss": true,
+ "restoredIsManualSave": false,
+ "errorsAfterLoss": []
+}

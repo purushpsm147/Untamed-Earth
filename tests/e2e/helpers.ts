@@ -15,7 +15,7 @@ export interface G {
   debugStepTo(tick: number): number;
   engine: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   debugCuriosity(): { key: string | null; tag: string; switches: number; paused: boolean };
-  debugTerrain(): { chunks: number; meshes: number; inGroup: number; liveGeometries: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; applied: number; stale: number; superseded: number; workerFailures: number };
+  debugTerrain(): { chunks: number; meshes: number; inGroup: number; liveGeometries: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; updates: number; applied: number; stale: number; superseded: number; workerFailures: number };
   debugFreeze(t: number | null): void; debugLuma(): { mean: number; std: number }; debugGrounding(): { max: number; n: number };
   debugPath(points: [number, number][], speed: number, above?: number): Promise<void>;
   debugPerfStart(): void; debugPerfStop(): { frame: number[]; sim: number[]; render: number[] };
@@ -105,9 +105,36 @@ export function installGlCounter(): void {
 }
 
 /** Wait until terrain streaming has nothing outstanding and every in-range chunk is at its wanted LOD. */
+/**
+ * Wait until terrain streaming is idle FOR THE CURRENT CAMERA. Streaming state is only recomputed in the next rendered
+ * frame's TerrainView.update(), so right after debugCam()/debugPath() the counters still describe the previous position:
+ * if that position had settled, an all-zero reading is stale (CI run 44116004501: settled read, then 97 mismatched).
+ * Require at least one update() pass that started after this call, and then all-zero counters.
+ */
 export async function terrainSettled(page: Page, timeout = 90_000): Promise<void> {
+  const start = (await g(page, (G) => G.debugTerrain())).updates;
   await expect.poll(async () => {
     const t = await g(page, (G) => G.debugTerrain());
+    if (t.updates <= start) return -1; // no frame has streamed terrain for the current camera yet
     return t.mismatched + t.pending + t.inFlight + t.queued;
   }, { timeout, intervals: [500] }).toBe(0);
+}
+
+/**
+ * Wait until a rendering change has fully landed: terrain streaming idle for the current camera and preset, then the
+ * renderer's live geometry count unchanged across two samples a second apart (GPU objects are created when first drawn,
+ * and scatter/grass buffers resize over a few frames). Returns the settled debugGfx(). A fixed sleep is not enough on
+ * slow software-rendered runners: QA-01 local run 2026-11-24 read Medium at 80 geometries after 3.5 s, then 104 and 105.
+ */
+export async function gfxSettled(page: Page, timeout = 90_000): Promise<ReturnType<G['debugGfx']>> {
+  await terrainSettled(page, timeout);
+  const end = Date.now() + timeout;
+  let prev = await g(page, (G) => G.debugGfx());
+  for (;;) {
+    await page.waitForTimeout(1000);
+    const cur = await g(page, (G) => G.debugGfx());
+    if (cur.geometries === prev.geometries && cur.chunks === prev.chunks) return cur;
+    if (Date.now() > end) throw new Error(`renderer did not settle within ${timeout} ms: geometries ${prev.geometries} -> ${cur.geometries}`);
+    prev = cur;
+  }
 }

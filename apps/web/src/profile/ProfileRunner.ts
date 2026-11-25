@@ -1,4 +1,5 @@
 import type { Game } from '../game/Game';
+import { BUILD } from '../build-info';
 import type { QualityName } from '../render/quality';
 import type { GlCounts } from './glCounter';
 
@@ -45,6 +46,7 @@ export async function runProfile(h: ProfileHooks, short: boolean, log: (line: st
   let g = h.game()!;
   const report: Record<string, unknown> = {
     tool: 'Untamed Earth ?profile=1', version: 1, startedAt: new Date().toISOString(), short,
+    build: BUILD, // provenance: the commit this report measured
     device: {
       userAgent: navigator.userAgent, gpu: g.debugGfx().gpu, assessment: g.debugGfx().basis,
       viewport: [innerWidth, innerHeight], devicePixelRatio: devicePixelRatio, cores: navigator.hardwareConcurrency ?? null,

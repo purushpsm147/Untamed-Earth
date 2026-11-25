@@ -12,6 +12,8 @@ interface Chunk {
   pendingId: number;
   want: number;
   d: number;
+  /** Distance from the camera on the last update (QA: the chunk's final LOD is lodFor(dist)). */
+  dist: number;
   /** Inside the view distance on the last update (chunks in the unload-hysteresis band are kept but not refined). */
   live: boolean;
 }
@@ -38,6 +40,8 @@ export class TerrainView {
   /** Number of chunks currently holding a mesh / expected in range (for the loading bar). */
   loaded = 0;
   wanted = 1;
+  /** QA: number of update() passes. A caller that moved the camera must see this advance before trusting `mismatched`. */
+  private updates = 0;
 
   constructor(private readonly valley: Valley) {
     this.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
@@ -135,6 +139,7 @@ export class TerrainView {
   }
 
   update(cam: THREE.Vector3): void {
+    this.updates++;
     const lo = -APRON;
     const hi = CHUNKS + APRON;
     let wanted = 0;
@@ -160,8 +165,9 @@ export class TerrainView {
           continue;
         }
         wanted++;
-        if (!c) this.chunks.set(key, (c = { cx, cz, mesh: null, res: 0, pending: 0, pendingId: 0, want: 6, d: 0, live: true }));
+        if (!c) this.chunks.set(key, (c = { cx, cz, mesh: null, res: 0, pending: 0, pendingId: 0, want: 6, d: 0, dist: d, live: true }));
         c.live = true;
+        c.dist = d;
         if (c.mesh) loaded++;
         // a missing chunk is first filled at the coarsest LOD so the world appears quickly
         const want = c.mesh ? this.lodFor(d) : 6;
@@ -203,17 +209,22 @@ export class TerrainView {
     }
   }
 
-  /** QA: streaming health. `mismatched` counts in-range chunks whose mesh is missing or not at the wanted LOD. */
-  debugState(): { chunks: number; meshes: number; inGroup: number; liveGeometries: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; applied: number; stale: number; superseded: number; workerFailures: number } {
+  /**
+   * QA: streaming health. `mismatched` counts in-range chunks whose mesh is missing or not yet at its FINAL LOD for its
+   * distance. (Comparing with `want` is not enough: a missing chunk is first filled at LOD 6, and its full-detail target
+   * is only set on the next update(), so between those two moments every chunk looked settled. CI runs 44116004501 and
+   * 45464710402 read zero and then 97 / 18 mismatched.)
+   */
+  debugState(): { chunks: number; meshes: number; inGroup: number; liveGeometries: number; mismatched: number; pending: number; inFlight: number; queued: number; worker: boolean; updates: number; applied: number; stale: number; superseded: number; workerFailures: number } {
     let meshes = 0;
     let mismatched = 0;
     let pending = 0;
     for (const c of this.chunks.values()) {
       if (c.mesh) meshes++;
-      if (c.live && (!c.mesh || c.res !== c.want)) mismatched++;
+      if (c.live && (!c.mesh || c.res !== this.lodFor(c.dist))) mismatched++;
       if (c.pending) pending++;
     }
-    return { chunks: this.chunks.size, meshes, inGroup: this.group.children.length, liveGeometries: this.geoCreated - this.geoDisposed, mismatched, pending, inFlight: this.inFlight, queued: this.queue.length, worker: this.worker !== null, ...this.counters };
+    return { chunks: this.chunks.size, meshes, inGroup: this.group.children.length, liveGeometries: this.geoCreated - this.geoDisposed, mismatched, pending, inFlight: this.inFlight, queued: this.queue.length, worker: this.worker !== null, updates: this.updates, ...this.counters };
   }
 
   dispose(): void {

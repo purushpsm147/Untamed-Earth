@@ -80,6 +80,33 @@ test.describe('reliability: lifecycle and streaming (software-rendered Chromium)
     expect(p.errors).toEqual([]);
   });
 
+  test('terrain readiness is judged for the current camera, not the position before a teleport', async ({ page }) => {
+    // Regression for CI run 44116004501 (3a0e7f9): terrainSettled() passed on counters left over from the previous,
+    // already-settled camera position, then the first frame at the new position reported 97 mismatched chunks.
+    const p = watch(page);
+    await enter(page, { qa: true });
+    await terrainSettled(page);
+    // The race, made deterministic: in one task, teleport and read. No frame has run, so the reading is the old one.
+    const stale = await g(page, (G) => {
+      G.debugCam(1300, 1250, 10, 0.4, -0.2);
+      const t = G.debugTerrain();
+      return { sum: t.mismatched + t.pending + t.inFlight + t.queued, updates: t.updates };
+    });
+    expect(stale.sum).toBe(0); // looks settled, but describes the start position
+    await terrainSettled(page);
+    const after = await g(page, (G) => G.debugTerrain());
+    expect(after.updates).toBeGreaterThan(stale.updates);
+    expect(after.mismatched).toBe(0);
+    // and it stays settled: later frames at the same camera create no new work
+    await page.waitForTimeout(1500);
+    const later = await g(page, (G) => G.debugTerrain());
+    expect(later.updates).toBeGreaterThan(after.updates);
+    expect(later.mismatched + later.pending + later.inFlight + later.queued).toBe(0);
+    const c = await g(page, (G) => G.debugCamera());
+    expect(Math.hypot(c.x - 1300, c.z - 1250)).toBeLessThan(1);
+    expect(p.errors).toEqual([]);
+  });
+
   test('if the terrain Worker dies during loading, the world still loads on the main thread', async ({ page }) => {
     await page.addInitScript(() => {
       const Real = window.Worker;
