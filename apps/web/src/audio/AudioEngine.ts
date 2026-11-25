@@ -29,6 +29,14 @@ export class AudioEngine {
   private musicT = 99;
   private chord = 0;
 
+  /**
+   * The single AudioContext and the master bus (volume, mute, compressor), for presentation modules such as the
+   * ecological soundscape lab. null until start(). Read-only accessor: it creates nothing and changes nothing.
+   */
+  get host(): { readonly ctx: AudioContext; readonly destination: AudioNode } | null {
+    return this.ctx ? { ctx: this.ctx, destination: this.master } : null;
+  }
+
   /** Must be called from a user gesture. */
   start(): void {
     if (this.ctx) {

@@ -1,7 +1,10 @@
 # Ecological audio: the production integration path
 
-Status: **design and review only.** No new sound is in production from this document. Final sound design and the
-listening acceptance belong to the audio experiment (PR #11, `?soundscape=1`), which is **not merged**.
+Status: **design and review only.** No new sound is in production from this document.
+
+**Update (AUD-01, draft PR #44):** the router, budget, spatialisation, cleanup and determinism described below are
+implemented and software-verified in an isolated slice (`apps/web/src/audio/eco/`, lab `/?audiolab=1`). PR #11 was
+audited and superseded for the reasons in `docs/handover/AUDIO_HANDOVER.md` §2.2. Listening acceptance is still open.
 
 ## What exists today (production)
 - One `AudioContext`, created and owned by `apps/web/src/audio/AudioEngine.ts` on the first user gesture, with a master

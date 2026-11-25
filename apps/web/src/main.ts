@@ -20,6 +20,8 @@ if (profiling) glCounts = (await import('./profile/glCounter')).installGlCounter
 const canvas = $<HTMLCanvasElement>('view');
 const input = new Input(canvas, $('stick'));
 const audio = new AudioEngine();
+// ?audiolab=1: ecological soundscape lab (AUD-01, experimental). Lazy chunk; shares the one AudioEngine/AudioContext.
+if (params.has('audiolab')) void import('./lab/audio/AudioLab').then((m) => m.mountAudioLab(audio));
 let game: Game | null = null;
 /** Called once each time a world becomes ready (used by the profiler to sequence restarts). */
 let onReady: ((g: Game) => void) | null = null;

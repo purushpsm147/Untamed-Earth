@@ -13,12 +13,13 @@
     "preview": "npm run preview -w @untamed/web",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test --project=smoke --project=reliability --project=gameplay --project=documentary",
+    "test:e2e": "playwright test --project=smoke --project=reliability --project=gameplay --project=documentary --project=audio",
     "documentary": "playwright test --project=documentary",
     "test:smoke": "playwright test --project=smoke",
     "bench": "tsx benchmarks/sim-bench.ts",
     "sim": "tsx benchmarks/sim-report.ts",
-    "movement": "tsx benchmarks/movement-report.ts"
+    "movement": "tsx benchmarks/movement-report.ts",
+    "audio:render": "playwright test --project=audio-render --trace off"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
