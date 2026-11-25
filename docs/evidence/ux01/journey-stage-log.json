@@ -1,0 +1,161 @@
+{
+ "full": false,
+ "totalS": 195,
+ "stages": [
+  {
+   "stage": "arrival",
+   "atS": 11,
+   "mode": "observer",
+   "tick": 597,
+   "day": 34.689,
+   "speed": 1,
+   "guide": "Look around by dragging the mouse (or J/L and I/K). Fly with W A S D, rise and sink with Space and Q. Hold Shift to go faster.",
+   "screenshot": "test-artifacts/journey/01-arrival.png"
+  },
+  {
+   "stage": "social-lens",
+   "atS": 32,
+   "mode": "observer",
+   "tick": 784,
+   "day": 34.702,
+   "speed": 1,
+   "selected": 5,
+   "lens": "Group herd of 13\nMother not recorded (founding animal)\nPressures knows no water source\nNo recorded events yet. History is kept from when this world was first observed.",
+   "screenshot": "test-artifacts/journey/02-social-lens.png"
+  },
+  {
+   "stage": "curiosity",
+   "atS": 84,
+   "mode": "curiosity",
+   "tick": 1224,
+   "day": 34.733,
+   "speed": 1,
+   "samples": [
+    {
+     "atS": 42,
+     "key": "event:kill:76:130",
+     "why": "event",
+     "style": "portrait",
+     "cuts": 1,
+     "caption": "Golden jackal \u00b7 adult male #76\nSimulated: It made a kill 5 s ago. Feeding on a carcass; 70% fed.\nWhy this shot: something just happened here. Earlier (Day 35 16:41): killed a indian hare #130."
+    },
+    {
+     "atS": 47,
+     "key": "event:kill:76:130",
+     "why": "event",
+     "style": "portrait",
+     "cuts": 1,
+     "caption": "Golden jackal \u00b7 adult male #76\nSimulated: It made a kill 10 s ago. Feeding on a carcass; 74% fed.\nWhy this shot: something just happened here. Earlier (Day 35 16:41): killed a indian hare #130."
+    },
+    {
+     "atS": 53,
+     "key": "event:kill:76:130",
+     "why": "event",
+     "style": "portrait",
+     "cuts": 1,
+     "caption": "Golden jackal \u00b7 adult male #76\nSimulated: It made a kill 14 s ago. Feeding on a carcass; 78% fed.\nWhy this shot: something just happened here. Earlier (Day 35 16:41): killed a indian hare #130."
+    },
+    {
+     "atS": 59,
+     "key": "event:kill:76:130",
+     "why": "event",
+     "style": "portrait",
+     "cuts": 1,
+     "caption": "Golden jackal \u00b7 adult male #76\nSimulated: It made a kill 19 s ago. Feeding on a carcass; 82% fed.\nWhy this shot: something just happened here. Earlier (Day 35 16:41): killed a indian hare #130."
+    },
+    {
+     "atS": 64,
+     "key": "event:kill:76:130",
+     "why": "event",
+     "style": "portrait",
+     "cuts": 1,
+     "caption": "Golden jackal \u00b7 adult male #76\nSimulated: It made a kill 24 s ago. Feeding on a carcass; 86% fed.\nWhy this shot: something just happened here. Earlier (Day 35 16:41): killed a indian hare #130."
+    },
+    {
+     "atS": 70,
+     "key": "event:kill:76:130",
+     "why": "event",
+     "style": "portrait",
+     "cuts": 1,
+     "caption": "Golden jackal \u00b7 adult male #76\nSimulated: It made a kill 30 s ago. Feeding on a carcass; 91% fed.\nWhy this shot: something just happened here. Earlier (Day 35 16:41): killed a indian hare #130."
+    },
+    {
+     "atS": 76,
+     "key": "event:kill:76:130",
+     "why": "event",
+     "style": "portrait",
+     "cuts": 1,
+     "caption": "Golden jackal \u00b7 adult male #76\nSimulated: It made a kill 35 s ago. Feeding on a carcass; 95% fed.\nWhy this shot: something just happened here. Earlier (Day 35 16:41): killed a indian hare #130."
+    },
+    {
+     "atS": 81,
+     "key": "group:43",
+     "why": "group",
+     "style": "wide",
+     "cuts": 1,
+     "caption": "Spotted deer (chital): herd of 9\nSimulated: 5 grazing or foraging, 2 heading to water, 1 moving, 1 resting; spread over about 150 m.\nWhy this shot: the group is the subject."
+    }
+   ],
+   "screenshot": "test-artifacts/journey/03-curiosity.png"
+  },
+  {
+   "stage": "wildlife-arrive",
+   "atS": 89,
+   "mode": "wildlife",
+   "tick": 1273,
+   "day": 34.736,
+   "speed": 1,
+   "sense": "Herd 12 others; nearest 5 m, centre \u2198 behind-right 56 m\nWater knows no drinking place yet",
+   "screenshot": "test-artifacts/journey/04-wildlife-arrive.png"
+  },
+  {
+   "stage": "wildlife-graze",
+   "atS": 102,
+   "mode": "wildlife",
+   "tick": 1378,
+   "day": 34.744,
+   "speed": 1,
+   "status": "Foraging",
+   "bars": "Health\n100%\nFed\n61%\nHydrated\n50%\nRested\n79%\nStamina\n100%\nFear\n0%",
+   "screenshot": "test-artifacts/journey/05-wildlife-graze.png"
+  },
+  {
+   "stage": "wildlife-rest",
+   "atS": 112,
+   "mode": "wildlife",
+   "tick": 1463,
+   "day": 34.75,
+   "speed": 1,
+   "status": "Resting",
+   "screenshot": "test-artifacts/journey/06-wildlife-rest.png"
+  },
+  {
+   "stage": "time-and-charts",
+   "atS": 142,
+   "mode": "observer",
+   "tick": 3781,
+   "day": 36.348,
+   "speed": 100,
+   "clock": "Year 100 \u00b7 Day 37 \u00b7 05:01 \u00b7 Post-monsoon",
+   "sub": "Clear \u00b7 20\u00b0C \u00b7 wind 2 m/s \u00b7 Meadow: forage 76%, soil moisture 100%",
+   "screenshot": "test-artifacts/journey/07-time-and-charts.png"
+  },
+  {
+   "stage": "experiment-drought",
+   "atS": 175,
+   "mode": "experiment",
+   "tick": 13896,
+   "day": 50.33,
+   "speed": 1000,
+   "table": "Species\tnow\tborn\tpred.\tstarv.\tthirst\tage\tother\ttoxic\texp.\n\u25cf Spotted deer\t56\t6\t0\t0\t0\t0\t2\t0\t0\n\u25cf Wild boar\t31\t16\t0\t0\t0\t0\t5\t0\t0\n\u25cf Golden jackal\t6\t0\t0\t0\t0\t0\t0\t0\t0\n\u25cf Indian hare\t70\t58\t32\t3\t1\t0\t16\t0\t0\n\u25cf House crow\t51\t28\t0\t0\t0\t0\t7\t0\t0\n\u25cf Common myna\t74\t46\t0\t0\t0\t0\t17\t0\t0",
+   "screenshot": "test-artifacts/journey/08-experiment-drought.png"
+  },
+  {
+   "stage": "restored-history",
+   "atS": 194,
+   "lived": 5,
+   "alive": true,
+   "lens": "Group herd of 15\nMother not recorded (founding animal)\nPressures none acute\nHistory 2 recorded\nDay 35 17:59 you released it to its own decisions\nDay 35 17:36 you began living as this animal\nDay 48 01:01 took fright at a predator (latest of the last 3 recorded)"
+  }
+ ]
+}

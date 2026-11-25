@@ -232,6 +232,8 @@ const BEH = {
 
 /** Behaviours that are a story in progress: the director does not cut away from them at the maximum hold. */
 const ONGOING = new Set<number>([BEH.Chase, BEH.Stalk, BEH.Flee, BEH.Feed, BEH.SeekMate]);
+/** Groups more spread out than this (m, ~1.6 sd + margin) are not offered as group shots. */
+const MAX_GROUP_SHOT_RADIUS = 40;
 /** Shortlist size for line-of-sight shot planning per decision (bounded by maxCandidates). */
 const SHORTLIST = 8;
 
@@ -844,7 +846,7 @@ export class CuriosityDirector {
         let sig = this.behaviorSignificance(a);
         // a calm member of a herd is better shown as part of the herd (the group candidate below)
         const g = a.group ? this.groups.get(a.group) : undefined;
-        if (g && g.n >= this.cfg.minGroupSize && !ONGOING.has(a.beh) && a.beh !== BEH.Follow) sig *= 0.8;
+        if (g && g.n >= this.cfg.minGroupSize && !ONGOING.has(a.beh) && a.beh !== BEH.Follow && this.groupRadius(g) <= MAX_GROUP_SHOT_RADIUS) sig *= 0.8;
         const proximity = this.proximityFactor(a.x, a.z);
         const novelty = this.noveltyFactor(key, key === curKey);
         const cooldown = this.cooldownFactor(key);
@@ -871,6 +873,9 @@ export class CuriosityDirector {
     // 3. Groups
     for (const g of this.groups.values()) {
       if (g.n < this.cfg.minGroupSize) continue;
+      // a fission-fusion herd spread over a wide area does not read as one shot (journey: 9 deer over ~150 m were
+      // dots); its members remain candidates individually
+      if (this.groupRadius(g) > MAX_GROUP_SHOT_RADIUS) continue;
       const key = `group:${g.id}`;
       if (key === excludedKey) continue;
       const cx = g.sx / g.n;

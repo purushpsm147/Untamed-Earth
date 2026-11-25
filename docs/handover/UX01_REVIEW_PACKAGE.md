@@ -7,9 +7,9 @@ Continuation detail: `docs/handover/GAMEPLAY_HANDOVER.md`. Journey script: `docs
 ## Status by charter category
 | Item | Implemented | Software-verified | Physically verified | Creatively accepted |
 |---|---|---|---|---|
-| Documentary director V1 (groups, continuity, shot planning, cuts) | yes | yes (24 unit, 2 browser) | no | **pending director** |
+| Documentary director V1 (groups, continuity, shot planning, cuts) | yes | yes (26 unit, 2 browser) | no | **pending director** |
 | Honest captions ("Simulated:", "why this shot", history line) | yes | yes (browser) | no | **pending director** |
-| Persistent Social Lens history (save/load) | yes | yes (7 unit, 1 browser save/close/Continue) | no | n/a |
+| Persistent Social Lens history (save/load) | yes | yes (8 unit, 1 browser save/close/Continue) | no | n/a |
 | Observer easing, follow glide, double-click follow, hints | yes | yes (browser) | no | **pending** (motion comfort needs a human) |
 | Chital perception cues, trends, toggle actions | yes | yes (browser) | no | **pending** |
 | Field guide, ARIA, larger text | yes | yes (browser) | no (no screen reader / phone here) | **pending** |
@@ -38,7 +38,21 @@ of frame rate, visual quality on real hardware, motion comfort, or accessibility
 - **Onboarding** five-tip field guide, information only, completes by doing, dismiss persists.
 - **Accessibility** aria-pressed, live regions, dialog focus, larger text, toggle-instead-of-hold.
 
+## Defects found by our own runs and fixed in this PR
+| Found by | Defect | Fix |
+|---|---|---|
+| Journey run (1000x drought) | alarms filled a deer's 12-entry history and evicted "you lived as this animal" | alarms capped at 3, evicted first, summarised (`bdca926`) |
+| Journey contact sheet | field guide overlapped the inspector; inspector overlapped Experiment at 720p; herd shots too wide | guide moved/hidden with charts, panels capped at 46vh, group fit to full FOV (`bdca926`) |
+| CI run 45463291778 | save between two 1 s scans: restored history gained a late "noticed" entry | `snapshot()` scans first (`537bbcd`) |
+| Local repro of `gameplay.spec.ts:498` | director switched at exactly minHold when a subject paused | hysteresis floor 0.8 x chosen score; hold restarts when a cut fades in (`089f7d4`) |
+| Journey stage log | a herd split over ~150 m offered as one group shot (animals become dots) | groups with radius > 40 m are not group subjects (`this commit`) |
+
 ## Evidence
+- Journey stage log (JSON): `docs/evidence/ux01/journey-stage-log.json`. In this run the director held a real
+  kill for 35 s ("Golden jackal #76: it made a kill 5 s ago; feeding on a carcass; 70% fed" ... "95% fed"), then a herd
+  shot; after save/close/Continue the lived-as deer's history still listed possession and release.
+- Provenance: stills, contact sheet, video and stage log were recorded at `089f7d4` (before the final >40 m
+  group-spread rule, which only removes wide group shots).
 - Journey stills and contact sheet: `docs/evidence/ux01/journey-*.jpg`, `journey-contact-sheet.jpg`.
 - Journey video (unedited, SwiftShader, re-encoded 640 px / 3 fps): `docs/evidence/ux01/journey-walkthrough-640p.webm`.
   Full-resolution recording is produced by `npm run journey` under `test-artifacts/playwright/`.

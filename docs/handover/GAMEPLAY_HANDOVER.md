@@ -139,8 +139,8 @@ drought experiment, save/close/Continue with the lived-as deer's history intact.
 | Area | Test | Status |
 |---|---|---|
 | Director (existing 15, Gemini/GPT-6/integration) | `tests/unit/curiosity.test.ts` | pass; the glide-cap test now runs with cuts disabled (`cutDistanceM: Infinity`) so the original assertion is unchanged |
-| Director V1 (9 new) | same file: cut only on black + visible speed cap, glide when near, cadence, group shot, herd flight hold, continuity, side-on + LOS avoidance, no fade flash, determinism | pass |
-| Social Lens history (6 new) | `tests/unit/social-chronicle.test.ts`: real participants, hash unchanged, save/load round trip via structured clone, bounds, damaged data, noticed transitions | pass |
+| Director V1 (11 new) | same file: cut only on black + visible speed cap, glide when near, cadence, group shot, herd flight hold, continuity, side-on + LOS avoidance, no fade flash, determinism, pause does not trigger a switch, scattered herds are not group shots | pass |
+| Social Lens history (8 new) | `tests/unit/social-chronicle.test.ts`: real participants, hash unchanged, save/load round trip via structured clone, bounds, damaged data, noticed transitions, alarm flood cannot evict notable entries, save between scans is complete | pass |
 | Browser: experience (5 new) | `tests/e2e/experience.spec.ts` (in `npm run test:e2e`): history survives save/close/Continue (exact snapshot and lines); documentary Curiosity jumps only with a relocation on black, no caption over black, fade cleared on exit, no internal labels; observer coast-and-settle, double-click follow, follow glide by per-frame sampling; chital cues equal the deer's own state, toggle actions; field guide, hints, ARIA, dialog focus, persisted preferences | pass locally and in CI run 45399663928 |
 | Browser: existing Curiosity comfort test | `gameplay.spec.ts:498`: the 25 m per-100 ms step limit now exempts only an interval in which a relocation-on-black happened (limit unchanged) | pass (CI 45399663928) |
 | Browser: journey | `tests/e2e/journey.spec.ts` (opt-in, video) | see review package |

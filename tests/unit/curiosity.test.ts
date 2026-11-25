@@ -542,4 +542,12 @@ describe('CuriosityDirector', () => {
     expect(d.getCurrentTarget()!.animalId).toBe(1);
     expect(d.switches).toBe(1);
   });
+
+  it('a herd scattered over a wide area is not offered as one group shot', () => {
+    const scattered = Array.from({ length: 9 }, (_, i) => makeAnimal({ id: 60 + i, x: 600 + i * 25, z: 500 + (i % 2) * 40, beh: 2, speed: 0.3, group: 8 }));
+    const d = new CuriosityDirector();
+    d.start({ x: 700, y: 30, z: 560, lookX: 700, lookY: 12, lookZ: 520 });
+    const t = d.update(makeSnapshot(scattered), 0.1)!;
+    expect(t.kind).not.toBe('group');
+  });
 });
