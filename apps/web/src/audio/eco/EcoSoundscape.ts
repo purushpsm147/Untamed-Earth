@@ -174,9 +174,9 @@ export class EcoSoundscape {
     this.beds = { wind, leaves, grass, rain, canopy, distant, river, riverLp, riverPanner, chorus };
   }
 
-  private makePanner(ref: number, rolloff: number, max: number): PannerNode {
+  private makePanner(ref: number, rolloff: number, max: number, model: PanningModelType = this.opts.panningModel): PannerNode {
     const p = this.ctx.createPanner();
-    p.panningModel = this.opts.panningModel;
+    p.panningModel = model;
     p.distanceModel = 'inverse';
     p.refDistance = ref;
     p.rolloffFactor = rolloff;
@@ -249,7 +249,9 @@ export class EcoSoundscape {
     const g = new VoiceGraph(this.ctx);
     const lp = g.filter('lowpass', occ.cutoffHz, 0.5);
     const vg = g.gain(level * occ.gain);
-    const pan = g.node(this.makePanner(ref, rolloff, Math.max(maxD, ref + 1)));
+    // Short movement transients use equal-power panning: building an HRTF panner per footfall made a walking herd
+    // render slower than real time (measured 0.8x offline). Calls and the river keep the configured model.
+    const pan = g.node(this.makePanner(ref, rolloff, Math.max(maxD, ref + 1), category === 'movement' ? 'equalpower' : this.opts.panningModel));
     setPos(pan, pos, at);
     lp.connect(vg).connect(pan).connect(this.out);
     plan.build(g, lp, at, this.noise);
@@ -273,10 +275,25 @@ export class EcoSoundscape {
     v.ended++;
     if (v.ended < v.graph.sources.length) return;
     // Offline rendering: 'ended' fires at an arbitrary point of the render, so releasing there would cut tails at
-    // non-reproducible positions. Nodes of an offline render are released by dispose() after rendering.
+    // non-reproducible positions. The recorder suspends the render once per second and calls releaseEnded().
     if (this.offline) return;
     // Live: keep the tail (filter + HRTF) and release a little later. Wall-clock delay is fine: it only frees nodes.
     setTimeout(() => this.releaseVoice(v), TAIL_S * 1000);
+  }
+
+  /**
+   * Release every voice whose scheduled end plus tail is at or before audio time `now`. Used by the offline
+   * recorder at suspend points (deterministic render positions); finished graphs otherwise keep being processed.
+   */
+  releaseEnded(now: number): number {
+    let n = 0;
+    for (const v of [...this.voices.values()]) {
+      if (v.endAt + TAIL_S <= now) {
+        this.releaseVoice(v);
+        n++;
+      }
+    }
+    return n;
   }
 
   private releaseVoice(v: LiveVoice): void {

@@ -45,8 +45,9 @@ export interface AudioLabApi {
   referenceHash(id: string, ticks: number): number;
   stepFrames(n: number): void;
   record(id: string, seconds?: number, opts?: import('./render').RenderOptions): Promise<Omit<Recording, 'buffer'> & { channels: number; length: number }>;
-  recordWav(id: string, seconds?: number): Promise<{ meta: Recording['meta']; cues: Cue[]; wavBase64: string }>;
+  recordWav(id: string, seconds?: number, opts?: import('./render').RenderOptions): Promise<{ meta: Recording['meta']; cues: Cue[]; wavBase64: string }>;
   calibration(model?: PanningModelType): Promise<Awaited<ReturnType<typeof renderCalibration>>['channelRms']>;
+  calibrationWav(): Promise<{ wavBase64: string; burstsAt: { t: number; azimuthDeg: number }[]; channelRms: { azimuthDeg: number; left: number; right: number }[] }>;
   frameCostMs(): number;
   /** Render a scenario twice and compare sample by sample: max |a-b| and its level in dBFS. */
   diffRenders(id: string, seconds: number): Promise<{ hashA: string; hashB: string; maxAbsDiff: number; maxDiffDbfs: number; differingSamples: number; total: number }>;
@@ -339,12 +340,16 @@ export function mountAudioLab(audio: AudioEngine): AudioLabApi {
       const rec = await renderScenario(sc, { ...opts, seconds });
       return { scenario: rec.scenario, seconds: rec.seconds, sampleRate: rec.sampleRate, cues: rec.cues, meta: rec.meta, channels: rec.buffer.numberOfChannels, length: rec.buffer.length };
     },
-    recordWav: async (id, seconds) => {
+    recordWav: async (id, seconds, opts) => {
       const sc = AUDIO_SCENARIOS.find((s) => s.id === id)!;
-      const rec = await renderScenario(sc, { seconds });
+      const rec = await renderScenario(sc, { ...opts, seconds });
       return { meta: rec.meta, cues: rec.cues, wavBase64: toBase64(encodeWav(rec.buffer)) };
     },
     calibration: async (model) => (await renderCalibration(model)).channelRms,
+    calibrationWav: async () => {
+      const c = await renderCalibration('HRTF');
+      return { wavBase64: toBase64(encodeWav(c.buffer)), burstsAt: c.burstsAt, channelRms: c.channelRms };
+    },
     frameCostMs: () => frameMs,
     diffRenders: async (id, seconds) => {
       const sc = AUDIO_SCENARIOS.find((s) => s.id === id)!;

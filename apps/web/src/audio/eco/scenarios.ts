@@ -158,24 +158,26 @@ export function prepareScenario(sc: AudioScenario): PreparedScenario {
     }
     case 'event-scan': {
       // Look ahead on a clone for a VOICED alarm or a kill in the recording window. If the window has none, the
-      // original world is advanced one game minute (60 x 1 s steps, before any snapshot is used) and the look-ahead
-      // repeats, up to 40 times. The listener and snapshot are taken at the start of the window that has the event.
+      // original world is advanced ten game minutes (10 x 1 s steps; 1 s at 1x = 1 game minute) and the look-ahead
+      // repeats, up to 60 times (10 game hours). The listener and snapshot are taken at the start of the window that has the event.
       const voiced = new Set(['chital', 'crow', 'myna', 'boar']);
       let seen: (EcoAudioEvent & { t: number })[] = [];
       let pick: (EcoAudioEvent & { t: number }) | undefined;
       let tries = 0;
-      for (; tries < 40 && !pick; tries++) {
-        if (tries > 0) for (let i = 0; i < 60; i++) sim.step(1);
+      for (; tries < 60 && !pick; tries++) {
+        if (tries > 0) for (let i = 0; i < 10; i++) sim.step(1);
         const start = sim.tick;
         const clone = new Simulation(sc.seed, sim.snapshot());
         seen = [];
         const off = onAudioEvents(clone, (e) => {
           if (e.kind === 'alarm' || e.kind === 'kill') seen.push({ ...e, t: (clone.tick - start) * 0.1 });
         });
-        const ticks = Math.round((sc.seconds - 15) * sc.simRate * 10);
+        // the look-ahead covers the whole recording (so the cue sheet lists every real event in it); the target event
+        // must start at least 15 s before the end
+        const ticks = Math.round(sc.seconds * sc.simRate * 10);
         for (let i = 0; i < ticks; i++) clone.step(0.1);
         off();
-        pick = seen.find((e) => e.t > 5 && (e.kind === 'kill' || voiced.has(e.species)));
+        pick = seen.find((e) => e.t > 5 && e.t < sc.seconds - 15 && (e.kind === 'kill' || voiced.has(e.species)));
       }
       snapshot = sim.snapshot();
       if (pick) {
@@ -189,7 +191,7 @@ export function prepareScenario(sc: AudioScenario): PreparedScenario {
         note = `look-ahead (${tries} window(s)) found ${seen.length} alarm/kill events; listener 45 m from the ${pick.kind} by ${pick.species} at t=${pick.t.toFixed(1)} s, which should be ~45 degrees to the right`;
       } else {
         listener = groundPose(sim, 700, 700, 0);
-        note = 'look-ahead found no voiced alarm or kill in 40 windows: this recording contains no event calls';
+        note = 'look-ahead found no voiced alarm or kill in 60 windows: this recording contains no event calls';
       }
       break;
     }

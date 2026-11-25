@@ -146,9 +146,9 @@ test.describe('ecological soundscape lab', () => {
     await open(page);
     // Chromium sums a node's inputs in a run-dependent order, so two renders differ by float rounding only
     // (measured ~1e-7, about -123 dBFS). Gate: every sample within 1e-5 (-100 dBFS, below 16-bit resolution).
-    const diff = await page.evaluate(() => window.__audioLab.diffRenders('predator-alarm', 20));
+    const diff = await page.evaluate(() => window.__audioLab.diffRenders('predator-alarm', 60));
     expect(diff.maxAbsDiff).toBeLessThan(1e-5);
-    const a = await page.evaluate(() => window.__audioLab.record('predator-alarm', 20));
+    const a = await page.evaluate(() => window.__audioLab.record('predator-alarm'));
     // The look-ahead (same engine) chose the event the listener was placed for: 45 m away, 45 degrees right.
     // Determinism is per JS engine, so which event that is differs between Node and Chromium; check against it.
     const expected = a.meta.expected as { t: number; kind: string; species: string; d: number }[];

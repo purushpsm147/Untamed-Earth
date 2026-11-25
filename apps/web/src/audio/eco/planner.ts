@@ -203,7 +203,10 @@ export class SoundscapePlanner {
     const warm = clamp((a.temperatureC - 14) / 8, 0, 1);
     const nearWater = Math.max(h.wetland, clamp(1 - h.riverDistance / 120, 0, 1));
     return {
-      wind: on * clamp(0.018 + 0.026 * windEff, 0, 0.42),
+      // At ear level a light breeze is heard mostly through vegetation (leaves/grass below); low-frequency wind
+      // rumble is largely a microphone artefact, so the low layer only grows above a light breeze (~3 m/s).
+      // Measured before this change: 63-250 Hz within 5 dB of the total in every scenario (docs/evidence/audio).
+      wind: on * clamp(0.006 + 0.03 * clamp((windEff - 3) / 6, 0, 1.5), 0, 0.3),
       windCutoff: 170 + 42 * windEff,
       leaves: on * clamp(Math.pow(h.forest, 0.8) * Math.pow(windEff / 8, 1.4) * 0.26, 0, 0.3),
       leavesCutoff: 2100 + 110 * windEff,
@@ -217,7 +220,7 @@ export class SoundscapePlanner {
       insectChirpRate: chirpRate(a.temperatureC),
       cicadas: on * a.daylight * (1 - tw) * hot * (a.season === 'Summer' || a.season === 'Monsoon' ? 1 : 0.2) * h.forest * (heavyRain ? 0.1 : 1) * 0.03,
       frogs: on * wetSeason * Math.pow(night, 1.1) * nearWater * Math.min(1, faunaN) * (0.5 + 0.5 * clamp(a.rain / 2, 0, 1)) * 0.06,
-      distant: on * (0.006 + 0.004 * clamp(windEff / 6, 0, 1)),
+      distant: on * (0.003 + 0.003 * clamp(windEff / 6, 0, 1)),
       dayPart: dayPart(a),
       gust: this.gust,
     };

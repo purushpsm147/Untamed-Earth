@@ -14,6 +14,8 @@ import { prepareScenario, type AudioScenario } from '../../audio/eco/scenarios';
 export const SAMPLE_RATE = 48000;
 const FPS = 20;
 const TICK = 0.1;
+/** Scheduling window for just-in-time offline rendering, seconds (a multiple of the 128-frame quantum at 48 kHz). */
+const WINDOW = 0.48;
 
 export interface Recording {
   scenario: string;
@@ -32,6 +34,7 @@ export interface Recording {
     counters: EcoSoundscape['counters'];
     route: Record<string, number>;
     poolPeak: number;
+    releasedDuringRender: number;
     prepareMs: number;
     scheduleMs: number;
     renderMs: number;
@@ -75,18 +78,34 @@ export async function renderScenario(sc: AudioScenario, o: RenderOptions = {}): 
   const startTick = sim.tick;
   let acc = 0;
   const frames = Math.floor(seconds * FPS);
-  for (let i = 0; i < frames; i++) {
-    const t = i / FPS;
-    acc += (1 / FPS) * sc.simRate;
-    while (acc >= TICK - 1e-9) {
-      sim.step(TICK);
-      acc -= TICK;
+  let next = 0;
+  // Just-in-time scheduling, like the live lab: frames are scheduled one WINDOW ahead from sample-accurate suspend
+  // points. Scheduling the whole recording up front kept every future voice connected (and processed) from t=0,
+  // which made render cost grow with the square of the voice count (a walking herd rendered at 0.8x real time).
+  const scheduleUntil = (tEnd: number): void => {
+    for (; next < frames && next / FPS < tEnd; next++) {
+      const t = next / FPS;
+      acc += (1 / FPS) * sc.simRate;
+      while (acc >= TICK - 1e-9) {
+        sim.step(TICK);
+        acc -= TICK;
+      }
+      scape.frame(fb.build(prep.listener, 1 / FPS, t, sc.simRate), t);
     }
-    scape.frame(fb.build(prep.listener, 1 / FPS, t, sc.simRate), t);
+  };
+  let released = 0;
+  scheduleUntil(WINDOW);
+  for (let k = 1; k * WINDOW < seconds; k++) {
+    const t = k * WINDOW;
+    void ctx.suspend(t).then(() => {
+      released += scape.releaseEnded(t);
+      scheduleUntil(t + WINDOW);
+      return ctx.resume();
+    });
   }
-  observer.dispose();
   const t2 = performance.now();
   const buffer = await ctx.startRendering();
+  observer.dispose();
   const t3 = performance.now();
   const tel = scape.telemetry();
   scape.dispose();
@@ -95,8 +114,9 @@ export async function renderScenario(sc: AudioScenario, o: RenderOptions = {}): 
     meta: {
       note: prep.note, conditions: prep.conditions, listener: prep.listener, expected: prep.expected,
       simTickStart: startTick, simTickEnd: sim.tick, simHashEnd: sim.stateHash(),
-      counters: tel.counters, route: tel.route, poolPeak: tel.poolPeak,
-      prepareMs: Math.round(t1 - t0), scheduleMs: Math.round(t2 - t1), renderMs: Math.round(t3 - t2),
+      counters: tel.counters, route: tel.route, poolPeak: tel.poolPeak, releasedDuringRender: released,
+      prepareMs: Math.round(t1 - t0), scheduleMs: Math.round(t2 - t1), renderMs: Math.round(t3 - t2), // renderMs includes the windowed scheduling
+
       renderSpeed: Math.round((seconds / ((t3 - t2) / 1000)) * 10) / 10,
       sampleHash: hashBuffer(buffer),
     },
