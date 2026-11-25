@@ -25,5 +25,7 @@ export default defineConfig({
     { name: 'locomotion-capture', testMatch: 'tests/e2e/locomotion-capture.spec.ts', use: { video: 'on' } },
     // opt-in visual evidence for the open valley boundary (issue #29; not in npm run test:e2e)
     { name: 'boundary-capture', testMatch: 'tests/e2e/boundary-capture.spec.ts', use: { video: 'on' } },
+    // opt-in visual evidence for maternal behaviour (issue #31; not in npm run test:e2e)
+    { name: 'maternal-capture', testMatch: 'tests/e2e/maternal-capture.spec.ts', use: { video: 'on' } },
   ],
 });

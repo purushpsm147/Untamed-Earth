@@ -1,7 +1,7 @@
-export type Action = 'eat' | 'drink' | 'rest' | 'release' | 'pause' | 'follow' | 'control' | 'diag' | 'help' | 'speedUp' | 'speedDown' | 'capture' | 'mute' | 'stats' | 'curiosity' | 'skip' | 'levelCamera';
+export type Action = 'eat' | 'drink' | 'rest' | 'defend' | 'release' | 'pause' | 'follow' | 'control' | 'diag' | 'help' | 'speedUp' | 'speedDown' | 'capture' | 'mute' | 'stats' | 'curiosity' | 'skip' | 'levelCamera';
 
 const KEY_ACTIONS: Record<string, Action> = {
-  KeyE: 'eat', KeyF: 'drink', KeyR: 'rest', KeyX: 'release', Escape: 'pause', KeyG: 'follow', KeyP: 'control', F3: 'diag', KeyH: 'help',
+  KeyE: 'eat', KeyF: 'drink', KeyR: 'rest', KeyZ: 'defend', KeyX: 'release', Escape: 'pause', KeyG: 'follow', KeyP: 'control', F3: 'diag', KeyH: 'help',
   BracketRight: 'speedUp', BracketLeft: 'speedDown', KeyC: 'capture', KeyM: 'mute', KeyT: 'stats', KeyV: 'curiosity', KeyN: 'skip', KeyB: 'levelCamera',
 };
 /** Standard-mapping gamepad buttons. */

@@ -301,7 +301,7 @@ export class Game {
           e.preventDefault();
           if (hold === 'up') this.input.touchY = down ? 1 : 0;
           else if (hold === 'down') this.input.touchY = down ? -1 : 0;
-          else this.input.hold(hold as 'eat' | 'drink', down);
+          else this.input.hold(hold as 'eat' | 'drink' | 'defend', down);
         };
         b.addEventListener('pointerdown', set(true), sig);
         b.addEventListener('pointerup', set(false), sig);
@@ -617,7 +617,7 @@ export class Game {
           mz = (yz * i.moveZ + yx * i.moveX) / m;
           this.restToggle = false;
         }
-        this.sim.control = { mx, mz, run: i.fast, action: i.isHeld('eat') ? 'eat' : i.isHeld('drink') ? 'drink' : this.restToggle ? 'rest' : null };
+        this.sim.control = { mx, mz, run: i.fast, action: i.isHeld('defend') ? 'defend' : i.isHeld('eat') ? 'eat' : i.isHeld('drink') ? 'drink' : this.restToggle ? 'rest' : null };
       }
       return;
     }
@@ -825,6 +825,9 @@ export class Game {
       const forage = env.vegFrac(env.cellIndex(w.x, w.z));
       const tips: string[] = [];
       if (w.fear > 0.3) tips.push('Predator close — run (Shift)!');
+      // issue #31: maternal awareness for a player-controlled mother (the young stay autonomous)
+      const young = this.sim.youngThreat(w);
+      if (young) tips.unshift(`Your ${w.sp === 0 ? 'fawn' : 'young'} is in danger (${Math.round(Math.hypot(young.x - w.x, young.z - w.z))} m) — hold Z: defend`);
       if (water) tips.push(water === 2 ? 'F: drink (this pool smells foul)' : 'F: drink');
       tips.push(forage > 0.12 ? `E: graze (forage ${Math.round(forage * 100)}%)` : 'Grazed bare here — move on');
       tips.push(this.restToggle ? 'Resting… (move to get up)' : 'R: rest');

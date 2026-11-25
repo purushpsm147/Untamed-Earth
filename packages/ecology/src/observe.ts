@@ -19,12 +19,15 @@ export const OBSERVE_CONTRACT_VERSION = 1;
 /** Coarse behaviour family for animation selection. Derived from the simulation's behaviour code. */
 export type BehaviorFamily =
   | 'idle' | 'wander' | 'graze' | 'travel-to-water' | 'drink' | 'rest' | 'flee' | 'court'
-  | 'stalk' | 'chase' | 'travel-to-carrion' | 'feed' | 'roost' | 'follow-mother' | 'regroup';
+  | 'stalk' | 'chase' | 'travel-to-carrion' | 'feed' | 'roost' | 'follow-mother' | 'regroup'
+  // issue #31 (additive): watching an approaching animal; a mother defending her young; a newborn lying hidden
+  | 'alert' | 'defend' | 'hide';
 
 const FAMILY: Record<number, BehaviorFamily> = {
   [B.Idle]: 'idle', [B.Wander]: 'wander', [B.Forage]: 'graze', [B.SeekWater]: 'travel-to-water', [B.Drink]: 'drink',
   [B.Rest]: 'rest', [B.Flee]: 'flee', [B.SeekMate]: 'court', [B.Stalk]: 'stalk', [B.Chase]: 'chase',
   [B.SeekCarrion]: 'travel-to-carrion', [B.Feed]: 'feed', [B.Roost]: 'roost', [B.Follow]: 'follow-mother', [B.Regroup]: 'regroup',
+  [B.Alert]: 'alert', [B.Defend]: 'defend', [B.Hide]: 'hide',
 };
 
 /** Behaviour family of one animal without building a full view (per-frame use by renderers). */

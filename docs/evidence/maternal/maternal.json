@@ -1,0 +1,217 @@
+{
+  "1-fawn-resting-beside-mother": {
+    "tick": 646,
+    "near": [
+      {
+        "id": 217,
+        "sp": 0,
+        "beh": "Resting",
+        "x": 300,
+        "z": 300,
+        "fear": 0
+      },
+      {
+        "id": 219,
+        "sp": 0,
+        "beh": "Resting",
+        "x": 303,
+        "z": 301,
+        "fear": 0
+      }
+    ],
+    "interactions": {
+      "defends": 0,
+      "chargeContacts": 0,
+      "jackalInjuries": 0,
+      "huntsAbandoned": 0,
+      "alerts": 0,
+      "withdrawals": 0,
+      "hiderBolts": 0
+    },
+    "extra": null
+  },
+  "followSeen": true,
+  "2-fawn-follows-mother": {
+    "tick": 663,
+    "near": [
+      {
+        "id": 217,
+        "sp": 0,
+        "beh": "Wandering",
+        "x": 301.7,
+        "z": 300.5,
+        "fear": 0
+      },
+      {
+        "id": 219,
+        "sp": 0,
+        "beh": "Following mother",
+        "x": 303,
+        "z": 301,
+        "fear": 0
+      }
+    ],
+    "interactions": {
+      "defends": 0,
+      "chargeContacts": 0,
+      "jackalInjuries": 0,
+      "huntsAbandoned": 0,
+      "alerts": 0,
+      "withdrawals": 0,
+      "hiderBolts": 0
+    },
+    "extra": null
+  },
+  "defendSeen": true,
+  "3-chital-mother-defends": {
+    "tick": 678,
+    "near": [
+      {
+        "id": 222,
+        "sp": 0,
+        "beh": "Defending young",
+        "x": 292,
+        "z": 300.1,
+        "fear": 0.28
+      },
+      {
+        "id": 224,
+        "sp": 0,
+        "beh": "Fleeing",
+        "x": 297.8,
+        "z": 300.3,
+        "fear": 0.75
+      },
+      {
+        "id": 226,
+        "sp": 2,
+        "beh": "Alert",
+        "x": 315,
+        "z": 300,
+        "fear": 0
+      }
+    ],
+    "interactions": {
+      "defends": 1,
+      "chargeContacts": 0,
+      "jackalInjuries": 0,
+      "huntsAbandoned": 0,
+      "alerts": 1,
+      "withdrawals": 0,
+      "hiderBolts": 0
+    },
+    "extra": null
+  },
+  "chargeSeen": true,
+  "4-sow-charges": {
+    "tick": 692,
+    "near": [
+      {
+        "id": 228,
+        "sp": 1,
+        "beh": "Defending young",
+        "x": 293.8,
+        "z": 300,
+        "fear": 0
+      },
+      {
+        "id": 230,
+        "sp": 1,
+        "beh": "Fleeing",
+        "x": 299,
+        "z": 299,
+        "fear": 0.66
+      },
+      {
+        "id": 232,
+        "sp": 2,
+        "beh": "Alert",
+        "x": 313,
+        "z": 300,
+        "fear": 0
+      }
+    ],
+    "interactions": {
+      "defends": 2,
+      "chargeContacts": 0,
+      "jackalInjuries": 0,
+      "huntsAbandoned": 0,
+      "alerts": 2,
+      "withdrawals": 0,
+      "hiderBolts": 0
+    },
+    "extra": null
+  },
+  "withdrawSeen": true,
+  "5-jackal-withdraws": {
+    "tick": 722,
+    "near": [
+      {
+        "id": 228,
+        "sp": 1,
+        "beh": "Idle",
+        "x": 312.8,
+        "z": 300,
+        "fear": 0
+      },
+      {
+        "id": 230,
+        "sp": 1,
+        "beh": "Fleeing",
+        "x": 300.6,
+        "z": 307,
+        "fear": 0.57
+      },
+      {
+        "id": 232,
+        "sp": 2,
+        "beh": "Fleeing",
+        "x": 313.1,
+        "z": 299.2,
+        "fear": 0.77
+      }
+    ],
+    "interactions": {
+      "defends": 2,
+      "chargeContacts": 1,
+      "jackalInjuries": 0,
+      "huntsAbandoned": 0,
+      "alerts": 2,
+      "withdrawals": 0,
+      "hiderBolts": 0
+    },
+    "extra": null
+  },
+  "alertSeen": true,
+  "6-jackal-alert": {
+    "tick": 734,
+    "near": [
+      {
+        "id": 234,
+        "sp": 2,
+        "beh": "Alert",
+        "x": 300,
+        "z": 300,
+        "fear": 0
+      },
+      {
+        "id": 236,
+        "sp": 0,
+        "beh": "Wandering",
+        "x": 320.9,
+        "z": 300.3,
+        "fear": 0
+      }
+    ],
+    "interactions": {
+      "defends": 3,
+      "chargeContacts": 1,
+      "jackalInjuries": 0,
+      "huntsAbandoned": 0,
+      "alerts": 3,
+      "withdrawals": 0,
+      "hiderBolts": 0
+    },
+    "extra": null
+  }
+}
